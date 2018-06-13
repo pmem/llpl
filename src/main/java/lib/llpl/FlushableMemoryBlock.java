@@ -44,7 +44,7 @@ class FlushableMemoryBlock extends MemoryBlock<Flushable> {
         if (startFlushAddr != endFlushAddr) addressRanges.put(endFlushAddr, 0L);
     }
 
-    void markDirty() {
+    private void markDirty() {
         if (isFlushed()) {
             long address = directAddress() + FLUSH_FLAG_OFFSET;
             setAbsoluteInt(address, DIRTY);

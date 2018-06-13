@@ -36,7 +36,34 @@ class TransactionTest {
             });
             assert(block1.getLong(8) == 2000);
         });
+
+
+        MemoryBlock<Raw> block2 = h.allocateMemoryBlock(Raw.class, 100);
+        Transaction t2 = new Transaction();
+        t2.execute(() -> {
+            block2.setTransactionalLong(4, 1000);
+            block2.setTransactionalInt(0, 777);
+            assert(block2.getLong(4)) == 1000;
+            assert(block2.getInt(0)) == 777;
+            foo(t2, block2, 888);
+            assert(block2.getLong(10) == 888);
+            // this produces a flattened inner transaction
+            new Transaction().execute(() -> {
+                block1.setTransactionalLong(8, 2000);
+            });
+            assert(block1.getLong(8) == 2000);
+        });
+        // this will be a new top-level transaction
+        foo(new Transaction(), block2, 999);
+        assert(block2.getLong(10) == 999);
             
         System.out.println("=================================All Transaction tests passed====================");
     }
+
+    private static void foo(Transaction tx, MemoryBlock<Raw> block, long x) {
+        tx.execute(() -> {
+            block.setTransactionalLong(10, x);
+        });
+    }
+
 }

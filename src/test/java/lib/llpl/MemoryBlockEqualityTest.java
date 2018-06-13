@@ -1,15 +1,14 @@
-/* 
+/*
  * Copyright (C) 2018 Intel Corporation
  *
  * SPDX-License-Identifier: BSD-3-Clause
- * 
+ *
  */
 
 package lib.llpl;
 
 import java.util.Map;
 import java.util.HashMap;
-import java.util.TreeMap;
 
 class MemoryBlockEqualityTest {
     public static void main(String[] args) {
@@ -27,13 +26,6 @@ class MemoryBlockEqualityTest {
         assert(hm.size() == 1);
         assert(hm.get(mb) == 2);
 
-        TreeMap<MemoryBlock<?>, Integer> tm = new TreeMap<>();
-        assert(tm.size() == 0);
-        tm.put(mb2, 2);
-        tm.put(mb, 1);
-        assert(tm.size() == 1);
-        assert(tm.get(mb2) == 1);
-
         h.freeMemoryBlock(mb);
 
         mb = h.allocateMemoryBlock(Flushable.class, 10);
@@ -49,13 +41,6 @@ class MemoryBlockEqualityTest {
         assert(hm.size() == 1);
         assert(hm.get(mb) == 2);
 
-        tm = new TreeMap<>();
-        assert(tm.size() == 0);
-        tm.put(mb2, 2);
-        tm.put(mb, 1);
-        assert(tm.size() == 1);
-        assert(tm.get(mb2) == 1);
-
         h.freeMemoryBlock(mb);
 
         mb = h.allocateMemoryBlock(Transactional.class, 10);
@@ -70,13 +55,6 @@ class MemoryBlockEqualityTest {
         hm.put(mb2, 2);
         assert(hm.size() == 1);
         assert(hm.get(mb) == 2);
-
-        tm = new TreeMap<>();
-        assert(tm.size() == 0);
-        tm.put(mb2, 2);
-        tm.put(mb, 1);
-        assert(tm.size() == 1);
-        assert(tm.get(mb2) == 1);
 
         h.freeMemoryBlock(mb);
 

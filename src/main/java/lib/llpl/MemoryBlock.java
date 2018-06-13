@@ -7,12 +7,12 @@
 
 package lib.llpl;
 
-public abstract class MemoryBlock<K extends MemoryBlock.Kind> implements Comparable<MemoryBlock<K>> {
+public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
     protected static final long SIZE_OFFSET = 0;
 
     private long size;
-    private long address;
-    private long directAddress;
+    private long address;       // TODO: consider rename to offset or blockOffset
+    private long directAddress; // TODO: consider rename to address or blockAddress
 
     static {
         System.loadLibrary("llpl");
@@ -153,21 +153,12 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> implements Compara
         return this.address() == ((MemoryBlock)o).address();
     }
 
-    @Override
-    public int compareTo(MemoryBlock that) {
-        long diff = this.address() - that.address();
-        if (diff < 0) return -1;
-        else if (diff > 0) return 1;
-        else return 0;
-    }
-
     public void flush(long offset, long size) {
         checkValid();
         nativeFlush(payloadAddress(offset), size);
     }
 
     void flushAbsolute(long address, long size) {
-        checkValid();
         nativeFlush(address, size);
     }
 
@@ -185,22 +176,18 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> implements Compara
     }
 
     void setAbsoluteByte(long address, byte value) {
-        checkValid();
         Heap.UNSAFE.putByte(address, value);
     }
 
     void setAbsoluteShort(long address, short value) {
-        checkValid();
         Heap.UNSAFE.putShort(address, value);
     }
 
     void setAbsoluteInt(long address, int value) {
-        checkValid();
         Heap.UNSAFE.putInt(address, value);
     }
 
     void setAbsoluteLong(long address, long value) {
-        checkValid();
         Heap.UNSAFE.putLong(address, value);
     }
 
