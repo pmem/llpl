@@ -53,9 +53,6 @@ directory in your Java classpath and the project's ```target/cppbuild``` directo
    $ java -cp .:<path>/llpl/target/classes -Djava.library.path=<path>/llpl/target/cppbuild <class>
    ```
 
-## NOTES ON FUNCTIONALITY ##
-1. Currently only a single persistent Heap can be created.
-
 ## CONTRIBUTING ##
 Thanks for your interest! Right now, substantial architectural changes are still happening in the
 project.  This makes it difficult to contribute code and difficult to effectively process pull
@@ -65,5 +62,5 @@ code contributions once this happens.  We will update this README then.
 In the meantime, we would love to hear your comments and suggestions via the contacts listed below.
 
 ## Contacts ##
-For more information on this library, contact Lei Fan (lei.t.fan@intel.com), Steve Dohrmann
-(steve.dohrmann@intel.com), or Olasoji Denloye (olasoji.denloye@intel.com).
+For more information on this library, contact Olasoji Denloye (olasoji.denloye@intel.com) or Steve Dohrmann
+(steve.dohrmann@intel.com).
