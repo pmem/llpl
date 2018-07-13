@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeStartTransaction
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jlong);
 
 
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeEndTransaction

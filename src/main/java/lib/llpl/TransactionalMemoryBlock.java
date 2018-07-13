@@ -11,11 +11,11 @@ class TransactionalMemoryBlock extends MemoryBlock<Transactional> {
     private static final long METADATA_SIZE = 8;
 
     TransactionalMemoryBlock(Heap heap, long size) {
-        super(heap, size);
+        super(heap, size, true);
     }
 
-    TransactionalMemoryBlock(long poolAddress, long offset) {
-        super(poolAddress, offset);
+    TransactionalMemoryBlock(Heap heap, long poolAddress, long offset) {
+        super(heap, poolAddress, offset, true);
     }
 
     @Override
@@ -60,18 +60,18 @@ class TransactionalMemoryBlock extends MemoryBlock<Transactional> {
 
     @Override
     public void copyFromMemory(MemoryBlock<?> srcBlock, long srcOffset, long dstOffset, long length) {
-        if (nativeMemoryBlockMemcpyTransactional(srcBlock.address(), srcBlock.baseOffset() + srcOffset, address(), baseOffset() + dstOffset, length) != 0)
+        if (nativeCopyBlockToBlock(heap().poolAddress(), srcBlock.directAddress(), srcBlock.baseOffset() + srcOffset, directAddress(), baseOffset() + dstOffset, length) != 0)
             throw new PersistenceException("Failed to copy from MemoryBlock");
     }
 
     @Override
     public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
-        nativeFromByteArrayMemcpyTransactional(srcArray, srcOffset, address(), baseOffset() + dstOffset, length);
+        nativeCopyFromByteArray(heap().poolAddress(), srcArray, srcOffset, directAddress(), baseOffset() + dstOffset, length);
     }
 
     @Override
     public void setMemory(byte val, long offset, long length) {
-        nativeMemoryBlockMemsetTransactional(address(), baseOffset() + offset, val, length);
+        nativeSetMemory(heap().poolAddress(), directAddress(), baseOffset() + offset, val, length);
     }
 
     @Override
@@ -79,7 +79,7 @@ class TransactionalMemoryBlock extends MemoryBlock<Transactional> {
         return METADATA_SIZE; 
     }
 
-    private native int nativeMemoryBlockMemcpyTransactional(long srcBlock, long srcOffset, long dstBlock, long dstOffset, long length);
-    private native int nativeFromByteArrayMemcpyTransactional(byte[] srcArray, int srcOffset, long dstBlock, long dstOffset, int length);
-    private native int nativeMemoryBlockMemsetTransactional(long block, long offset, int val, long length);
+    private static native int nativeCopyBlockToBlock(long poolAddress, long srcBlockDirectAddress, long srcOffset, long dstBlock, long dstOffset, long length);
+    private static native int nativeCopyFromByteArray(long poolAddress, byte[] srcArray, int srcOffset, long dstBlockDirectAddress, long dstOffset, int length);
+    private static native int nativeSetMemory(long poolAddress, long blockDirectAddress, long offset, int val, long length);
 }

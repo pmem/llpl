@@ -11,9 +11,9 @@ class MemoryBlockFreeTest {
     public static void main(String[] args) {
         Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
         MemoryBlock<?> mb = h.allocateMemoryBlock(Raw.class, 10);
-        assert(mb.address() != 0);
+        assert(mb.isValid());
         h.freeMemoryBlock(mb);
-        assert(mb.address() == 0);
+        assert(!mb.isValid());
         boolean caught = false;
         try {
             mb.checkValid();
@@ -23,9 +23,9 @@ class MemoryBlockFreeTest {
         assert(caught);
 
         mb = h.allocateMemoryBlock(Transactional.class, 10);
-        assert(mb.address() != 0);
+        assert(mb.isValid());
         h.freeMemoryBlock(mb);
-        assert(mb.address() == 0);
+        assert(!mb.isValid());
         caught = false;
         try {
             mb.checkValid();
@@ -35,9 +35,9 @@ class MemoryBlockFreeTest {
         assert(caught);
 
         mb = h.allocateMemoryBlock(Flushable.class, 10);
-        assert(mb.address() != 0);
+        assert(mb.isValid());
         h.freeMemoryBlock(mb);
-        assert(mb.address() == 0);
+        assert(!mb.isValid());
         caught = false;
         try {
             mb.checkValid();

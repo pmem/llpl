@@ -7,6 +7,7 @@
 
 package lib.llpl;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.io.File;
 import sun.misc.Unsafe;
@@ -25,26 +26,25 @@ public class Heap {
     }
 
     static Unsafe UNSAFE;
-    private static HashMap<String, Heap> heaps = new HashMap<>();
+    private static final Map<String, Heap> heaps = new HashMap<>();
     private boolean open;
     private String path;
     private long poolAddress;
+    private long size;
 
     private Heap(String path, long size) {
-        if (open) return;
         this.path = path;
+        this.size = size;
         this.open = true;
         poolAddress = nativeOpenHeap(path, size);
     }
 
-    public synchronized static Heap getHeap(String path, long size) {
-        Heap heap;
-        if (heaps.get(path) == null) {
+    public static synchronized Heap getHeap(String path, long size) {
+        Heap heap = heaps.get(path);
+        if (heap == null) {
             heap = new Heap(path, size);
             heaps.put(path, heap);
-        } else {
-            heap = heaps.get(path);
-        }
+        } 
         return heap;
     }
 
@@ -52,35 +52,48 @@ public class Heap {
         return heaps.get(path);
     }
 
-    public static boolean exists(String path) {
-        if (heaps.get(path) != null) return true;
-        else return new File(path).exists();
+    public static boolean freeHeap(String path) {
+        boolean result = false;
+        if (exists(path)) {
+            result = new File(path).delete();
+        }
+        return result;
     }
 
-    long poolAddress() {
-        return poolAddress;
+    public static boolean exists(String path) {
+        return heaps.get(path) != null || new File(path).exists();
+    }
+
+    public long size() {
+        return size;
     }
 
     @SuppressWarnings("unchecked")
     public <K extends MemoryBlock.Kind> MemoryBlock<K> allocateMemoryBlock(Class<K> kind, long size) {
-        if (kind == Raw.class)
+        if (kind == Unbounded.class)
+            return (MemoryBlock<K>)new UnboundedMemoryBlock(this, size);
+        else if (kind == Raw.class)
             return (MemoryBlock<K>)new RawMemoryBlock(this, size);
         else if (kind == Flushable.class)
             return (MemoryBlock<K>)new FlushableMemoryBlock(this, size);
         else if (kind == Transactional.class)
             return (MemoryBlock<K>)new TransactionalMemoryBlock(this, size);
-        else throw new IllegalArgumentException("Unknown Kind:  " + kind);
+        else throw new IllegalArgumentException("Unsupported Kind:  " + kind);
     }
 
     @SuppressWarnings("unchecked")
-    public <K extends MemoryBlock.Kind> MemoryBlock<K> memoryBlockFromAddress(Class<K> kind, long addr) {
+    public <K extends MemoryBlock.Kind> MemoryBlock<K> memoryBlockFromAddress(Class<K> kind, long address) {
+        if (kind == Unbounded.class)
+            return (MemoryBlock<K>)new UnboundedMemoryBlock(this, poolAddress, address);
         if (kind == Raw.class)
-            return (MemoryBlock<K>)new RawMemoryBlock(poolAddress, addr);
+            return (MemoryBlock<K>)new RawMemoryBlock(this, poolAddress, address);
         else if (kind == Flushable.class)
-            return (MemoryBlock<K>)new FlushableMemoryBlock(poolAddress, addr);
+            return (MemoryBlock<K>)new FlushableMemoryBlock(this, poolAddress, address);
         else if (kind == Transactional.class)
-            return (MemoryBlock<K>)new TransactionalMemoryBlock(poolAddress, addr);
-        else throw new IllegalArgumentException("Unknown Kind:  " + kind);
+            return (MemoryBlock<K>)new TransactionalMemoryBlock(this, poolAddress, address);
+        else if (kind == Unbounded.class)
+            return (MemoryBlock<K>)new UnboundedMemoryBlock(this, poolAddress, address);
+        else throw new IllegalArgumentException("Unsupported Kind:  " + kind);
     }
 
     @SuppressWarnings("unchecked")
@@ -91,7 +104,7 @@ public class Heap {
         }
 
         try {
-            return Transaction.run(() -> {
+            return Transaction.run(this, () -> {
                 MemoryBlock<K> result = allocateMemoryBlock(kind, newSize);
                 result.copyFromMemory(block, 0, 0, Math.min(newSize, block.size()));
                 if (block != null) freeMemoryBlock(block);
@@ -104,18 +117,18 @@ public class Heap {
     }
 
     public void freeMemoryBlock(MemoryBlock<?> block) {
-        if (nativeFree(block.address()) < 0) {
+        if (nativeFree(poolAddress, block.directAddress()) < 0) {
             throw new PersistenceException("Failed to free block");
         }
         block.markInvalid();
     }
 
     public long getRoot() {
-        return nativeGetRoot();
+        return nativeGetRoot(poolAddress);
     }
 
     public void setRoot(long val) {
-        if (nativeSetRoot(val) != 0) {
+        if (nativeSetRoot(poolAddress, val) != 0) {
             throw new PersistenceException("Failed to set root to " + val);
         }
     }
@@ -138,11 +151,18 @@ public class Heap {
         block.setMemory(val, offset, length);
     }
 
+    long poolAddress() {
+        return poolAddress;
+    }
+
+    long allocate(long size) {
+        return nativeAllocate(poolAddress, size);
+    }
+
     //TODO: check for unneeded synchronized
-    synchronized native long nativeAllocate(long size);
-    private synchronized native long nativeOpenHeap(String path, long size);
-    private synchronized native int nativeSetRoot(long val);
-    private synchronized native int nativeRealloc(long offset, long newSize);
-    private synchronized native int nativeFree(long addr);
-    private native long nativeGetRoot();
+    private static synchronized native long nativeAllocate(long poolAddress, long size); // looks thread-safe
+    private static synchronized native long nativeOpenHeap(String path, long size);      // keep synchronized
+    private static synchronized native int nativeSetRoot(long poolAddress, long val);    // keep synchronized
+    private static synchronized native int nativeFree(long poolAddress, long addr);      // looks thread-safe
+    private static native long nativeGetRoot(long poolAddress);                          // keep synchronized
 }

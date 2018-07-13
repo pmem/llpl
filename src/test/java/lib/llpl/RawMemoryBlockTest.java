@@ -11,7 +11,9 @@ class RawMemoryBlockTest {
     public static void main(String[] args) {
         Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
         MemoryBlock<Raw> block1 = h.allocateMemoryBlock(Raw.class, 16);
+        block1.setLong(3, 88888);
         MemoryBlock<Raw> block = h.memoryBlockFromAddress(Raw.class, block1.address());
+        assert(block.getLong(3) == 88888);
         block.setByte(0, (byte)5);
         assert(block.getByte(0) == (byte)5);
 

@@ -8,8 +8,8 @@
 package lib.llpl;
 
 public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
-    protected static final long SIZE_OFFSET = 0;
-
+    protected static final long SIZE_OFFSET = -8;
+    private final Heap heap;
     private long size;
     private long address;       // TODO: consider rename to offset or blockOffset
     private long directAddress; // TODO: consider rename to address or blockAddress
@@ -18,25 +18,31 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
         System.loadLibrary("llpl");
     }
 
-    MemoryBlock(Heap heap, long size) {
-        address = heap.nativeAllocate(size + baseOffset());
-        if (address == 0) throw new PersistenceException("Failed to allocate MemoryBlock of size " + size);
-        this.size = size;
-        directAddress = heap.poolAddress() + address;
-        long sizeAddress = directAddress + SIZE_OFFSET;
-        setAbsoluteLong(sizeAddress, size);
-        flushAbsolute(sizeAddress, 8);
+    public interface Kind {}
+
+    MemoryBlock(Heap heap, long size, boolean bounded) {
+        this.heap = heap;
+        new Transaction(heap).execute(() -> {
+            this.address = heap.allocate(size + baseOffset());
+            if (address == 0) throw new PersistenceException("Failed to allocate MemoryBlock of size " + size);
+            directAddress = heap.poolAddress() + address;
+            if (bounded) {
+                this.size = size;
+                setTransactionalLong(SIZE_OFFSET, size);
+            }
+        });
     }
 
-    MemoryBlock(long poolAddress, long offset) {
+    MemoryBlock(Heap heap, long poolAddress, long offset, boolean bounded) {
+        this.heap = heap;
         this.address = offset;
         this.directAddress = poolAddress + offset;
-        size = getLong(SIZE_OFFSET);
+        if (bounded) size = getLong(SIZE_OFFSET);
     }
 
-    abstract long baseOffset();
+    Heap heap() {return heap;}
 
-    public interface Kind {}
+    abstract long baseOffset();
 
     // these must interpret offsets as relative to the start of payload data
     public abstract void setByte(long offset, byte value);
@@ -53,23 +59,13 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
     public abstract void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length);
     public abstract void setMemory(byte val, long offset, long length);
 
-    public long address() {
-        return this.address;
-    }
-
-    public long size() {
-        return this.size;
-    }
-
+    public long address() {return this.address;}
+    public long size() {return this.size;}
     public void flush() {throw new UnsupportedOperationException();}
     public boolean isFlushed() {throw new UnsupportedOperationException();}
 
-    public void checkBounds(long offset) throws IndexOutOfBoundsException {
+    public void checkBounds(long offset) {
         if (offset < 0 || offset >= size) throw new IndexOutOfBoundsException();
-    }
-
-    long payloadAddress(long payloadOffset) {
-        return directAddress + baseOffset() + payloadOffset;
     }
 
     // these getters accept payload-relative offsets
@@ -124,22 +120,22 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
 
     public void setTransactionalByte(long offset, byte value) {
         checkValid();
-        nativeSetTransactionalByte(payloadAddress(offset), value);
+        nativeSetTransactionalByte(heap().poolAddress(), payloadAddress(offset), value);
     }
 
     public void setTransactionalShort(long offset, short value) {
         checkValid();
-        nativeSetTransactionalShort(payloadAddress(offset), value);
+        nativeSetTransactionalShort(heap().poolAddress(), payloadAddress(offset), value);
     }
 
     public void setTransactionalInt(long offset, int value) {
         checkValid();
-        nativeSetTransactionalInt(payloadAddress(offset), value);
+        nativeSetTransactionalInt(heap().poolAddress(), payloadAddress(offset), value);
     }
 
     public void setTransactionalLong(long offset, long value) {
         checkValid();
-        nativeSetTransactionalLong(payloadAddress(offset), value);
+        nativeSetTransactionalLong(heap().poolAddress(), payloadAddress(offset), value);
     }
 
     @Override
@@ -162,17 +158,25 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
         nativeFlush(address, size);
     }
 
+    long payloadAddress(long payloadOffset) {
+        return directAddress + baseOffset() + payloadOffset;
+    }
+
     long directAddress() {
         return directAddress;
     }
 
     void checkValid() {
-        if (address != 0) return;
+        if (directAddress != 0) return;
         throw new IllegalStateException();
     }
 
     void markInvalid() {
-        address = 0;
+        directAddress = 0;
+    }
+
+    public boolean isValid() {
+        return directAddress != 0;
     }
 
     void setAbsoluteByte(long address, byte value) {
@@ -227,16 +231,16 @@ public abstract class MemoryBlock<K extends MemoryBlock.Kind> {
         Heap.UNSAFE.putLong(payloadAddress(offset), value);
     }
 
-    native int nativeMemoryBlockMemcpyRaw(long srcBlock, long srcOffset, long dstBlock, long dstOffset, long length);
-    native int nativeFromByteArrayMemcpyRaw(byte[] srcArray, int srcOffset, long dstBlock, long dstOffset, int length);
-    native int nativeMemoryBlockMemsetRaw(long block, long offset, int val, long length);
+    static native int nativeCopyBlockToBlock(long srcBlockDirectAddress, long srcOffset, long dstBlock, long dstOffset, long length);
+    static native int nativeCopyFromByteArray(byte[] srcArray, int srcOffset, long dstBlockDirectAddress, long dstOffset, int length);
+    static native int nativeSetMemory(long blockDirectAddress, long offset, int val, long length);
 
     // transactional
-    native void nativeSetTransactionalByte(long address, byte value);
-    native void nativeSetTransactionalShort(long address, short value);
-    native void nativeSetTransactionalInt(long address, int value);
-    native void nativeSetTransactionalLong(long address, long value);
+    native static void nativeSetTransactionalByte(long poolAddress, long address, byte value);
+    native static void nativeSetTransactionalShort(long poolAddress, long address, short value);
+    native static void nativeSetTransactionalInt(long poolAddress, long address, int value);
+    native static void nativeSetTransactionalLong(long poolAddress, long address, long value);
 
-    native void nativeFlush(long address, long size);
-    native void addToTransaction(long address, long size);
+    native static void nativeFlush(long address, long size);
+    native static void addToTransaction(long address, long size);
 }

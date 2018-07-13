@@ -7,16 +7,13 @@
 
 package lib.llpl;
 
-class RawMemoryBlock extends MemoryBlock<Raw> {
-    private static final long METADATA_SIZE = 8;
-
-
-    RawMemoryBlock(Heap heap, long size) {
-        super(heap, size, true);
+class UnboundedMemoryBlock extends MemoryBlock<Unbounded> {
+    UnboundedMemoryBlock(Heap heap, long size) {
+        super(heap, size, false);
     }
 
-    RawMemoryBlock(Heap heap, long poolAddress, long offset) {
-        super(heap, poolAddress, offset, true);
+    UnboundedMemoryBlock(Heap heap, long poolAddress, long offset) {
+        super(heap, poolAddress, offset, false);
     }
 
     @Override
@@ -36,26 +33,36 @@ class RawMemoryBlock extends MemoryBlock<Raw> {
 
     @Override
     long baseOffset() { 
-        return METADATA_SIZE; 
+        return 0; 
+    }
+
+    @Override
+    public long size() { 
+        throw new UnsupportedOperationException(); 
+    }
+
+    @Override
+    public void checkBounds(long offset) {
+        throw new UnsupportedOperationException(); 
     }
 
     @Override
     public void setByte(long offset, byte value) {
-        setRawByte(offset, value);
+        setAbsoluteByte(directAddress() + offset, value);
     }
 
     @Override
     public void setShort(long offset, short value) {
-        setRawShort(offset, value);
+        setAbsoluteShort(directAddress() + offset, value);
     }
 
     @Override
     public void setInt(long offset, int value) {
-        setRawInt(offset, value);
+        setAbsoluteInt(directAddress() + offset, value);
     }
 
     @Override
     public void setLong(long offset, long value) {
-        setRawLong(offset, value);
+        setAbsoluteLong(directAddress() + offset, value);
     }
 }

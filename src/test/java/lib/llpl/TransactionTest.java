@@ -13,19 +13,19 @@ class TransactionTest {
         MemoryBlock<Transactional> block1 = h.allocateMemoryBlock(Transactional.class, 16);
 
         // thread-local syntax
-        Transaction.run(() -> {
+        Transaction.run(h, () -> {
             block1.setLong(4, 1000);
             block1.setInt(0, 777);
             assert(block1.getLong(4)) == 1000;
             assert(block1.getInt(0)) == 777;
-            Transaction.run(() -> {
+            Transaction.run(h, () -> {
                 block1.setLong(8, 2000);
             });
         });
         assert(block1.getInt(0) == 777);
 
         // parameter passing syntax
-        Transaction t1 = new Transaction();
+        Transaction t1 = new Transaction(h);
         t1.execute(() -> {
             block1.setLong(4, 1000);
             block1.setInt(0, 777);
@@ -39,7 +39,7 @@ class TransactionTest {
 
 
         MemoryBlock<Raw> block2 = h.allocateMemoryBlock(Raw.class, 100);
-        Transaction t2 = new Transaction();
+        Transaction t2 = new Transaction(h);
         t2.execute(() -> {
             block2.setTransactionalLong(4, 1000);
             block2.setTransactionalInt(0, 777);
@@ -48,16 +48,16 @@ class TransactionTest {
             foo(t2, block2, 888);
             assert(block2.getLong(10) == 888);
             // this produces a flattened inner transaction
-            new Transaction().execute(() -> {
+            new Transaction(h).execute(() -> {
                 block1.setTransactionalLong(8, 2000);
             });
             assert(block1.getLong(8) == 2000);
         });
         // this will be a new top-level transaction
-        foo(new Transaction(), block2, 999);
+        foo(new Transaction(h), block2, 999);
         assert(block2.getLong(10) == 999);
             
-        System.out.println("=================================All Transaction tests passed====================");
+        System.out.println("=================================All Transaction tests passed================================");
     }
 
     private static void foo(Transaction tx, MemoryBlock<Raw> block, long x) {

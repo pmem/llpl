@@ -20,20 +20,20 @@ public class Transaction {
 
     public enum State {None, Active, Committed, Aborted}
 
-    public Transaction() {
-        nativeStartTransaction();
+    public Transaction(Heap heap) {
+        nativeStartTransaction(heap.poolAddress());
         state = State.Active;
     }
 
     // static run methods track transaction with ThreadLocal
-    public static void run(Runnable body) {
-        run(() -> {body.run(); return (Void)null;});
+    public static void run(Heap heap, Runnable body) {
+        run(heap, () -> {body.run(); return (Void)null;});
     }
 
-    public static <T> T run(Supplier<T> body) {
+    public static <T> T run(Heap heap, Supplier<T> body) {
         Transaction transaction = tlTransaction.get();
         if (transaction == null || transaction.state != State.Active) {
-            tlTransaction.set(transaction = new Transaction());
+            tlTransaction.set(transaction = new Transaction(heap));
         }
         return transaction.execute(body);
     }
@@ -67,8 +67,8 @@ public class Transaction {
         return result;
     }
 
-    private native void nativeStartTransaction();
-    private native void nativeCommitTransaction();
-    private native void nativeEndTransaction();
-    private native void nativeAbortTransaction();
+    private static native void nativeStartTransaction(long poolAddress);
+    private static native void nativeCommitTransaction();
+    private static native void nativeEndTransaction();
+    private static native void nativeAbortTransaction();
 }

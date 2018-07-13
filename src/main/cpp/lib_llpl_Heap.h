@@ -14,22 +14,19 @@ extern "C" {
 #endif
 
 JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeAllocate
-  (JNIEnv *, jobject, jlong);
+  (JNIEnv *, jobject, jlong, jlong);
 
 JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeOpenHeap
   (JNIEnv *, jobject, jstring, jlong);
 
 JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeSetRoot
-  (JNIEnv *, jobject, jlong);
-
-JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeRealloc
   (JNIEnv *, jobject, jlong, jlong);
 
 JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeGetRoot
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, long);
 
 JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeFree
-  (JNIEnv *, jobject, jlong);
+  (JNIEnv *, jobject, jlong, jlong);
 
 #ifdef __cplusplus
 }

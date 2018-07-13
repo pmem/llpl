@@ -9,8 +9,9 @@
 #include "persistent_heap.h"
 
 JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeAllocate
-  (JNIEnv *env, jobject obj, jlong size)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong size)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     TOID(char) bytes = TOID_NULL(char);
 
     jlong ret = 0;
@@ -32,48 +33,35 @@ JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeOpenHeap
 }
 
 JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeSetRoot
-  (JNIEnv *env, jobject obj, jlong val)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong val)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     int ret = 0;
     TX_BEGIN(pool) {
-        D_RW(root)->root_val = (uint64_t)val;
+        long *root_address = (long *)pmemobj_direct(pmemobj_root(pool, 0));
+        pmemobj_tx_add_range_direct((const void *)root_address, 8);
+        *root_address = val;
     } TX_ONABORT {
         ret = -1;
     } TX_END
 
     return ret;
 }
-
-JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeRealloc
-  (JNIEnv *env, jobject obj, jlong offset, jlong new_size)
-{
-    PMEMoid oid = {get_uuid_lo(), (uint64_t)offset};
-    TOID(char) bytes;
-    TOID_ASSIGN(bytes, oid);
-
-    int ret = 0;
-    TX_BEGIN(pool) {
-        TX_REALLOC(bytes, new_size);
-    } TX_ONABORT {
-        ret = -1;
-    } TX_END
-
-    return ret;
-}
-
 
 JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeGetRoot
-  (JNIEnv *env, jobject obj)
+  (JNIEnv *env, jobject obj, jlong poolAddress)
 {
-    return D_RO(root)->root_val;
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
+    return (jlong)(pmemobj_root(pool, 0).off); 
 }
 
 JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeFree
-  (JNIEnv *env, jobject obj, jlong block_offset)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong block_direct_address)
 {
-    PMEMoid oid = {get_uuid_lo(), (uint64_t)block_offset};
+    PMEMoid oid = pmemobj_oid((const void*)block_direct_address);
     TOID(char) bytes;
     TOID_ASSIGN(bytes, oid);
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
 
     int ret = 0;
     TX_BEGIN(pool) {

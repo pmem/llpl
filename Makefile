@@ -32,7 +32,7 @@ ALL_CPP_SOURCES = $(wildcard $(CPP_SOURCE_DIR)/*.cpp)
 ALL_JAVA_SOURCES = $(wildcard $(JAVA_SOURCE_DIR)/$(PACKAGE_NAME)/*.java)
 ALL_OBJ = $(addprefix $(CPP_BUILD_DIR)/, $(notdir $(ALL_CPP_SOURCES:.cpp=.o)))
 
-ALL_TEST_SOURCES = $(addprefix $(TEST_DIR)/, FlushableMemoryBlockTest.java TransactionalMemoryBlockTest.java RawMemoryBlockTest.java MemoryBlockCollectionTest.java MemoryBlockFreeTest.java MemoryBlockEqualityTest.java CopyMemoryTest.java SetMemoryTest.java TransactionTest.java)
+ALL_TEST_SOURCES = $(addprefix $(TEST_DIR)/, FlushableMemoryBlockTest.java TransactionalMemoryBlockTest.java RawMemoryBlockTest.java MemoryBlockCollectionTest.java MemoryBlockFreeTest.java MemoryBlockEqualityTest.java CopyMemoryTest.java SetMemoryTest.java ReallocateTest.java TransactionTest.java UnboundedMemoryBlockTest.java MultipleHeapTest.java)
 ALL_TEST_CLASSES = $(addprefix $(TEST_CLASSES_DIR)/, $(notdir $(ALL_TEST_SOURCES:.java=.class)))
 
 LIBRARIES = $(addprefix $(CPP_BUILD_DIR)/, libllpl.so)
@@ -41,7 +41,7 @@ EXAMPLES_DIR = src/examples
 ALL_EXAMPLE_DIRS = $(wildcard $(EXAMPLES_DIR)/*)
 #$(addprefix $(EXAMPLES_DIR)/, reservations employees)
 
-all: sources examples
+all: sources examples testsources
 sources: cpp java
 cpp: $(LIBRARIES)
 java: classes

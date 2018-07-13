@@ -10,61 +10,34 @@
 #include <libpmemobj.h>
 #include <libpmem.h>
 
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeMemoryBlockMemcpyRaw
-  (JNIEnv *env, jobject obj, jlong src_block, jlong src_offset, jlong dest_block, jlong dest_offset, jlong length)
+JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeCopyBlockToBlock
+  (JNIEnv *env, jobject obj, jlong src_block_direct_address, jlong src_offset, jlong dest_block_direct_address, jlong dest_offset, jlong length)
 {
-    PMEMoid src_oid = {get_uuid_lo(), (uint64_t)src_block};
-    PMEMoid dest_oid = {get_uuid_lo(), (uint64_t)dest_block};
-
-    void* src = (void*)((uint64_t)pmemobj_direct(src_oid)+(uint64_t)src_offset);
-    void* dest = (void*)((uint64_t)pmemobj_direct(dest_oid)+(uint64_t)dest_offset);
-
-    memcpy(dest, src, (uint64_t)length);
+    memcpy((void*)(dest_block_direct_address + dest_offset), (void*)(src_block_direct_address + src_offset), (uint64_t)length);
     return 0;
 }
 
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeFromByteArrayMemcpyRaw
-  (JNIEnv *env, jobject obj, jbyteArray src_array, jint src_offset, jlong dest_block, jlong dest_offset, jint length)
+JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeCopyFromByteArray
+  (JNIEnv *env, jobject obj, jbyteArray src_array, jint src_offset, jlong dest_block_direct_address, jlong dest_offset, jint length)
 {
-    PMEMoid dest_oid = {get_uuid_lo(), (uint64_t)dest_block};
-    jbyte* dest = (jbyte*)((void*)((uint64_t)pmemobj_direct(dest_oid)+(uint64_t)dest_offset));
-
     jboolean is_copy;
     jbyte* bytes = env->GetByteArrayElements(src_array, &is_copy);
-
-    memcpy((void*)dest, (void*)(bytes+src_offset), length);
+    memcpy((void*)(dest_block_direct_address + dest_offset), (void*)(bytes + src_offset), length);
     return 0;
 }
 
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeMemoryBlockMemsetRaw
-  (JNIEnv *env, jobject obj, jlong block, jlong offset, jint val, jlong length)
+JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeSetMemory
+  (JNIEnv *env, jobject obj, jlong block_direct_address, jlong offset, jint val, jlong length)
 {
-    PMEMoid block_oid = {get_uuid_lo(), (uint64_t)block};
-    void* dest = (void*)((uint64_t)pmemobj_direct(block_oid)+(uint64_t)offset);
-    memset(dest, val, (size_t)length);
+    memset((void*)(block_direct_address + offset), val, (size_t)length);
     return 0;
 }
 
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeSetSize
-  (JNIEnv *env, jobject obj, jlong block, jlong offset, jlong size)
-{
-    PMEMoid oid = {get_uuid_lo(), (uint64_t)block};
-    void* dest = (void*)((uint64_t)pmemobj_direct(oid)+(uint64_t)offset);
-    void* src = &size;
-
-    int ret = 0;
-    TX_BEGIN(pool) {
-        TX_MEMCPY(dest, src, 8);
-    } TX_ONABORT {
-        ret = -1;
-    } TX_END
-
-    return ret;
-}
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalByte
-  (JNIEnv *env, jobject obj, jlong address, jbyte value)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jbyte value)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     TX_BEGIN(pool) {
         char *ptr = (char*)address;
         *ptr = value;
@@ -74,8 +47,9 @@ JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalByte
 }
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalShort
-  (JNIEnv *env, jobject obj, jlong address, jshort value)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jshort value)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     TX_BEGIN(pool) {
         int16_t *ptr = (int16_t*)address;
         *ptr = value;
@@ -85,8 +59,9 @@ JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalShort
 }
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalInt
-  (JNIEnv *env, jobject obj, jlong address, jint value)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jint value)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     TX_BEGIN(pool) {
         int *ptr = (int*)address;
         *ptr = value;
@@ -96,8 +71,9 @@ JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalInt
 }
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalLong
-  (JNIEnv *env, jobject obj, jlong address, jlong value)
+  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jlong value)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     TX_BEGIN(pool) {
         long *ptr = (long*)address;
         *ptr = value;

@@ -13,14 +13,14 @@
 extern "C" {
 #endif
 	
-JNIEXPORT jint JNICALL Java_lib_llpl_TransactionalMemoryBlock_nativeMemoryBlockMemcpyTransactional
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
+JNIEXPORT jint JNICALL Java_lib_llpl_TransactionalMemoryBlock_nativeCopyBlockToBlock
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong);
 
-JNIEXPORT jint JNICALL Java_lib_llpl_TransactionalMemoryBlock_nativeFromByteArrayMemcpyTransactional
-  (JNIEnv *, jobject, jbyteArray, jint, jlong, jlong, jint);
+JNIEXPORT jint JNICALL Java_lib_llpl_TransactionalMemoryBlock_nativeCopyFromByteArray
+  (JNIEnv *, jobject, jlong, jbyteArray, jint, jlong, jlong, jint);
 
-JNIEXPORT jint JNICALL Java_lib_llpl_TransactionalMemoryBlock_nativeMemoryBlockMemsetTransactional
-  (JNIEnv *, jobject, jlong, jlong, jint, jlong);
+JNIEXPORT jint JNICALL Java_lib_llpl_TransactionalMemoryBlock_nativeSetMemory
+  (JNIEnv *, jobject, jlong, jlong, jlong, jint, jlong);
 
 #ifdef __cplusplus
 }

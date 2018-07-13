@@ -9,8 +9,9 @@
 #include "persistent_heap.h"
 
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeStartTransaction
-  (JNIEnv *env, jobject obj)
+  (JNIEnv *env, jobject obj, jlong poolAddress)
 {
+    PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     int ret = pmemobj_tx_begin(pool, NULL, TX_PARAM_NONE);
     if (ret) {
         pmemobj_tx_end();

@@ -9,9 +9,7 @@ package lib.llpl;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.print.DocFlavor.BYTE_ARRAY;
-
 import java.util.Iterator;
 
 class FlushableMemoryBlock extends MemoryBlock<Flushable> {
@@ -25,12 +23,12 @@ class FlushableMemoryBlock extends MemoryBlock<Flushable> {
     private ConcurrentHashMap<Long, Long> addressRanges;
 
     FlushableMemoryBlock(Heap heap, long size) {
-        super(heap, size);
+        super(heap, size, true);
         this.addressRanges = new ConcurrentHashMap<Long, Long>();
     }
 
-    FlushableMemoryBlock(long poolAddress, long offset) {
-        super(poolAddress, offset);
+    FlushableMemoryBlock(Heap heap, long poolAddress, long offset) {
+        super(heap, poolAddress, offset, true);
         this.addressRanges = new ConcurrentHashMap<Long, Long>();
     }
 
@@ -106,21 +104,21 @@ class FlushableMemoryBlock extends MemoryBlock<Flushable> {
     @Override
     public void copyFromMemory(MemoryBlock<?> srcBlock, long srcOffset, long dstOffset, long length) {
         markDirty();
-        nativeMemoryBlockMemcpyRaw(srcBlock.address(), srcBlock.baseOffset() + srcOffset, address(), baseOffset() + dstOffset, length);
+        nativeCopyBlockToBlock(srcBlock.directAddress(), srcBlock.baseOffset() + srcOffset, directAddress(), baseOffset() + dstOffset, length);
         addToMemoryRanges(dstOffset, length);
     }
 
     @Override
     public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
         markDirty();
-        nativeFromByteArrayMemcpyRaw(srcArray, srcOffset, address(), baseOffset() + dstOffset, length);
+        nativeCopyFromByteArray(srcArray, srcOffset, directAddress(), baseOffset() + dstOffset, length);
         addToMemoryRanges(dstOffset, length);
     }
 
     @Override
     public void setMemory(byte val, long offset, long length) {
         markDirty();
-        nativeMemoryBlockMemsetRaw(address(), baseOffset() + offset, val, length);
+        nativeSetMemory(directAddress(), baseOffset() + offset, val, length);
         addToMemoryRanges(offset, length);
     }
 
