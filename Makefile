@@ -50,7 +50,7 @@ examples: sources
 	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):$(example_dir) $(example_dir)/*.java;)
 
 testsources: sources
-	$(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src $(TEST_DIR)/*.java;
+	$(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src -d $(TEST_CLASSES_DIR) $(TEST_DIR)/*.java;
 
 clean: cleanex
 	rm -rf target
@@ -65,11 +65,8 @@ $(LIBRARIES): | $(CPP_BUILD_DIR)
 $(ALL_OBJ): | $(CPP_BUILD_DIR)
 $(ALL_TEST_CLASSES): | $(TEST_CLASSES_DIR)
 
-classes: | $(CLASSES_DIR)
+classes: | $(CLASSES_DIR) $(TEST_CLASSES_DIR)
 	$(JAVAC) $(JAVAFLAGS) -d $(CLASSES_DIR) -cp $(BASE_CLASSPATH) $(ALL_JAVA_SOURCES)
-
-$(TEST_CLASSES_DIR)/%.class: $(TEST_DIR)/%.java
-	$(JAVAC) -cp $(BASE_CLASSPATH):$(TEST_CLASSES_DIR) -d $(TEST_CLASSES_DIR) $<
 
 $(CPP_BUILD_DIR)/%.so: $(ALL_OBJ)
 	$(CC) -Wl,-soname,$@ -o $@ $(ALL_OBJ) $(LINK_FLAGS)

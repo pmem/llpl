@@ -61,7 +61,7 @@ public class Heap {
     }
 
     public static boolean exists(String path) {
-        return heaps.get(path) != null || new File(path).exists();
+        return heaps.get(path) != null && new File(path).exists();
     }
 
     public long size() {

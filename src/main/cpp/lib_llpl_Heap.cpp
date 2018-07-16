@@ -38,7 +38,7 @@ JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeSetRoot
     PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
     int ret = 0;
     TX_BEGIN(pool) {
-        long *root_address = (long *)pmemobj_direct(pmemobj_root(pool, 0));
+        long *root_address = (long *)pmemobj_direct(pmemobj_root(pool, 8));
         pmemobj_tx_add_range_direct((const void *)root_address, 8);
         *root_address = val;
     } TX_ONABORT {
@@ -52,7 +52,7 @@ JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeGetRoot
   (JNIEnv *env, jobject obj, jlong poolAddress)
 {
     PMEMobjpool *pool = (PMEMobjpool*)poolAddress;
-    return (jlong)(pmemobj_root(pool, 0).off); 
+    return (jlong)*(long *)pmemobj_direct(pmemobj_root(pool, 8));
 }
 
 JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeFree
