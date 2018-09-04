@@ -76,21 +76,21 @@ class FlushableMemoryBlock extends MemoryBlock<Flushable> {
     @Override
     public void setByte(long offset, byte value) {
         markDirty();
-        setRawLong(offset, value);
+        setRawByte(offset, value);
         addToMemoryRanges(offset, Byte.BYTES);
     }
 
     @Override
     public void setShort(long offset, short value) {
         markDirty();
-        setRawLong(offset, value);
+        setRawShort(offset, value);
         addToMemoryRanges(offset, Short.BYTES);
     }
 
     @Override
     public void setInt(long offset, int value) {
         markDirty();
-        setRawLong(offset, value);
+        setRawInt(offset, value);
         addToMemoryRanges(offset, Integer.BYTES);
     }
 

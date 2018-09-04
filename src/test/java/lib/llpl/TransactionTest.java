@@ -14,6 +14,7 @@ class TransactionTest {
 
         // thread-local syntax
         Transaction.run(h, () -> {
+            // Maybe addToTransaction() is required?
             block1.setLong(4, 1000);
             block1.setInt(0, 777);
             assert(block1.getLong(4)) == 1000;
