@@ -13,31 +13,22 @@
 extern "C" {
 #endif
 
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeCopyBlockToBlock
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
-
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeCopyFromByteArray
-  (JNIEnv *, jobject, jbyteArray, jint, jlong, jlong, jint);
-
-JNIEXPORT jint JNICALL Java_lib_llpl_MemoryBlock_nativeSetMemory
-  (JNIEnv *, jobject, jlong, jlong, jint, jlong);
-
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalByte
-  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jbyte value);
+  (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jbyte value);
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalShort
-  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jshort value);
+  (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jshort value);
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalInt
-  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jint value);
+  (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jint value);
 
 JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeSetTransactionalLong
-  (JNIEnv *env, jobject obj, jlong poolAddress, jlong address, jlong value);
+  (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jlong value);
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_MemoryBlock_nativeFlush
+JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeFlush
   (JNIEnv *env, jobject obj, jlong address, jlong size);
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_MemoryBlock_addToTransaction
+JNIEXPORT void JNICALL Java_lib_llpl_MemoryBlock_nativeAddToTransaction
   (JNIEnv *env, jobject obj, jlong address, jlong size);
 
 void throw_persistence_exception(JNIEnv *env, const char* arg);

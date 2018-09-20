@@ -27,8 +27,8 @@ class FlushableMemoryBlock extends MemoryBlock<Flushable> {
         this.addressRanges = new ConcurrentHashMap<Long, Long>();
     }
 
-    FlushableMemoryBlock(Heap heap, long poolAddress, long offset) {
-        super(heap, poolAddress, offset, true);
+    FlushableMemoryBlock(Heap heap, long poolHandle, long offset) {
+        super(heap, poolHandle, offset, true);
         this.addressRanges = new ConcurrentHashMap<Long, Long>();
     }
 
@@ -103,22 +103,26 @@ class FlushableMemoryBlock extends MemoryBlock<Flushable> {
 
     @Override
     public void copyFromMemory(MemoryBlock<?> srcBlock, long srcOffset, long dstOffset, long length) {
+        srcBlock.checkRange(srcOffset, length);
+        checkRange(dstOffset, length);
         markDirty();
-        nativeCopyBlockToBlock(srcBlock.directAddress(), srcBlock.baseOffset() + srcOffset, directAddress(), baseOffset() + dstOffset, length);
+        MemoryBlock.rawCopyBlockToBlock(srcBlock.directAddress() + srcBlock.baseOffset() + srcOffset, directAddress() + baseOffset() + dstOffset, length);
         addToMemoryRanges(dstOffset, length);
     }
 
     @Override
     public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
+        checkRange(dstOffset, length);
         markDirty();
-        nativeCopyFromByteArray(srcArray, srcOffset, directAddress(), baseOffset() + dstOffset, length);
+        MemoryBlock.rawCopyFromArray(srcArray, srcOffset, directAddress() + baseOffset() + dstOffset, length);
         addToMemoryRanges(dstOffset, length);
     }
 
     @Override
     public void setMemory(byte val, long offset, long length) {
+        checkRange(offset, length);
         markDirty();
-        nativeSetMemory(directAddress(), baseOffset() + offset, val, length);
+        MemoryBlock.rawSetMemory(directAddress() + baseOffset() + offset, val, length);
         addToMemoryRanges(offset, length);
     }
 

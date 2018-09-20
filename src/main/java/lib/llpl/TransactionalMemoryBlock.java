@@ -14,8 +14,8 @@ class TransactionalMemoryBlock extends MemoryBlock<Transactional> {
         super(heap, size, true);
     }
 
-    TransactionalMemoryBlock(Heap heap, long poolAddress, long offset) {
-        super(heap, poolAddress, offset, true);
+    TransactionalMemoryBlock(Heap heap, long poolHandle, long offset) {
+        super(heap, poolHandle, offset, true);
     }
 
     @Override
@@ -60,26 +60,31 @@ class TransactionalMemoryBlock extends MemoryBlock<Transactional> {
 
     @Override
     public void copyFromMemory(MemoryBlock<?> srcBlock, long srcOffset, long dstOffset, long length) {
-        if (nativeCopyBlockToBlock(heap().poolAddress(), srcBlock.directAddress(), srcBlock.baseOffset() + srcOffset, directAddress(), baseOffset() + dstOffset, length) != 0)
-            throw new PersistenceException("Failed to copy from MemoryBlock");
+        srcBlock.checkRange(srcOffset, length);
+        checkRange(dstOffset, length);
+        new Transaction(heap()).execute(() -> {
+            MemoryBlock.txCopyBlockToBlock(srcBlock.directAddress() + srcBlock.baseOffset() + srcOffset, directAddress() + baseOffset() + dstOffset, length);
+        });
     }
 
     @Override
     public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
-        nativeCopyFromByteArray(heap().poolAddress(), srcArray, srcOffset, directAddress(), baseOffset() + dstOffset, length);
+        checkRange(dstOffset, length);
+        new Transaction(heap()).execute(() -> {
+            MemoryBlock.txCopyFromArray(srcArray, srcOffset, directAddress() + baseOffset() + dstOffset, length);
+        });
     }
 
     @Override
     public void setMemory(byte val, long offset, long length) {
-        nativeSetMemory(heap().poolAddress(), directAddress(), baseOffset() + offset, val, length);
+        checkRange(offset, length);
+        new Transaction(heap()).execute(() -> {
+            MemoryBlock.txSetMemory(directAddress() + baseOffset() + offset, val, length);
+        });
     }
 
     @Override
     long baseOffset() {
         return METADATA_SIZE; 
     }
-
-    private static native int nativeCopyBlockToBlock(long poolAddress, long srcBlockDirectAddress, long srcOffset, long dstBlock, long dstOffset, long length);
-    private static native int nativeCopyFromByteArray(long poolAddress, byte[] srcArray, int srcOffset, long dstBlockDirectAddress, long dstOffset, int length);
-    private static native int nativeSetMemory(long poolAddress, long blockDirectAddress, long offset, int val, long length);
 }

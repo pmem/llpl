@@ -18,3 +18,4 @@
 TOID_DECLARE(char, CHAR_TYPE_OFFSET);
 
 PMEMobjpool *get_or_create_pool(const char* path, size_t size);
+void register_allocation_classes(JNIEnv *env, PMEMobjpool* pool, jintArray alloc_classes);

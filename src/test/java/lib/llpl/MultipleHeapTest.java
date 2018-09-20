@@ -55,6 +55,6 @@ class MultipleHeapTest {
             assert(!Heap.exists(name));
         }
 
-        System.out.println("=================================All MultipleHeap tests passed=======================");
+        System.out.println("=================================All MultipleHeap tests passed=============================");
     }
 }

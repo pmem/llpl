@@ -55,17 +55,6 @@ class UnboundedMemoryBlockTest {
         }
         assert(caught);
 
-        // checkBounds() is not supported
-        caught = false;
-        try {
-            block.checkBounds(1);
-        }
-        catch (UnsupportedOperationException uoe) {
-            caught = true;
-        }
-        assert(caught);
-
-
         System.out.println("=================================All UnboundedMemoryBlock tests passed=======================");
     }
 }

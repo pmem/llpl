@@ -16,14 +16,11 @@ extern "C" {
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeStartTransaction
   (JNIEnv *, jobject, jlong);
 
-
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeEndTransaction
   (JNIEnv *, jobject);
 
-
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeCommitTransaction
   (JNIEnv *, jobject);
-
 
 JNIEXPORT void JNICALL Java_lib_llpl_Transaction_nativeAbortTransaction
   (JNIEnv *, jobject);

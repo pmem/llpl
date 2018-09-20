@@ -9,6 +9,12 @@ package lib.llpl;
 
 import java.util.function.Supplier;
 
+/*
+                                        Committed
+ State transitions are New -> Active  /
+                                      \
+                                        Aborted
+*/
 public class Transaction {
     static {
         System.loadLibrary("llpl");
@@ -17,12 +23,13 @@ public class Transaction {
     private static ThreadLocal<Transaction> tlTransaction = new ThreadLocal<>();
     private State state; 
     private int depth;
+    private final Heap heap;
 
-    public enum State {None, Active, Committed, Aborted}
+    public enum State {New, Active, Committed, Aborted}
 
     public Transaction(Heap heap) {
-        nativeStartTransaction(heap.poolAddress());
-        state = State.Active;
+        this.heap = heap;
+        state = State.New;
     }
 
     // static run methods track transaction with ThreadLocal
@@ -43,6 +50,10 @@ public class Transaction {
     }
 
     public <T> T execute(Supplier<T> body) {
+        if (state == State.New) {
+            nativeStartTransaction(heap.poolHandle());
+            state = State.Active;
+        }
         if (state != State.Active) throw new TransactionError("Transaction not active");
         depth++;
         T result = null;
@@ -51,9 +62,10 @@ public class Transaction {
         }
         catch (Throwable t) {
             state = State.Aborted;
-            if (t instanceof PersistenceException) {
-                nativeEndTransaction();
+            if (!(t instanceof PersistenceException)) {
+                nativeAbortTransaction();
             }
+            nativeEndTransaction();
             throw t;
         }
         finally {
@@ -67,7 +79,9 @@ public class Transaction {
         return result;
     }
 
-    private static native void nativeStartTransaction(long poolAddress);
+    public State state() {return state;}
+
+    private static native void nativeStartTransaction(long poolHandle);
     private static native void nativeCommitTransaction();
     private static native void nativeEndTransaction();
     private static native void nativeAbortTransaction();
