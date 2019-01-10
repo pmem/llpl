@@ -59,7 +59,7 @@ project.  This makes it difficult to contribute code and difficult to effectivel
 requests.  We expect these changes to settle out around March of this year and we look forward to
 code contributions once this happens.  We will update this README then.
 
-In the meantime, we would love to hear your comments and suggestions via the github issues feature.
+In the meantime, we would love to hear your comments and suggestions via https://github.com/pmem/llpl/issues.
 
 ## Contacts ##
 For more information on this library, contact Olasoji Denloye (olasoji.denloye@intel.com) or Steve Dohrmann
