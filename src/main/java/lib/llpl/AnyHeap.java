@@ -50,7 +50,7 @@ public abstract class AnyHeap {
         this.path = path;
         userSizes = new TreeMap<Long, Integer>();
         allocationClasses = new long[TOTAL_ALLOCATION_CLASSES];
-        poolHandle = nativeOpenHeap(path, size, allocationClasses);
+        poolHandle = nativeOpenHeap(path, requestedSize, allocationClasses);
         if (poolHandle == 0) throw new RuntimeException("Failed to open heap.");
         valid = true;
         if (requestedSize == 0) this.size = nativeHeapSize(path);
