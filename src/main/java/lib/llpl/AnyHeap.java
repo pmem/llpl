@@ -109,7 +109,7 @@ public abstract class AnyHeap {
      * instance maintains a separate set of registered sizes.  Size registration is itself not persistent so 
      * sizes must be registered each time a heap is opened.
      * @param size the required size of an allocated memory block
-     * @param unbounded true if {@code size} is associated with a unbounded memory block
+     * @param bounded false if {@code size} is associated with a unbounded memory block
      */
     public synchronized void registerAllocationSize(long size, boolean bounded) {
         if (userSizes.size() == MAX_USER_CLASSES) throw new HeapException("Max allocation size count reached.");

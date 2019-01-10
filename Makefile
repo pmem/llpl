@@ -8,6 +8,8 @@
 CC = g++
 JAVAC = $(JAVA_HOME)/bin/javac
 JAVA = $(JAVA_HOME)/bin/java
+JAR = $(JAVA_HOME)/bin/jar
+JAVADOC = $(JAVA_HOME)/bin/javadoc
 
 JNI_INCLUDES = $(JAVA_HOME)/include $(JAVA_HOME)/include/linux
 
@@ -63,6 +65,10 @@ all: sources examples testsources
 sources: cpp java
 cpp: $(LIBRARIES)
 java: classes
+docs: classes
+	$(JAVADOC) -d  docs lib.llpl -sourcepath $(JAVA_SOURCE_DIR)
+jar: sources
+	$(JAR) cvf $(TARGET_DIR)/llpl.jar $(CLASSES_DIR)/lib 		
 
 examples: sources
 	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):$(example_dir) $(example_dir)/*.java;)
