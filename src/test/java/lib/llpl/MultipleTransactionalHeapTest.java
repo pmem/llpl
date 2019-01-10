@@ -77,7 +77,6 @@ class MultipleTransactionalHeapTest {
         custom.allocateMemoryBlock(12);
         custom.allocateMemoryBlock(13);
         custom.allocateMemoryBlock(32);
-        // custom.deregisterAllocationSize(32, false);
 
         System.out.println("================================= All MultipleTransactionalHeap tests passed ===================");
     }

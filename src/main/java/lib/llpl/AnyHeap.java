@@ -46,17 +46,16 @@ public abstract class AnyHeap {
     private long[] allocationClasses;
     private Metadata metadata;
 
-    AnyHeap(String path, long size) {
+    AnyHeap(String path, long requestedSize) {
         this.path = path;
         userSizes = new TreeMap<Long, Integer>();
         allocationClasses = new long[TOTAL_ALLOCATION_CLASSES];
         poolHandle = nativeOpenHeap(path, size, allocationClasses);
         if (poolHandle == 0) throw new RuntimeException("Failed to open heap.");
         valid = true;
-        if (size == 0) this.size = nativeHeapSize(path);
-        else this.size = size;
-        metadata = initializeMetadata(size);
-        this.size = metadata.getHeapSize();
+        if (requestedSize == 0) this.size = nativeHeapSize(path);
+        else this.size = requestedSize;
+        metadata = initializeMetadata(this.size);
         open = true;
     }
 
@@ -93,7 +92,7 @@ public abstract class AnyHeap {
     }
 
     /**
-     * Closes this heap.  
+     * Closes this heap.
      */
     public void close() {
         checkValid();
@@ -104,30 +103,25 @@ public abstract class AnyHeap {
 
     /**
      * [EXPERIMENTAL] Registers a specific memory block size for optimized allocation of blocks of that size.  Use this for very
-     * common block sizes to optimize allocation speed and minimize footprint of memory blocks on the heap.<br> 
-     * Separate registrations are required for bounded and unbounded memory blocks of a given size. Each heap 
-     * instance maintains a separate set of registered sizes.  Size registration is itself not persistent so 
+     * common block sizes to optimize allocation speed and minimize footprint of memory blocks on the heap.<br>
+     * Separate registrations are required for bounded and unbounded memory blocks of a given size. Each heap
+     * instance maintains a separate set of registered sizes.  Size registration is itself not persistent so
      * sizes must be registered each time a heap is opened.
      * @param size the required size of an allocated memory block
-     * @param bounded false if {@code size} is associated with a unbounded memory block
+     * @param unbounded true if {@code size} is associated with a unbounded memory block
      */
-    public synchronized void registerAllocationSize(long size, boolean bounded) {
+    public synchronized void registerAllocationSize(long size, boolean unbounded) {
         if (userSizes.size() == MAX_USER_CLASSES) throw new HeapException("Max allocation size count reached.");
         long effectiveSize = 0L;
-        if (!userSizes.containsKey(effectiveSize = (size + (bounded ? Long.BYTES : 0L)))) {
+        if (!userSizes.containsKey(effectiveSize = (size + (unbounded ? 0L : Long.BYTES)))) {
             int id = nativeRegisterAllocationClass(poolHandle, effectiveSize);
             if (id != -1) {
-                int i = USER_CLASS_INDEX + (userSizes.size() * 2); 
-                userSizes.put(effectiveSize, id); 
-                allocationClasses[i++] = effectiveSize; 
-                allocationClasses[i] = id; 
+                int i = USER_CLASS_INDEX + (userSizes.size() * 2);
+                userSizes.put(effectiveSize, id);
+                allocationClasses[i++] = effectiveSize;
+                allocationClasses[i] = id;
             }
         }
-    }
-
-    synchronized void deregisterAllocationSize(long size, boolean bounded) {
-        userSizes.remove(size + (bounded ? Long.BYTES : 0));
-        //loadAllocationClasses();
     }
 
     /**
@@ -151,7 +145,7 @@ public abstract class AnyHeap {
     }
 
     /**
-     * Checks that this heap is in a valid state for use, for example it has not been deleted and is open. 
+     * Checks that this heap is in a valid state for use, for example it has not been deleted and is open.
      * @throws IllegalStateException if the heap is not in a valid state for use
      */
     public void checkValid() {
@@ -168,7 +162,7 @@ public abstract class AnyHeap {
     }
 
     /**
-     * Returns the size, in bytes, of this heap.  
+     * Returns the size, in bytes, of this heap.
      * @return the size, in bytes, of this heap
      */
     public long size() {
@@ -177,7 +171,7 @@ public abstract class AnyHeap {
     }
 
     /**
-     * Checks that {@code offset} is within the bounds of this heap. 
+     * Checks that {@code offset} is within the bounds of this heap.
      * @param offset The offset to check
      * @throws IndexOutOfBoundsException if the offset is not within this memory block's bounds
      */
@@ -192,7 +186,7 @@ public abstract class AnyHeap {
     /**
      * Returns the {@code long} value stored at this heap's root location.  The root location can be
      * used to store any {@code long} value but typically holds the handle of an allocated memory block.
-     * Initially, zero is stored in the root location.  
+     * Initially, zero is stored in the root location.
      @return the value of the heap's root location
      */
     public long getRoot() {
@@ -202,7 +196,7 @@ public abstract class AnyHeap {
 
     /**
      * Stores a {@code long} value in this heap's root location.  The root location can be
-     * used to store any {@code long} value but typically holds the handle of an allocated memory block.  
+     * used to store any {@code long} value but typically holds the handle of an allocated memory block.
      * @param value the value to be stored
      */
     public void setRoot(long value) {
@@ -213,18 +207,18 @@ public abstract class AnyHeap {
     /**
     * Returns a previously-allocated memory block associated with the given handle.
     * @param handle the handle of a previously-allocated memory block
-    * @return the memory block associated with the given handle 
+    * @return the memory block associated with the given handle
     */
-    abstract AnyMemoryBlock memoryBlockFromHandle(long handle); 
-    
+    abstract AnyMemoryBlock memoryBlockFromHandle(long handle);
+
     /**
     * Returns a previously-allocated unmbounded memory block associated with the given handle.
     * @param handle the handle of a previously-allocated memory block
-    * @return the unbounded memory block associated with the given handle 
+    * @return the unbounded memory block associated with the given handle
     */
-    abstract AnyMemoryBlock unboundedMemoryBlockFromHandle(long handle); 
+    abstract AnyMemoryBlock unboundedMemoryBlockFromHandle(long handle);
 
-    abstract AnyMemoryBlock internalMemoryBlockFromHandle(long handle); 
+    abstract AnyMemoryBlock internalMemoryBlockFromHandle(long handle);
     abstract Metadata initializeMetadata(long size);
 
     void freeMemoryBlock(AnyMemoryBlock block) {
@@ -297,7 +291,7 @@ public abstract class AnyHeap {
     }
 
     long directAddress(long offset) {
-        return poolHandle + offset; 
+        return poolHandle + offset;
     }
 
     private static native long nativeAllocateTransactional(long poolHandle, long size, int class_index);

@@ -77,7 +77,6 @@ class MultipleHeapTest {
         custom.allocateMemoryBlock(12, true);
         custom.allocateMemoryBlock(13, true);
         custom.allocateMemoryBlock(32, true);
-        // custom.deregisterAllocationSize(32, false);
 
         System.out.println("================================= All MultipleHeap tests passed ================================");
     }
