@@ -54,12 +54,12 @@ directory in your Java classpath and the project's ```target/cppbuild``` directo
    ```
 
 ## CONTRIBUTING ##
-Thanks for your interest! Right now, substantial architectural changes are still happening in the
+Thanks for your interest! Right now, architectural changes are still happening in the
 project.  This makes it difficult to contribute code and difficult to effectively process pull
-requests.  We expect these changes to settle out around December of this year and we look forward to
+requests.  We expect these changes to settle out around March of this year and we look forward to
 code contributions once this happens.  We will update this README then.
 
-In the meantime, we would love to hear your comments and suggestions via the contacts listed below.
+In the meantime, we would love to hear your comments and suggestions via the github issues feature.
 
 ## Contacts ##
 For more information on this library, contact Olasoji Denloye (olasoji.denloye@intel.com) or Steve Dohrmann
