@@ -43,6 +43,8 @@ Available Makefile targets include:
    - `sources` - builds only sources
    - `examples` - builds the sources and examples
    - `tests` - builds and runs tests
+   - `docs` - builds javadocs
+   - `jar` - builds jar file into ```target``` directory
 
 ### USING THIS LIBRARY IN EXISTING JAVA APPLICATIONS ###
 To import this library into an existing Java application, include the project's target/classes 
