@@ -1,11 +1,12 @@
-/* 
+/*
  * Copyright (C) 2018 Intel Corporation
  *
  * SPDX-License-Identifier: BSD-3-Clause
- * 
+ *
  */
 
 #include <libpmemobj.h>
+#include <libpmem.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -18,4 +19,4 @@
 TOID_DECLARE(char, CHAR_TYPE_OFFSET);
 
 PMEMobjpool *get_or_create_pool(const char* path, size_t size);
-void register_allocation_classes(JNIEnv *env, PMEMobjpool* pool, jintArray alloc_classes);
+void register_allocation_classes(JNIEnv *env, PMEMobjpool* pool, jlongArray alloc_classes);

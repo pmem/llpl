@@ -10,7 +10,10 @@ package examples.array;
 import lib.llpl.*;
 
 public class MemoryBlockArray {
-    static final int HEADER_SIZE = 4;
+    private static final int HEADER_SIZE = 4;
+    private static TransactionalHeap heap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_tx", 2147483648L);
+    TransactionalMemoryBlock block;
+
 
     public static void main(String[] args) {
         int size = 10;
@@ -18,9 +21,9 @@ public class MemoryBlockArray {
         for (int i = 0; i < size; i++) {
             assert(mra.get(i) == null);
         }
-        MemoryBlock<Transactional> mr1 = h.allocateMemoryBlock(Transactional.class, 10);
+        TransactionalMemoryBlock mr1 = heap.allocateMemoryBlock(10);
         mr1.setLong(0, 0xcafe);
-        MemoryBlock<Transactional> mr2 = h.allocateMemoryBlock(Transactional.class, 20);
+        TransactionalMemoryBlock mr2 = heap.allocateMemoryBlock(20);
         mr2.setLong(0, 0xbeef);
 
         mra.set(5, mr1);
@@ -28,50 +31,48 @@ public class MemoryBlockArray {
         assert(mra.size() == 10);
 
         for (int i = 0; i < size; i++) {
-            if (i == 5) assert(mra.get(i) != null && mra.get(i).address() == mr1.address() && mra.get(i).getLong(0) == 0xcafe);
-            else if (i == 7) assert(mra.get(i) != null && mra.get(i).address() == mr2.address() && mra.get(i).getLong(0) == 0xbeef);
+            if (i == 5) assert(mra.get(i) != null && mra.get(i).handle() == mr1.handle() && mra.get(i).getLong(0) == 0xcafe);
+            else if (i == 7) assert(mra.get(i) != null && mra.get(i).handle() == mr2.handle() && mra.get(i).getLong(0) == 0xbeef);
             else assert(mra.get(i) == null);
         }
         assert(mra.size() == 10);
         boolean caught = false;
         try {
-            mra.set(10, h.allocateMemoryBlock(Transactional.class, 5));
+            mra.set(10, heap.allocateMemoryBlock(5));
         } catch (ArrayIndexOutOfBoundsException e) {
             caught = true;
         }
         assert(caught);
+        System.out.println("done");
     }
 
-    private static Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
-    MemoryBlock<Transactional> block;
-
     public static MemoryBlockArray fromAddress(long addr) {
-        MemoryBlock<Transactional> block = h.memoryBlockFromAddress(Transactional.class, addr);
+        TransactionalMemoryBlock block = heap.memoryBlockFromHandle(addr);
         return new MemoryBlockArray(block);
     }
 
     public MemoryBlockArray(int size) {
-        this.block = h.allocateMemoryBlock(Transactional.class, HEADER_SIZE + Long.BYTES * size);
+        this.block = heap.allocateMemoryBlock(HEADER_SIZE + Long.BYTES * size);
         this.block.setInt(0, size);
     }
 
-    private MemoryBlockArray(MemoryBlock<Transactional> block) {
+    private MemoryBlockArray(TransactionalMemoryBlock block) {
         this.block = block;
     }
 
-    public void set(int index, MemoryBlock<Transactional> value) {
+    public void set(int index, TransactionalMemoryBlock value) {
         if (index < 0 || index >= size()) {
             throw new ArrayIndexOutOfBoundsException();
         }
-        block.setLong(HEADER_SIZE + Long.BYTES * index, value == null ? 0 : value.address());
+        block.setLong(HEADER_SIZE + Long.BYTES * index, value == null ? 0 : value.handle());
     }
 
-    public MemoryBlock<Transactional> get(int index) {
+    public TransactionalMemoryBlock get(int index) {
         if (index < 0 || index >= size()) {
             throw new ArrayIndexOutOfBoundsException();
         }
         long addr = block.getInt(HEADER_SIZE + Long.BYTES * index);
-        return addr == 0 ? null : h.memoryBlockFromAddress(Transactional.class, addr);
+        return addr == 0 ? null : heap.memoryBlockFromHandle(addr);
     }
 
     public int size() {
@@ -79,6 +80,6 @@ public class MemoryBlockArray {
     }
 
     public long address() {
-        return block.address();
+        return block.handle();
     }
 }

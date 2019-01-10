@@ -22,14 +22,14 @@ public class Writer {
 
         String str = c.readLine("Inset your test string: ");
 
-        MemoryBlock<Transactional> mr = h.allocateMemoryBlock(Transactional.class, Integer.BYTES + str.length());
+        MemoryBlock mr = h.allocateMemoryBlock(Integer.BYTES + str.length(), false);
         byte[] bytes = str.getBytes();
         mr.setInt(0, str.length());
         for (int i = 0; i < str.length(); i++) {
             mr.setByte(Integer.BYTES + i, bytes[i]);
         }
 
-        h.setRoot(mr.address());
+        h.setRoot(mr.handle());
 
         System.out.println("String \"" + str + "\" successfully written.");
     }

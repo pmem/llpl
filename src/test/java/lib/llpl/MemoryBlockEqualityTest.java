@@ -12,52 +12,64 @@ import java.util.HashMap;
 
 class MemoryBlockEqualityTest {
     public static void main(String[] args) {
-        Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
-        MemoryBlock<?> mb = h.allocateMemoryBlock(Raw.class, 10);
-        assert(mb.address() != 0);
-        MemoryBlock<?> mb2 = h.memoryBlockFromAddress(Raw.class, mb.address());
-        assert(mb.address() == mb2.address());
-        assert(mb.equals(mb2));
+        HashMap<AnyMemoryBlock, Integer> map = new HashMap<>();
 
-        HashMap<MemoryBlock<?>, Integer> hm = new HashMap<>();
-        assert(hm.size() == 0);
-        hm.put(mb, 1);
-        hm.put(mb2, 2);
-        assert(hm.size() == 1);
-        assert(hm.get(mb) == 2);
+        {
+            Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+            MemoryBlock mb = heap.allocateMemoryBlock(10, false);
+            assert(mb.handle() != 0);
+            MemoryBlock mb2 = heap.memoryBlockFromHandle(mb.handle());
+            assert(mb.handle() == mb2.handle());
+            assert(mb.equals(mb2));
 
-        h.freeMemoryBlock(mb);
+            assert(map.size() == 0);
+            map.put(mb, 1);
+            map.put(mb2, 2);
+            assert(map.size() == 1);
+            assert(map.get(mb) == 2);
 
-        mb = h.allocateMemoryBlock(Flushable.class, 10);
-        assert(mb.address() != 0);
-        mb2 = h.memoryBlockFromAddress(Flushable.class, mb.address());
-        assert(mb.address() == mb2.address());
-        assert(mb.equals(mb2));
+            mb.free(false);
+            heap.deleteHeap("/mnt/mem/persistent_pool");
+        }
 
-        hm = new HashMap<>();
-        assert(hm.size() == 0);
-        hm.put(mb, 1);
-        hm.put(mb2, 2);
-        assert(hm.size() == 1);
-        assert(hm.get(mb) == 2);
+        {
+            PersistentHeap heap = PersistentHeap.getHeap("/mnt/mem/persistent_pool_durable", 2147483648L);
+            PersistentMemoryBlock mb = heap.allocateMemoryBlock(10, false);
+            assert(mb.handle() != 0);
+            PersistentMemoryBlock mb2 = heap.memoryBlockFromHandle(mb.handle());
+            assert(mb.handle() == mb2.handle());
+            assert(mb.equals(mb2));
 
-        h.freeMemoryBlock(mb);
+            map = new HashMap<>();
+            assert(map.size() == 0);
+            map.put(mb, 1);
+            map.put(mb2, 2);
+            assert(map.size() == 1);
+            assert(map.get(mb) == 2);
 
-        mb = h.allocateMemoryBlock(Transactional.class, 10);
-        assert(mb.address() != 0);
-        mb2 = h.memoryBlockFromAddress(Transactional.class, mb.address());
-        assert(mb.address() == mb2.address());
-        assert(mb.equals(mb2));
+            mb.free(false);
+            heap.deleteHeap("/mnt/mem/persistent_pool_durable");
+        }
 
-        hm = new HashMap<>();
-        assert(hm.size() == 0);
-        hm.put(mb, 1);
-        hm.put(mb2, 2);
-        assert(hm.size() == 1);
-        assert(hm.get(mb) == 2);
+        {
+            TransactionalHeap heap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_transactional", 2147483648L);
+            TransactionalMemoryBlock mb = heap.allocateMemoryBlock(10);
+            assert(mb.handle() != 0);
+            TransactionalMemoryBlock mb2 = heap.memoryBlockFromHandle(mb.handle());
+            assert(mb.handle() == mb2.handle());
+            assert(mb.equals(mb2));
 
-        h.freeMemoryBlock(mb);
+            map = new HashMap<>();
+            assert(map.size() == 0);
+            map.put(mb, 1);
+            map.put(mb2, 2);
+            assert(map.size() == 1);
+            assert(map.get(mb) == 2);
 
-        System.out.println("=================================All MemoryBlockEquality tests passed=======================");
+            mb.free();
+            heap.deleteHeap("/mnt/mem/persistent_pool_transactional");
+        }
+        
+        System.out.println("================================= All MemoryBlockEquality tests passed =========================");
     }
 }

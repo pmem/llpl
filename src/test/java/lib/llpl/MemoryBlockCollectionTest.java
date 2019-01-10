@@ -12,24 +12,25 @@ import java.util.HashMap;
 
 class MemoryBlockCollectionTest {
     public static void main(String[] args) {
-        Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
-        HashMap<MemoryBlock<?>, Integer> hm = new HashMap<>();
+        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+        PersistentHeap dHeap = PersistentHeap.getHeap("/mnt/mem/persistent_pool_durable", 100000000L);
+        TransactionalHeap tHeap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_transactional", 100000000L);
+        HashMap<AnyMemoryBlock, Integer> hm = new HashMap<>();
         for (int i = 0; i < 10; i++) {
-            hm.put(h.allocateMemoryBlock(Raw.class, 10), i);
+            hm.put(heap.allocateMemoryBlock(10, true), i);
         }
         assert(hm.size() == 10);
         for (int i = 0; i < 10; i++) {
-            hm.put(h.allocateMemoryBlock(Transactional.class, 10), i);
+            hm.put(dHeap.allocateMemoryBlock(10, true), i);
         }
         assert(hm.size() == 20);
         for (int i = 0; i < 10; i++) {
-            hm.put(h.allocateMemoryBlock(Flushable.class, 10), i);
+            hm.put(tHeap.allocateMemoryBlock(10), i);
         }
         assert(hm.size() == 30);
-        for (Map.Entry<MemoryBlock<?>, Integer> e : hm.entrySet()) {
-            // System.out.println(e.getKey().address() + ", " + e.getKey().getClass() + " --> " + e.getValue());
-            h.freeMemoryBlock(e.getKey());
+        for (Map.Entry<AnyMemoryBlock, Integer> e : hm.entrySet()) {
+            // e.getKey().free(true);
         }
-        System.out.println("=================================All MemoryBlockCollection tests passed=====================");
+        System.out.println("================================= All MemoryBlockCollection tests passed =======================");
     }
 }

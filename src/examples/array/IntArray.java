@@ -10,7 +10,10 @@ package examples.array;
 import lib.llpl.*;
 
 public class IntArray {
-    static final int HEADER_SIZE = 4;
+    private static final int HEADER_SIZE = 4;
+    private static Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+    MemoryBlock block;
+
 
     public static void main(String[] args) {
         int size = 10;
@@ -35,27 +38,20 @@ public class IntArray {
             caught = true;
         }
         assert(caught);
+        System.out.println("done");
     }
 
-    private static Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
-    MemoryBlock<Flushable> block;
-
     public static IntArray fromAddress(long addr) {
-        MemoryBlock<Flushable> block = h.memoryBlockFromAddress(Flushable.class, addr);
-        if (!block.isFlushed()) {     // simple consistency scheme: if not consistent, throw away, return null
-            h.freeMemoryBlock(block);
-            return null;
-        } else {
-            return new IntArray(block);
-        }
+        MemoryBlock block = heap.memoryBlockFromHandle(addr);
+        return new IntArray(block);
     }
 
     public IntArray(int size) {
-        this.block = (MemoryBlock<Flushable>)h.allocateMemoryBlock(Flushable.class, HEADER_SIZE + Integer.BYTES * size);
+        this.block = heap.allocateMemoryBlock(HEADER_SIZE + Integer.BYTES * size, false);
         this.block.setInt(0, size);
     }
 
-    private IntArray(MemoryBlock<Flushable> block) {
+    private IntArray(MemoryBlock block) {
         this.block = block;
     }
 
@@ -64,7 +60,6 @@ public class IntArray {
             throw new ArrayIndexOutOfBoundsException();
         }
         block.setInt(HEADER_SIZE + Integer.BYTES * index, value);
-        block.flush();
     }
 
     public int get(int index) {
@@ -79,6 +74,6 @@ public class IntArray {
     }
 
     public long address() {
-        return block.address();
+        return block.handle();
     }
 }

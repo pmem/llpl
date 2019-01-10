@@ -32,8 +32,26 @@ ALL_CPP_SOURCES = $(wildcard $(CPP_SOURCE_DIR)/*.cpp)
 ALL_JAVA_SOURCES = $(wildcard $(JAVA_SOURCE_DIR)/$(PACKAGE_NAME)/*.java)
 ALL_OBJ = $(addprefix $(CPP_BUILD_DIR)/, $(notdir $(ALL_CPP_SOURCES:.cpp=.o)))
 
-ALL_TEST_SOURCES = $(addprefix $(TEST_DIR)/, FlushableMemoryBlockTest.java TransactionalMemoryBlockTest.java RawMemoryBlockTest.java MemoryBlockCollectionTest.java MemoryBlockFreeTest.java MemoryBlockEqualityTest.java CopyMemoryTest.java SetMemoryTest.java ReallocateTest.java TransactionTest.java UnboundedMemoryBlockTest.java MultipleHeapTest.java)
+ALL_TEST_SOURCES = $(addprefix $(TEST_DIR)/, \
+	CopyMemoryTest.java \
+	PersistentMemoryBlockTest.java \
+	MemoryBlockCollectionTest.java \
+	MemoryBlockFreeTest.java \
+	MemoryBlockEqualityTest.java \
+	MemoryBlockTest.java \
+	MultipleHeapTest.java \
+	MultipleTransactionalHeapTest.java \
+	SetMemoryTest.java \
+	TransactionTest.java \
+	TransactionalMemoryBlockTest.java \
+	UnboundedMemoryBlockTest.java \
+	)
+
+#	TransactionPerfTest.java \
+#	DurablePerfTest.java \
+
 ALL_TEST_CLASSES = $(addprefix $(TEST_CLASSES_DIR)/, $(notdir $(ALL_TEST_SOURCES:.java=.class)))
+ALL_PERF_TEST_CLASSES = $(addprefix $(TEST_CLASSES_DIR)/, $(notdir $(ALL_PERF_TEST_SOURCES:.java=.class)))
 
 LIBRARIES = $(addprefix $(CPP_BUILD_DIR)/, libllpl.so)
 

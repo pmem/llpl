@@ -10,19 +10,20 @@ package lib.llpl;
 import java.util.function.Consumer;
 
 /**
- * Implements read and write interface for transactional access to a {@link lib.llpl.TransactionalHeap}.
+ * Implements a bounded read and write interface for access to a {@code PersistentHeap}. 
  * Access through a {@code TransactionalMemoryBlock} is bounds-checked to be within the blocks allocated space. 
  * Using this memory block gives compile-time knowledge that all changes to persistent 
- * memory are done transactionally. 
+ * memory are done durably. Allocations and other modifications to persistent memory 
+ * may optionally be done transactionally.  
  */
-public final class TransactionalMemoryBlock extends AbstractTransactionalMemoryBlock {
+public final class PersistentMemoryBlock extends AbstractPersistentMemoryBlock {
     private static final long METADATA_SIZE = 8;
 
-    TransactionalMemoryBlock(TransactionalHeap heap, long size) {
-        super(heap, size, true);
+    PersistentMemoryBlock(PersistentHeap heap, long size, boolean transactional) {
+        super(heap, size, true, transactional);
     }
 
-    TransactionalMemoryBlock(TransactionalHeap heap, long poolHandle, long offset) {
+    PersistentMemoryBlock(PersistentHeap heap, long poolHandle, long offset) {
         super(heap, poolHandle, offset, true);
     }
 
@@ -43,12 +44,21 @@ public final class TransactionalMemoryBlock extends AbstractTransactionalMemoryB
     }
 
     /**
-     * Tansactionally executes the suppied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes 
+     * Executes the suppied {@code Consumer}, passing in a {@code Range} object suitable for durably modifying bytes 
      * within this memory block.  
      * @param op the function to execute
      */    
     public void withRange(Consumer<Range> op) {
         withRange(0, size(), op);
+    }
+
+    /**
+     * Tansactionally executes the suppied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes 
+     * within this memory block.  
+     * @param op the function to execute
+     */    
+    public void transactionalWithRange(Consumer<Range> op) {
+        transactionalWithRange(0, size(), op);
     }
 
     /**

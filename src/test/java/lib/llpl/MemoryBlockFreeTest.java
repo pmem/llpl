@@ -9,10 +9,10 @@ package lib.llpl;
 
 class MemoryBlockFreeTest {
     public static void main(String[] args) {
-        Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
-        MemoryBlock<?> mb = h.allocateMemoryBlock(Raw.class, 10);
+        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool_base", 2147483648L);
+        MemoryBlock mb = heap.allocateMemoryBlock(10, true);
         assert(mb.isValid());
-        h.freeMemoryBlock(mb);
+        heap.freeMemoryBlock(mb);
         assert(!mb.isValid());
         boolean caught = false;
         try {
@@ -22,29 +22,43 @@ class MemoryBlockFreeTest {
         }
         assert(caught);
 
-        mb = h.allocateMemoryBlock(Transactional.class, 10);
+        mb = heap.allocateMemoryBlock(10, false);
         assert(mb.isValid());
-        h.freeMemoryBlock(mb);
+        mb.free(true);
         assert(!mb.isValid());
         caught = false;
         try {
             mb.checkValid();
+        } catch (Exception e) {
+            caught = true;
+        }
+        assert(caught);
+
+        PersistentHeap pHeap = PersistentHeap.getHeap("/mnt/mem/persistent_pool_durable", 100_000_000L);
+        PersistentMemoryBlock dmb = pHeap.allocateMemoryBlock(10, true);
+        assert(dmb.isValid());
+        dmb.free(true);
+        assert(!dmb.isValid());
+        caught = false;
+        try {
+            dmb.checkValid();
         } catch (IllegalStateException e) {
             caught = true;
         }
         assert(caught);
 
-        mb = h.allocateMemoryBlock(Flushable.class, 10);
-        assert(mb.isValid());
-        h.freeMemoryBlock(mb);
-        assert(!mb.isValid());
+        TransactionalHeap tHeap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_transactional", 100_000_000L);
+        TransactionalMemoryBlock tmb = tHeap.allocateMemoryBlock(10);
+        assert(tmb.isValid());
+        tmb.free();
+        assert(!tmb.isValid());
         caught = false;
         try {
-            mb.checkValid();
+            tmb.checkValid();
         } catch (IllegalStateException e) {
             caught = true;
         }
         assert(caught);
-        System.out.println("=================================All MemoryBlockFree tests passed===========================");
+        System.out.println("================================= All MemoryBlockFree tests passed =============================");
     }
 }

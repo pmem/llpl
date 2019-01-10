@@ -7,47 +7,30 @@
 
 #include "persistent_heap.h"
 
+const char *pool_layout_name = "llpl_persistent_heap";
+
+PMEMobjpool* create_pool(const char* path, size_t size)
+{
+    return pmemobj_create(path, pool_layout_name, size, S_IRUSR | S_IWUSR);
+}
+
+PMEMobjpool* open_pool(const char* path)
+{
+    return pmemobj_open(path, pool_layout_name);
+}
+
 PMEMobjpool* get_or_create_pool(const char* path, size_t size)
 {
-    const char *pool_layout_name = "llpl_persistent_heap";
-    PMEMobjpool *pool = pmemobj_open(path, pool_layout_name);
-    if (pool == NULL) {
-        pool = pmemobj_create(path, pool_layout_name, size, S_IRUSR | S_IWUSR);
-    }
-    if (pool == NULL) {
-        printf("Failed to open pool %s\n", pmemobj_errormsg());
-        fflush(stdout);
-        exit(-1);
-    }
+    PMEMobjpool *pool = open_pool(path);
+    if (pool == NULL) pool = create_pool(path, size);
     return pool;
 }
 
-void register_allocation_classes(JNIEnv *env, PMEMobjpool *pool, jintArray alloc_classes)
+void register_allocation_classes(JNIEnv *env, PMEMobjpool *pool, jlongArray alloc_classes)
 {
-    jsize len = (env)->GetArrayLength(alloc_classes);
-    jint *j_arr = (env)->GetIntArrayElements(alloc_classes, 0);
-    struct pobj_alloc_class_desc custom_alloc_class;
-    const int custom_index = 16;
-
-    for (int j=custom_index; j<len; j+=2) {
-        if (j_arr[j] == 0 ) continue;
-        custom_alloc_class.header_type = POBJ_HEADER_NONE;
-        custom_alloc_class.unit_size = j_arr[j];
-        custom_alloc_class.units_per_block = 5000;
-        custom_alloc_class.alignment = 0;
-
-        int ret = pmemobj_ctl_set(pool, "heap.alloc_class.new.desc", &custom_alloc_class);
-        if (ret == 0) {
-            j_arr[j+1] = custom_alloc_class.class_id;
-        //    printf("succeeded in registering custom alloc class of size %d, with id %d\n",j_arr[j], custom_alloc_class.class_id);
-        //   fflush(stdout);
-        }
-        /*else {
-            printf("failed to register custom alloc class of size %d\n",j_arr[j]);
-            fflush(stdout);
-            }*/
-    }
-
+    //jsize len = (env)->GetArrayLength(alloc_classes);
+    jlong *j_arr = (env)->GetLongArrayElements(alloc_classes, 0);
+    const int custom_index = 15;
     struct pobj_alloc_class_desc alloc_class;
     for (int i=0; i<custom_index-1; i++) {
         int size = (8*(1+i));
@@ -82,5 +65,5 @@ void register_allocation_classes(JNIEnv *env, PMEMobjpool *pool, jintArray alloc
         }
 
     }*/
-    env->ReleaseIntArrayElements(alloc_classes, j_arr, 0);
+    env->ReleaseLongArrayElements(alloc_classes, j_arr, 0);
 }

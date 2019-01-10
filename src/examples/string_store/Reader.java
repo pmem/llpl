@@ -25,7 +25,7 @@ public class Reader {
             System.out.println("No string found!");
             System.exit(0);
         }
-        MemoryBlock<Transactional> mr = h.memoryBlockFromAddress(Transactional.class, rootAddr);
+        MemoryBlock mr = h.memoryBlockFromHandle(rootAddr);
         byte[] bytes = new byte[mr.getInt(0)];
         for (int i = 0; i < mr.getInt(0); i++) {
             bytes[i] = mr.getByte(Integer.BYTES + i);

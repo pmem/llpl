@@ -7,9 +7,15 @@
 
 package lib.llpl;
 
-class UnboundedMemoryBlock extends MemoryBlock<Unbounded> {
-    UnboundedMemoryBlock(Heap heap, long size) {
-        super(heap, size, false);
+/**
+ * Implements a read and write interface for accessing a {@code Heap}.
+ * Access through an {@code UnboundedMemoryBlock} is bounds-checked to be within the {@code Heap} from which it was allocated
+ * but not checked to be within it's allocated space in that heap. {@code UnboundedMemoryBlock}s have a smaller footprint than 
+ * {@code MemoryBlock}s  
+ */
+public final class UnboundedMemoryBlock extends AbstractMemoryBlock {
+    UnboundedMemoryBlock(Heap heap, long size, boolean transactional) {
+        super(heap, size, false, transactional);
     }
 
     UnboundedMemoryBlock(Heap heap, long poolHandle, long offset) {
@@ -17,66 +23,19 @@ class UnboundedMemoryBlock extends MemoryBlock<Unbounded> {
     }
 
     @Override
-    public void copyFromMemory(MemoryBlock<?> srcBlock, long srcOffset, long dstOffset, long length) {
-        srcBlock.checkRange(srcOffset, length);
-        checkRange(dstOffset, length);
-        MemoryBlock.rawCopyBlockToBlock(srcBlock.directAddress() + srcBlock.baseOffset() + srcOffset, directAddress() + baseOffset() + dstOffset, length);
-    }
-
-    @Override
-    public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
-        checkRange(dstOffset, length);
-        MemoryBlock.rawCopyFromArray(srcArray, srcOffset, directAddress() + baseOffset() + dstOffset, length);
-    }
-
-    @Override
-    public void setMemory(byte val, long offset, long length) {
-        checkRange(offset, length);
-        MemoryBlock.rawSetMemory(directAddress() + baseOffset() + offset, val, length);
-    }
-
-    @Override
     long baseOffset() { 
         return 0; 
     }
 
+    /**
+     * Checks that the range of bytes from {@code offset} (inclusive) to {@code offset} + length (exclusive) 
+     * is within the bounds of this memory block's heap. 
+     * @param offset The start if the range to check
+     * @param length The number of bytes in the range to check
+     * @throws IndexOutOfBoundsException if the range is not within this memory block's heap bounds
+     */
     @Override
-    public long size() { 
-        throw new UnsupportedOperationException(); 
-    }
-
-    @Override
-    public void checkBounds(long offset) {
-        heap().checkBounds(address() + offset);
-    }
-
-    @Override
-    public void setByte(long offset, byte value) {
-        checkBounds(offset);
-        setAbsoluteByte(directAddress() + offset, value);
-    }
-
-    @Override
-    public void setShort(long offset, short value) {
-        checkBounds(offset);
-        setAbsoluteShort(directAddress() + offset, value);
-    }
-
-    @Override
-    public void setInt(long offset, int value) {
-        checkBounds(offset);
-        setAbsoluteInt(directAddress() + offset, value);
-    }
-
-    @Override
-    public void setLong(long offset, long value) {
-        checkBounds(offset);
-        setAbsoluteLong(directAddress() + offset, value);
-    }
-
-    @Override
-    void checkRange(long offset, long length) {
+    public void checkBounds(long offset, long length) {
         if (offset < 0 || offset + length > heap().size()) throw new IndexOutOfBoundsException();
     }
-
 }

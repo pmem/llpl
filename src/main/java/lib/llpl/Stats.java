@@ -11,7 +11,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.Map;
 import java.util.Comparator;
 
-public class Stats {
+@Deprecated
+class Stats {
     public static Stats current;
 
     static {
@@ -24,8 +25,8 @@ public class Stats {
         allocStats = new AllocationStats(AllocationStats.Key.NPV);
      }
 
+    @Deprecated
     public static class AllocationStats {
-        public static final long WRAPPER_PER_INSTANCE = 80;
         private ConcurrentSkipListMap<Key, Record> data;
 
         private static class Key implements Comparable<Key> {

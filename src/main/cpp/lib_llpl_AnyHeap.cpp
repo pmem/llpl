@@ -5,12 +5,11 @@
  *
  */
 
-#include <libpmem.h>
-#include "lib_llpl_Heap.h"
+#include "lib_llpl_AnyHeap.h"
 #include "persistent_heap.h"
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeOpenHeap
-  (JNIEnv *env, jobject obj, jstring path, jlong size, jintArray alloc_classes)
+JNIEXPORT jlong JNICALL Java_lib_llpl_AnyHeap_nativeOpenHeap
+  (JNIEnv *env, jobject obj, jstring path, jlong size, jlongArray alloc_classes)
 {
     const char* native_string = env->GetStringUTFChars(path, 0);
     long poolHandle = (long)get_or_create_pool(native_string, (size_t)size);
@@ -26,7 +25,14 @@ JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeOpenHeap
     return poolHandle;
 }
 
-JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeSetRoot
+JNIEXPORT void JNICALL Java_lib_llpl_AnyHeap_nativeCloseHeap
+  (JNIEnv *env, jobject obj, jlong poolHandle)
+{
+    PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
+    pmemobj_close(pool);
+}
+
+JNIEXPORT jint JNICALL Java_lib_llpl_AnyHeap_nativeSetRoot
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong val)
 {
     PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
@@ -42,14 +48,14 @@ JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeSetRoot
     return ret;
 }
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeGetRoot
+JNIEXPORT jlong JNICALL Java_lib_llpl_AnyHeap_nativeGetRoot
   (JNIEnv *env, jobject obj, jlong poolHandle)
 {
     PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
     return (jlong)*(long *)pmemobj_direct(pmemobj_root(pool, 8));
 }
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeAllocate
+JNIEXPORT jlong JNICALL Java_lib_llpl_AnyHeap_nativeAllocateTransactional
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong size, jint class_index)
 {
     PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
@@ -64,56 +70,87 @@ JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeAllocate
             }
         ret = bytes.oid.off;
     } TX_END
-    // TODO: remove after debugging
-    //printf("pmem alloc: requested = %llu, class_index = %d, usable = %llu\n", size, class_index, pmemobj_alloc_usable_size(bytes.oid));
-    //fflush(stdout);
     return ret;
 }
 
-JNIEXPORT jint JNICALL Java_lib_llpl_Heap_nativeFree
+JNIEXPORT jlong JNICALL Java_lib_llpl_AnyHeap_nativeAllocateAtomic
+  (JNIEnv *env, jobject obj, jlong poolHandle, jlong size, jint class_index)
+{
+    PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
+
+    jlong ret = 0;
+    if (class_index == 0) {
+        TOID(char) bytes = TOID_NULL(char);
+        POBJ_ZALLOC(pool, &bytes, char, (size_t)size);
+        ret = bytes.oid.off;
+    }
+    else {
+        PMEMoid bytes = OID_NULL;
+        pmemobj_xalloc(pool, &bytes, (size_t)size, 0, POBJ_XALLOC_ZERO | POBJ_CLASS_ID(class_index), NULL, NULL);
+        ret = bytes.off;
+    }
+   return ret;
+}
+
+JNIEXPORT jint JNICALL Java_lib_llpl_AnyHeap_nativeFree
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong block_direct_address)
 {
     PMEMoid oid = pmemobj_oid((const void*)block_direct_address);
     TOID(char) bytes;
     TOID_ASSIGN(bytes, oid);
     PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
-
     int ret = 0;
     TX_BEGIN(pool) {
         TX_FREE(bytes);
     } TX_ONABORT {
+        printf("nativeFree error: %s\n", pmemobj_errormsg());
         ret = -1;
     } TX_END
-
     return ret;
 }
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativePoolId
-  (JNIEnv *env, jobject obj, jlong poolHandle)
+JNIEXPORT jint JNICALL Java_lib_llpl_AnyHeap_nativeFreeAtomic
+  (JNIEnv *env, jobject obj, jlong block_direct_address)
 {
-    PMEMobjpool *pool = (PMEMobjpool*)poolHandle;
-    PMEMoid test_oid;
-    pmemobj_alloc(pool, &test_oid,  64, 0, NULL, 0);
-    jlong poolId = (jlong)test_oid.pool_uuid_lo;
-    pmemobj_free(&test_oid);
-    return poolId;
+    PMEMoid oid = pmemobj_oid((const void*)block_direct_address);
+    TOID(char) bytes;
+    TOID_ASSIGN(bytes, oid);
+    POBJ_FREE(&bytes);
+    return 0;
 }
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativeDirectAddress
+JNIEXPORT jlong JNICALL Java_lib_llpl_AnyHeap_nativeDirectAddress
   (JNIEnv *env, jobject obj, jlong poolId, jlong offset)
 {
     PMEMoid oid = {(uint64_t)poolId, (uint64_t)offset};
     return (long)pmemobj_direct(oid);
 }
 
-JNIEXPORT jlong JNICALL Java_lib_llpl_Heap_nativePoolSize
+JNIEXPORT jint JNICALL Java_lib_llpl_AnyHeap_nativeRegisterAllocationClass
+  (JNIEnv *env, jobject obj, jlong poolHandle, jlong size)
+{
+    struct pobj_alloc_class_desc custom_alloc_class;
+
+    custom_alloc_class.header_type = POBJ_HEADER_NONE;
+    custom_alloc_class.unit_size = size;
+    custom_alloc_class.units_per_block = 5000;
+    custom_alloc_class.alignment = 0;
+
+    int ret = pmemobj_ctl_set((PMEMobjpool*)poolHandle, "heap.alloc_class.new.desc", &custom_alloc_class);
+    if (ret == 0) {
+        return custom_alloc_class.class_id;
+    } else 
+        return -1;
+}
+
+JNIEXPORT jlong JNICALL Java_lib_llpl_AnyHeap_nativeHeapSize
   (JNIEnv *env, jobject obj, jstring path)
 {
-    size_t poolSize;
+    size_t heapSize;
     int is_pmemp;
     const char* native_string = env->GetStringUTFChars(path, 0);
-    void *file = pmem_map_file(native_string, 0, 0, 0, &poolSize, &is_pmemp);
-    pmem_unmap(file, poolSize);
+    void *file = pmem_map_file(native_string, 0, 0, 0, &heapSize, &is_pmemp);
+    pmem_unmap(file, heapSize);
     env->ReleaseStringUTFChars(path, native_string);
-    return poolSize;
+    return heapSize;
 }
