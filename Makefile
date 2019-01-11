@@ -68,7 +68,7 @@ java: classes
 docs: classes
 	$(JAVADOC) -d  docs lib.llpl -sourcepath $(JAVA_SOURCE_DIR)
 jar: sources
-	$(JAR) cvf $(TARGET_DIR)/llpl.jar $(CLASSES_DIR)/lib 		
+	$(JAR) cvf $(TARGET_DIR)/llpl.jar -C $(CLASSES_DIR) lib/ 		
 
 examples: sources
 	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):$(example_dir) $(example_dir)/*.java;)
