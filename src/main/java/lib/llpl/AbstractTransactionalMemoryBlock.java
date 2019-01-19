@@ -19,7 +19,7 @@ abstract class AbstractTransactionalMemoryBlock extends AnyMemoryBlock {
     }
 
     AbstractTransactionalMemoryBlock(TransactionalHeap heap, long poolHandle, long offset, boolean bounded) {
-        super(heap, offset, true);
+        super(heap, offset, bounded);
     }
 
     /**
@@ -76,7 +76,7 @@ abstract class AbstractTransactionalMemoryBlock extends AnyMemoryBlock {
     }
 
     /**
-     * Transactionally executes the suppied {@code Function}, passing in a {@code Range} object suitable for modifying bytes in 
+     * Transactionally executes the supplied {@code Function}, passing in a {@code Range} object suitable for modifying bytes in 
      * the specified range of offsets within this memory block.  
      * @param startOffset the ranges startOffset
      * @param length the number of bytes in the range
@@ -89,8 +89,10 @@ abstract class AbstractTransactionalMemoryBlock extends AnyMemoryBlock {
     }
 
     /**
-     * Transactionally executes the suppied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes in 
-     * the specified range of offsets within this memory block.  
+     * Transactionally executes the supplied {@code Consumer} function, passing in a {@code Range} object
+     * suitable for modifying bytes in the specified range of offsets within this memory block.
+     * Writing using the Range object in ranged operations such as this can be more efficient than
+     * calling separate write methods on the memory block. 
      * @param startOffset the ranges startOffset
      * @param length the number of bytes in the range
      * @param op the function to execute

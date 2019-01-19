@@ -14,11 +14,11 @@ import java.util.function.Consumer;
 abstract class AbstractMemoryBlock extends AnyMemoryBlock { 
 
     AbstractMemoryBlock(Heap heap, long size, boolean bounded, boolean transactional) {
-        super(heap, size, true, transactional);
+        super(heap, size, bounded, transactional);
     }
 
     AbstractMemoryBlock(Heap heap, long poolHandle, long offset, boolean bounded) {
-        super(heap, offset, true);
+        super(heap, offset, bounded);
     }
 
     /**
@@ -81,11 +81,11 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
     // }
 
     /**
-    * Ensures that any modifications made within the supplied range withing this memory 
+    * Ensures that any modifications made within the supplied range within this memory 
     * block are written to persistent memory media.
     */
-     public void flush(long offset, long size) {
-        super.flush(offset, size);
+     public void flush(long offset, long length) {
+        super.flush(offset, length);
     }
 
     /**
@@ -93,8 +93,8 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
     * Any modifications to this range of bytes will be committed on successful completion of the current
     * transaction or rolled-back on abort of the current transaction
     */
-    public void addToTransaction(long offset, long size) {
-        super.addToTransaction(offset, size);
+    public void addToTransaction(long offset, long length) {
+        super.addToTransaction(offset, length);
     }
 
     /**

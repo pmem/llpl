@@ -8,7 +8,9 @@
 package lib.llpl;
 
 /**
- * Implements write methods for a range of locations within an associated memory block.  
+ * Implements write methods for a range of locations within an associated memory block. Instances of this class
+ * are provided as an argument to user functions associated with ranged operations such as 
+ * {@link lib.llpl.TransactionalMemoryBlock#withRange(Consumer) withRange}
  */
 public final class Range {
     private final AnyMemoryBlock block;

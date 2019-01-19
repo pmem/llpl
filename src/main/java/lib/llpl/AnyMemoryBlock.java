@@ -415,10 +415,10 @@ public abstract class AnyMemoryBlock {
         flush(0, size());
     }
 
-    void flush(long offset, long size) {
+    void flush(long offset, long length) {
         checkValid();
-        checkBounds(offset, size);
-        internalFlush(offset, size);
+        checkBounds(offset, length);
+        internalFlush(offset, length);
     }
 
     void internalFlush(long offset, long size) {

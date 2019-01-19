@@ -16,8 +16,7 @@ import java.io.File;
 import sun.misc.Unsafe;
 
 /**
- * The base class for all heap classes.  A heap contains bytes associated with physical memory.
- * These bytes are allocated for use in block units.
+ * The base class for all heap classes.  A heap contains memory allocated in units of memory blocks.
  */
 public abstract class AnyHeap {
     static {
@@ -102,13 +101,13 @@ public abstract class AnyHeap {
     }
 
     /**
-     * [EXPERIMENTAL] Registers a specific memory block size for optimized allocation of blocks of that size.  Use this for very
-     * common block sizes to optimize allocation speed and minimize footprint of memory blocks on the heap.<br>
-     * Separate registrations are required for bounded and unbounded memory blocks of a given size. Each heap
-     * instance maintains a separate set of registered sizes.  Size registration is itself not persistent so
+     * [EXPERIMENTAL] Registers a specific memory block size for optimized allocation of memory blocks of that size.  Use this for very
+     * common block sizes to optimize allocation speed and minimize footprint of memory blocks on the heap.<br> 
+     * Separate registrations are required for bounded and unbounded memory blocks of a given size. Each heap 
+     * instance maintains a separate set of registered sizes.  Size registration is itself not persistent so 
      * sizes must be registered each time a heap is opened.
      * @param size the required size of an allocated memory block
-     * @param unbounded true if {@code size} is associated with a unbounded memory block
+     * @param unbounded true if {@code size} is associated with an unbounded memory block
      */
     public synchronized void registerAllocationSize(long size, boolean unbounded) {
         if (userSizes.size() == MAX_USER_CLASSES) throw new HeapException("Max allocation size count reached.");

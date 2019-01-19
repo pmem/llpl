@@ -15,11 +15,11 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
     private static final long METADATA_SIZE = 8;
 
     AbstractPersistentMemoryBlock(PersistentHeap heap, long size, boolean bounded, boolean transactional) {
-        super(heap, size, bounded, true);
+        super(heap, size, bounded, transactional);
     }
 
     AbstractPersistentMemoryBlock(PersistentHeap heap, long poolHandle, long offset, boolean bounded) {
-        super(heap, offset, true);
+        super(heap, offset, bounded);
     }
 
     /**
@@ -77,7 +77,7 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
     }
 
     /**
-     * Executes the suppied {@code Function} passing in a {@code Range} object suitable for durably modifying bytes in 
+     * Executes the supplied {@code Function} passing in a {@code Range} object suitable for durably modifying bytes in 
      * the specified range of offsets within this memory block.  
      * @param startOffset the ranges startOffset
      * @param length the number of bytes in the range
@@ -90,7 +90,7 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
     }
 
     /**
-     * Executes the suppied {@code Consumer} function passing in a {@code Range} object suitable for durably modifying bytes in 
+     * Executes the supplied {@code Consumer} function passing in a {@code Range} object suitable for durably modifying bytes in 
      * the specified range of offsets within this memory block.  
      * @param startOffset the ranges startOffset
      * @param length the number of bytes in the range

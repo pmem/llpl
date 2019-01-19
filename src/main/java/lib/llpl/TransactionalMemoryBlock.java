@@ -43,7 +43,7 @@ public final class TransactionalMemoryBlock extends AbstractTransactionalMemoryB
     }
 
     /**
-     * Tansactionally executes the suppied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes 
+     * Tansactionally executes the supplied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes 
      * within this memory block.  
      * @param op the function to execute
      */    
