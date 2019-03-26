@@ -1,10 +1,10 @@
 # Low Level Persistence Library #
 
 ## OVERVIEW ##
-The Low Level Persistence Library offers access to persistent memory using MemoryBlocks allocated from
+The Low Level Persistence Library offers access to persistent memory using `MemoryBlocks` allocated from
 a persistent Heap.  
 
-This Java library uses the libpmemobj library from the Persistent Memory Development Kit (PMDK). 
+This Java library uses the **libpmemobj** library from the Persistent Memory Development Kit (PMDK).
 For more information on PMDK, please visit http://pmem.io and https://github.com/pmem/pmdk.
 
 ## HOW TO BUILD & RUN ##
@@ -15,7 +15,7 @@ The following are the prerequisites for building this Java library:
 1. Linux operating system (tested on CentOS 7.2)
 2. Persistent Memory Development Kit (PMDK)
 3. Java 8 or above
-4. Build tools - g++ compiler and make
+4. Build tools - `g++` compiler and `make`
 
 ### PREREQUISITES TO RUN ###
 This library assumes the availability of hardware persistent memory or emulated persistent memory.  Instructions for creating emulated persistent memory are shown below.
