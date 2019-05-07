@@ -43,7 +43,7 @@ public final class PersistentHeap extends AnyHeap {
      * @return the heap at the specified path or {@code null} if the heap does not exist
      */
     public static synchronized PersistentHeap getHeap(String path) {
-        return (PersistentHeap)AnyHeap.getHeap(path);
+        return getHeap(path, 0);
     }
 
     @Override
