@@ -110,7 +110,6 @@ Then describe the bug in the comment fields.
 
 Assign the `Type: Feature` label to the issue, then describe the feature request in comment fields.
 
-#### PMDK version
+#### LLPL version
 
-Put the release name of the version of PMDK running when the
-bug was discovered in a bug comment.
+In a bug comment, put the LLPL version running when the bug was discovered.
