@@ -28,7 +28,7 @@ greater. Please follow the steps at:
 
 Alternatively, for use with older kernels, create a tmpfs partition as follows (as root):
    ```
-   $ mount -t tmpfs -o size=4G tmpfs /mnt/mem  # creates a 4GB tmpfs partition
+   $ mount -t tmpfs -o size=8G tmpfs /mnt/mem  # creates a 8GB tmpfs partition
    $ chmod -R a+rw /mnt/mem                    # enables read/write permissions to all users
    ```
 ### STEPS TO BUILD AND RUN TESTS ###
