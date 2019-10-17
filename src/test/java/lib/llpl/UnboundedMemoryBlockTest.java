@@ -9,7 +9,7 @@ package lib.llpl;
 
 class UnboundedMemoryBlockTest {
     public static void main(String[] args) {
-        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 100_000_000L);
         int nBlocks = 10;
         long[] offsets = new long[nBlocks];
         for (int i = 0; i < nBlocks; i++) offsets[i] = heap.allocateUnboundedMemoryBlock(1024, false).handle();

@@ -9,7 +9,7 @@ package lib.llpl;
 
 class MemoryBlockFreeTest {
     public static void main(String[] args) {
-        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool_base", 2147483648L);
+        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool_base", 100_000_000L);
         MemoryBlock mb = heap.allocateMemoryBlock(10, true);
         assert(mb.isValid());
         heap.freeMemoryBlock(mb);

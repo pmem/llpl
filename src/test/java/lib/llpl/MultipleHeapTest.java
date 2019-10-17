@@ -72,7 +72,7 @@ class MultipleHeapTest {
         // allocation size registration
         // TODO: validate results
         int[] userSizes = new int[] {12, 105, 32, 50};
-        Heap custom = Heap.getHeap("/mnt/mem/custom", 100_000_000);
+        Heap custom = Heap.getHeap("/mnt/mem/custom", 100_000_000L);
         for (int size : userSizes) custom.registerAllocationSize(size, false);
         custom.allocateMemoryBlock(12, true);
         custom.allocateMemoryBlock(13, true);

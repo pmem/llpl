@@ -10,7 +10,7 @@ package lib.llpl;
 class TransactionalMemoryBlockTest {
     public static void main(String[] args) {
         String heapName = "/mnt/mem/persistent_pool_transactional";
-        TransactionalHeap heap = TransactionalHeap.getHeap(heapName, 2147483648L);
+        TransactionalHeap heap = TransactionalHeap.getHeap(heapName, 100_000_000L);
         TransactionalMemoryBlock block1 = heap.allocateMemoryBlock(16);
         TransactionalMemoryBlock block = heap.memoryBlockFromHandle(block1.handle());
 

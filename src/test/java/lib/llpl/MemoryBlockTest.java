@@ -10,7 +10,7 @@ package lib.llpl;
 class MemoryBlockTest {
     public static void main(String[] args) {
         String heapName = "/mnt/mem/persistent_pool";
-        Heap heap = Heap.getHeap(heapName, 2147483648L);
+        Heap heap = Heap.getHeap(heapName, 100_000_000L);
         MemoryBlock block1 = heap.allocateMemoryBlock(16, false);
         
         block1.setLong(3, 88888);

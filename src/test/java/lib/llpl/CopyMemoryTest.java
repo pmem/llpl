@@ -11,9 +11,9 @@ public class CopyMemoryTest {
     static String heapName = "/mnt/mem/persistent_pool";
     static String dHeapName = "/mnt/mem/persistent_pool_durable";
     static String tHeapName = "/mnt/mem/persistent_pool_transactional";
-    static Heap heap = Heap.getHeap(heapName, 2147483648L);
-    static PersistentHeap dHeap = PersistentHeap.getHeap(dHeapName, 2147483648L);
-    static TransactionalHeap tHeap = TransactionalHeap.getHeap(tHeapName, 100000000L);
+    static Heap heap = Heap.getHeap(heapName, 100_000_000L);
+    static PersistentHeap dHeap = PersistentHeap.getHeap(dHeapName, 100_000_000L);
+    static TransactionalHeap tHeap = TransactionalHeap.getHeap(tHeapName, 100_000_000L);
 
     public static void main(String[] args) {
         blockToBlockTest();

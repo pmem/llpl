@@ -72,7 +72,7 @@ class MultipleTransactionalHeapTest {
         // allocation size registration
         // TODO: validate results
         int[] userSizes = new int[] {12, 105, 32, 50};
-        TransactionalHeap custom = TransactionalHeap.getHeap("/mnt/mem/custom", 100_000_000);
+        TransactionalHeap custom = TransactionalHeap.getHeap("/mnt/mem/custom", 100_000_000L);
         for (int size : userSizes) custom.registerAllocationSize(size, false);
         custom.allocateMemoryBlock(12);
         custom.allocateMemoryBlock(13);

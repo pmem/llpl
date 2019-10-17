@@ -9,7 +9,7 @@ package lib.llpl;
 
 class PersistentMemoryBlockTest {
     public static void main(String[] args) {
-        PersistentHeap heap = PersistentHeap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+        PersistentHeap heap = PersistentHeap.getHeap("/mnt/mem/persistent_pool", 100_000_000L);
         PersistentMemoryBlock block1 = heap.allocateMemoryBlock(16, true);
         block1.setLong(3, 88888);
 

@@ -9,7 +9,7 @@ package lib.llpl;
 
 class TransactionTest {
     public static void main(String[] args) {
-        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 100_000_000L);
         MemoryBlock block1 = heap.allocateMemoryBlock(16, true);
 
         Transaction.run(heap, () -> {
@@ -122,7 +122,7 @@ class TransactionTest {
 
         // Test Transaction with Range and Durable with Range
         {
-            PersistentHeap pHeap = PersistentHeap.getHeap("/mnt/mem/persistent_heap", 100_000_000);
+            PersistentHeap pHeap = PersistentHeap.getHeap("/mnt/mem/persistent_heap", 100_000_000L);
             PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(1024, true);
             PersistentMemoryBlock mb1 = pHeap.allocateMemoryBlock(1024, true);
             mb.transactionalWithRange(20, 29, (Range range) -> {

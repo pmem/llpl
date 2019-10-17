@@ -12,9 +12,9 @@ import java.util.HashMap;
 
 class MemoryBlockCollectionTest {
     public static void main(String[] args) {
-        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
-        PersistentHeap dHeap = PersistentHeap.getHeap("/mnt/mem/persistent_pool_durable", 100000000L);
-        TransactionalHeap tHeap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_transactional", 100000000L);
+        Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 100_000_000L);
+        PersistentHeap dHeap = PersistentHeap.getHeap("/mnt/mem/persistent_pool_durable", 100_000_000L);
+        TransactionalHeap tHeap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_transactional", 100_000_000L);
         HashMap<AnyMemoryBlock, Integer> hm = new HashMap<>();
         for (int i = 0; i < 10; i++) {
             hm.put(heap.allocateMemoryBlock(10, true), i);

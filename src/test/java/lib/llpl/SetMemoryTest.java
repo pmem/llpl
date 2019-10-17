@@ -11,7 +11,7 @@ public class SetMemoryTest {
     public static void main(String[] args) {
         String heapName = "/mnt/mem/persistent_pool";
         String tHeapName = "/mnt/mem/persistent_pool_tranactional";
-        Heap heap = Heap.getHeap(heapName, 2_147_483_648L);
+        Heap heap = Heap.getHeap(heapName, 100_000_000L);
         TransactionalHeap tHeap = TransactionalHeap.getHeap(tHeapName, 100_000_000L);
 
         MemoryBlock rmb = heap.allocateMemoryBlock(120, true);
