@@ -12,7 +12,7 @@ import java.io.Console;
 
 public class Reader {
     public static void main(String[] args) {
-        Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+        Heap h = Heap.getHeap("/mnt/mem/persistent_pool", 100_000_000L);
 
         Console c = System.console();
         if (c == null) {

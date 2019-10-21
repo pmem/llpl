@@ -11,7 +11,7 @@ import lib.llpl.*;
 
 public class MemoryBlockArray {
     private static final int HEADER_SIZE = 4;
-    private static TransactionalHeap heap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_tx", 2147483648L);
+    private static TransactionalHeap heap = TransactionalHeap.getHeap("/mnt/mem/persistent_pool_tx", 100_000_000L);
     TransactionalMemoryBlock block;
 
 

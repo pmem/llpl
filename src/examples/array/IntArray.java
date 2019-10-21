@@ -11,7 +11,7 @@ import lib.llpl.*;
 
 public class IntArray {
     private static final int HEADER_SIZE = 4;
-    private static Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 2147483648L);
+    private static Heap heap = Heap.getHeap("/mnt/mem/persistent_pool", 100_000_000L);
     MemoryBlock block;
 
 
