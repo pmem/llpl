@@ -1,0 +1,26 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+
+<suite name="TestAll">
+	<test name="LLPL-basic">
+		<classes>
+			<class name="com.intel.pmem.llpl.LLPLTestConfig" />
+			<class name="com.intel.pmem.llpl.Heap1Tests" />
+			<class name="com.intel.pmem.llpl.Heap2Tests" />
+			<class name="com.intel.pmem.llpl.PersistentHeap1Tests" />
+			<class name="com.intel.pmem.llpl.PersistentHeap2Tests" />
+			<class name="com.intel.pmem.llpl.TransactionalHeap1Tests" />
+			<class name="com.intel.pmem.llpl.TransactionalHeap2Tests" />
+			<class name="com.intel.pmem.llpl.MixedHeapsTest" />
+			<class name="com.intel.pmem.llpl.MemoryBlock1Tests" />
+			<class name="com.intel.pmem.llpl.MemoryBlock2Tests" />
+			<class name="com.intel.pmem.llpl.PersistentMemoryBlock1Tests" />
+			<class name="com.intel.pmem.llpl.PersistentMemoryBlock2Tests" />
+			<class name="com.intel.pmem.llpl.TransactionalMemoryBlock1Tests" />
+			<class name="com.intel.pmem.llpl.TransactionalMemoryBlock2Tests" />
+			<class name="com.intel.pmem.llpl.TransactionsTests" />
+			<class name="com.intel.pmem.llpl.Transactions2Tests" />
+			<class name="com.intel.pmem.llpl.AllocationClassTests" />
+		</classes>
+	</test>
+</suite>
+

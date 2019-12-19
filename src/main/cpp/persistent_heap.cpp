@@ -1,34 +1,29 @@
 /*
- * Copyright (C) 2018 Intel Corporation
+ * Copyright (C) 2018-2019 Intel Corporation
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
  */
 
 #include "persistent_heap.h"
+#include "util.h"
 
-const char *pool_layout_name = "llpl_persistent_heap";
-
-PMEMobjpool* create_pool(const char* path, size_t size)
+PMEMobjpool* create_pool(JNIEnv *env, const char* path, size_t size, const char* pool_layout_name)
 {
-    return pmemobj_create(path, pool_layout_name, size, S_IRUSR | S_IWUSR);
+    PMEMobjpool* pool = pmemobj_create(path, pool_layout_name, size, S_IRUSR | S_IWUSR);
+    if (pool == NULL) throw_heap_exception(env, "Failed to create heap. ");
+    return pool;
 }
 
-PMEMobjpool* open_pool(const char* path)
+PMEMobjpool* open_pool(JNIEnv *env, const char* path, const char* pool_layout_name)
 {
-    return pmemobj_open(path, pool_layout_name);
-}
-
-PMEMobjpool* get_or_create_pool(const char* path, size_t size)
-{
-    PMEMobjpool *pool = open_pool(path);
-    if (pool == NULL) pool = create_pool(path, size);
+    PMEMobjpool* pool = pmemobj_open(path, pool_layout_name);
+    if (pool == NULL) throw_heap_exception(env, "Failed to open heap. ");
     return pool;
 }
 
 void register_allocation_classes(JNIEnv *env, PMEMobjpool *pool, jlongArray alloc_classes)
 {
-    //jsize len = (env)->GetArrayLength(alloc_classes);
     jlong *j_arr = (env)->GetLongArrayElements(alloc_classes, 0);
     const int custom_index = 15;
     struct pobj_alloc_class_desc alloc_class;
@@ -42,13 +37,7 @@ void register_allocation_classes(JNIEnv *env, PMEMobjpool *pool, jlongArray allo
         int ret = pmemobj_ctl_set(pool, "heap.alloc_class.new.desc", &alloc_class);
         if (ret == 0) {
             j_arr[i] = alloc_class.class_id;
-         //   printf("succeeded in registering alloc class of size %d, with id %d\n",size,alloc_class.class_id);
-         //   fflush(stdout);
         }
-        /*else {
-            printf("failed to register alloc class of size %d\n",size);
-            fflush(stdout);
-        }*/
     }
 
     /*int ret = 0;

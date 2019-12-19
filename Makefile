@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2018 Intel Corporation
+# Copyright (C) 2018-2019 Intel Corporation
 #
 # SPDX-License-Identifier: BSD-3-Clause
 # 
@@ -13,13 +13,13 @@ JAVADOC = $(JAVA_HOME)/bin/javadoc
 
 JNI_INCLUDES = $(JAVA_HOME)/include $(JAVA_HOME)/include/linux
 
-CFLAGS = -O3 -DNDEBUG -fPIC
+CFLAGS = -O3 -DNDEBUG -fPIC -shared -D_FORTIFY_SOURCE=2 -z noexecstack -z,relro -z,now -Wformat -Wformat-security -Werror=format-security
 JAVAFLAGS = -Xlint:unchecked -proc:none -XDenableSunApiLintControl
-LINK_FLAGS = -fPIC -O3 -DNDEBUG -shared -lpmem -lpmemobj -Wl,-rpath,/usr/local/lib:/usr/local/lib64
+LINK_FLAGS = -fPIC -pie -O3 -DNDEBUG -shared -lpmem -lpmemobj -lpmempool -Wl,-rpath,/usr/local/lib:/usr/local/lib64
 
 CPP_SOURCE_DIR = src/main/cpp
 JAVA_SOURCE_DIR = src/main/java
-PACKAGE_NAME = lib/llpl
+PACKAGE_NAME = com/intel/pmem/llpl
 
 TEST_DIR = src/test/java/$(PACKAGE_NAME)
 
@@ -28,7 +28,7 @@ CPP_BUILD_DIR = $(TARGET_DIR)/cppbuild
 CLASSES_DIR = $(TARGET_DIR)/classes
 TEST_CLASSES_DIR = $(TARGET_DIR)/test_classes
 
-BASE_CLASSPATH = $(CLASSES_DIR):lib
+BASE_CLASSPATH = $(CLASSES_DIR):com/intel/pmem/
 
 ALL_CPP_SOURCES = $(wildcard $(CPP_SOURCE_DIR)/*.cpp)
 ALL_JAVA_SOURCES = $(wildcard $(JAVA_SOURCE_DIR)/$(PACKAGE_NAME)/*.java)
@@ -46,18 +46,15 @@ ALL_TEST_SOURCES = $(addprefix $(TEST_DIR)/, \
 	SetMemoryTest.java \
 	TransactionTest.java \
 	TransactionalMemoryBlockTest.java \
-	UnboundedMemoryBlockTest.java \
+	CompactMemoryBlockTest.java \
 	)
-
-#	TransactionPerfTest.java \
-#	DurablePerfTest.java \
 
 ALL_TEST_CLASSES = $(addprefix $(TEST_CLASSES_DIR)/, $(notdir $(ALL_TEST_SOURCES:.java=.class)))
 ALL_PERF_TEST_CLASSES = $(addprefix $(TEST_CLASSES_DIR)/, $(notdir $(ALL_PERF_TEST_SOURCES:.java=.class)))
 
 LIBRARIES = $(addprefix $(CPP_BUILD_DIR)/, libllpl.so)
 
-EXAMPLES_DIR = src/examples
+EXAMPLES_DIR = src/examples/com/intel/pmem/llpl/examples
 ALL_EXAMPLE_DIRS = $(wildcard $(EXAMPLES_DIR)/*)
 #$(addprefix $(EXAMPLES_DIR)/, reservations employees)
 
@@ -66,15 +63,16 @@ sources: cpp java
 cpp: $(LIBRARIES)
 java: classes
 docs: classes
-	$(JAVADOC) -d  docs lib.llpl -sourcepath $(JAVA_SOURCE_DIR)
+	$(JAVADOC) -d  docs com.intel.pmem.llpl -sourcepath $(JAVA_SOURCE_DIR)
 jar: sources
-	$(JAR) cvf $(TARGET_DIR)/llpl.jar -C $(CLASSES_DIR) lib/ 		
+	$(JAR) cvf $(TARGET_DIR)/llpl.jar -C $(CLASSES_DIR) com/intel/pmem/ 		
 
 examples: sources
-	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):$(example_dir) $(example_dir)/*.java;)
+	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src/examples $(example_dir)/*.java;)
 
 testsources: sources
-	$(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src -d $(TEST_CLASSES_DIR) $(TEST_DIR)/*.java;
+	#$(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src -d $(TEST_CLASSES_DIR) $(TEST_DIR)/*.java;
+	$(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src -d $(TEST_CLASSES_DIR) $(ALL_TEST_SOURCES);
 
 clean: cleanex
 	rm -rf target
