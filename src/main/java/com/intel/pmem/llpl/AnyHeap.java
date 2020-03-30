@@ -300,6 +300,14 @@ public abstract class AnyHeap {
     abstract String getHeapLayoutID();
     abstract AnyMemoryBlock internalMemoryBlockFromHandle(long handle);
 
+    public void freeMemory(long handle, boolean transactional) {
+        checkValid();
+        int result = transactional ? nativeFree(poolHandle, poolHandle + handle) : nativeFreeAtomic(poolHandle + handle);
+        if (result < 0) {
+            throw new HeapException("Failed to free memory.");
+        }
+    }
+
     void freeMemoryBlock(AnyMemoryBlock block) {
         freeMemoryBlock(block, true);
     }

@@ -8,6 +8,7 @@
 package com.intel.pmem.llpl;
 
 import java.io.File;
+import java.util.function.Supplier;
 import java.io.IOException;
 
 /**
@@ -154,6 +155,46 @@ public final class Heap extends AnyHeap {
             AnyHeap.putHeap(heapPath, heap);
         }
         return heap;
+    }
+
+    public Accessor createAccessor() {
+        return new Accessor(this);
+    }
+
+    public CompactAccessor createCompactAccessor() {
+        return new CompactAccessor(this);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional true if the allocation should be done transactionally
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateMemory(long size, boolean transactional) {
+        long allocationSize = size + Accessor.METADATA_SIZE; 
+        Supplier<Long> body = () -> {
+            long handle =  transactional ? allocateTransactional(allocationSize) : allocateAtomic(allocationSize);
+            if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+            AnyHeap.UNSAFE.putLong(poolHandle() + handle + AnyMemoryBlock.SIZE_OFFSET, size);
+            return handle;
+        };
+        long handle = transactional ? new Transaction(this).run(body) : body.get();
+        return handle;
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional true if the allocation should be done transactionally
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateCompactMemory(long size, boolean transactional) {
+        long handle =  transactional ? Transaction.create(this, () -> allocateTransactional(size)) : allocateAtomic(size);
+        if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+        return handle;
     }
 
     /**

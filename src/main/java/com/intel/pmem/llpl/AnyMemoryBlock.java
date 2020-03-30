@@ -34,7 +34,7 @@ public abstract class AnyMemoryBlock {
         ELIDE_FLUSHES = false;
     }
 
-    private static final long SIZE_OFFSET = 0; 
+    static final long SIZE_OFFSET = 0; 
     private final AnyHeap heap;
     private long size;
     private long address;       
@@ -64,6 +64,29 @@ public abstract class AnyMemoryBlock {
     // Reconstructor
     AnyMemoryBlock(AnyHeap heap, long offset, boolean bounded) {
         this.heap = heap;
+        handle(offset, bounded);
+        // this.address = offset;
+        // this.directAddress = heap.poolHandle() + address;
+        // this.size = bounded ? getPersistentSize() : -1;
+        // if (bounded) {
+        //     if (this.size <= 0 || !this.heap.isInBounds(offset + this.size, 0)) {
+        //         throw new HeapException("Failed to reconstruct memory block from supplied handle");
+        //     }
+        // }
+    }
+
+    AnyMemoryBlock(AnyHeap heap) {
+        this.heap = heap;
+        this.address = 0;
+        this.directAddress = 0;
+    }
+
+    protected void reset() {
+        address = 0;
+        directAddress = 0;
+    }
+
+    void handle(long offset, boolean bounded) {
         this.address = offset;
         this.directAddress = heap.poolHandle() + address;
         this.size = bounded ? getPersistentSize() : -1;

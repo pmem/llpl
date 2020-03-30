@@ -3,6 +3,8 @@
 <suite name="TestAll">
 	<test name="LLPL-basic">
 		<classes>
+			<class name="com.intel.pmem.llpl.AccessorSetHandleTests" />
+			<class name="com.intel.pmem.llpl.Accessor1Tests" />
 			<class name="com.intel.pmem.llpl.LLPLTestConfig" />
 			<class name="com.intel.pmem.llpl.Heap1Tests" />
 			<class name="com.intel.pmem.llpl.Heap2Tests" />
