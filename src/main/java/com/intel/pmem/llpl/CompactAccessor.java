@@ -10,8 +10,8 @@ package com.intel.pmem.llpl;
 import java.util.function.Consumer;
 
 /**
- * Implements a read and write interface for accessing a {@link com.intel.pmem.llpl.Heap}. Access through a 
- * {@code MemoryBlock} is bounds-checked to be within the block's allocated space.
+ * Implements a read and write interface for accessing a previously allocated block of memory on a heap. Access through a
+ * {@code CompactAccessor} is bounds-checked to be within the block's allocated space.
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -26,8 +26,8 @@ public final class CompactAccessor extends AnyMemoryBlock {
     }
 
     /**
-    * Returns the heap from which this memory block was allocated.
-    * @return the {@code Heap} from which this memory block was allocated
+    * Returns the heap associated with this accessor.
+    * @return the {@code Heap} associated with this accessor
     */
     public Heap heap() {
         return (Heap)super.heap();
@@ -196,49 +196,49 @@ public final class CompactAccessor extends AnyMemoryBlock {
     }
 
     /**
-    * Ensures that any modifications made within the supplied range within this memory 
-    * block are written to persistent memory media.
+    * Ensures that the supplied range of bytes are written to persistent memory media.
     * @param offset the location from which to flush bytes
     * @param length the number of bytes to flush
-    * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block bounds 
-    * @throws IllegalStateException if the memory block is not in a valid state for use
+    * @throws IndexOutOfBoundsException if the operation would cause access of data outside of accessor bounds 
+    * @throws IllegalStateException if the accessor is not in a valid state for use
     */
      public void flush(long offset, long length) {
         super.flush(offset, length);
     }
 
     /**
-    * Adds the specified range of of bytes within this memory block to the current transaction.
+    * Adds the specified range of of bytes to the current transaction.
     * Any modifications to this range of bytes will be committed on successful completion of the current
     * transaction or rolled-back on abort of the current transaction
     * @param offset the start of the range of bytes to add
     * @param length the number of bytes to add
-    * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block bounds 
-    * @throws IllegalStateException if the memory block is not in a valid state for use
+    * @throws IndexOutOfBoundsException if the operation would cause access of data outside of accessor bounds 
+    * @throws IllegalStateException if the accessor is not in a valid state for use
     */
     public void addToTransaction(long offset, long length) {
         super.addToTransaction(offset, length);
     }
 
     /**
-    * Deallocates this memory block.
+    * Deallocates the memory this accessor references.
     * @param transactional if true, the deallocation operation will be done transactionally
-    * @throws HeapException if the memory block could not be deallocated
+    * @throws HeapException if the memory could not be deallocated
     */
     public void freeMemory(boolean transactional) {
         heap().freeMemoryBlock(this, transactional);
     }
-    /**
-     * Checks that the range of bytes from {@code offset} (inclusive) to {@code offset} + length (exclusive) 
-     * is within the bounds of this memory block. 
-     * @param offset The start if the range to check
-     * @param length The number of bytes in the range to check
-     * @throws IndexOutOfBoundsException if the range is not within this memory block's bounds
-     */
+
     /*void checkBounds(long offset, long length) {
         super.checkBounds(offset, length);
     }*/
 
+    /**
+     * Checks that the range of bytes from {@code offset} (inclusive) to {@code offset} + length (exclusive) 
+     * is within the bounds of this accessor. 
+     * @param offset The start of the range to check
+     * @param length The number of bytes in the range to check
+     * @throws IndexOutOfBoundsException if the range is not within this accessor's bounds
+     */
     void checkBounds(long offset, long length) {
         if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
     }
@@ -252,21 +252,20 @@ public final class CompactAccessor extends AnyMemoryBlock {
         return METADATA_SIZE; 
     }
 
-    /**
-    * Adds this memory block's range of bytes to the current transaction.
-    * Any modifications to this range of bytes will be committed upon successful completion of the current
-    * transaction or rolled-back on an abort of the current transaction
-    * @throws IllegalStateException if the memory block is not in a valid state for use
+   /**
+    * Sets this accessor's handle thereby changing the memory that this accessor references.
+    * @param handle The handle to use
+    * @throws IllegalArgumentException if {@code handle} is not valid
+    * @throws HeapException if the accessor could not be updated
     */
-    @Override
-    public void addToTransaction() {
-        super.addToTransaction(0, size());
-    }
-
     public void handle(long handle) {
         super.handle(handle, false);
     }
 
+    /**
+     * Resets this accessor to its initial state. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.CompactAccessor#handle}
+     */
     public void resetHandle() {
         super.reset();
     }

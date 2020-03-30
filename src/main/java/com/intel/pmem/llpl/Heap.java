@@ -157,10 +157,20 @@ public final class Heap extends AnyHeap {
         return heap;
     }
 
+    /**
+     * Creates a new {@code Accessor}. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.Accessor#handle}
+     * @return the new accessor object 
+     */
     public Accessor createAccessor() {
         return new Accessor(this);
     }
 
+    /**
+     * Creates a new {@code CompactAccessor}. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.CompactAccessor#handle}
+     * @return the new accessor object 
+     */
     public CompactAccessor createCompactAccessor() {
         return new CompactAccessor(this);
     }

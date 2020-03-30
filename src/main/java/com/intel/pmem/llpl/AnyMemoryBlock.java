@@ -92,7 +92,7 @@ public abstract class AnyMemoryBlock {
         this.size = bounded ? getPersistentSize() : -1;
         if (bounded) {
             if (this.size <= 0 || !this.heap.isInBounds(offset + this.size, 0)) {
-                throw new HeapException("Failed to reconstruct memory block from supplied handle");
+                throw new HeapException("Failed to update accessor with supplied handle");
             }
         }
     }
