@@ -5,13 +5,13 @@
  * 
  */
 
-#include "com_intel_pmem_llpl_AnyMemoryBlock.h"
+#include "com_intel_pmem_llpl_MemoryAccessor.h"
 #include "persistent_heap.h"
 #include "util.h"
 #include <libpmemobj.h>
 #include <libpmem.h>
 
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeFlush
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeFlush
   (JNIEnv *env, jobject obj, jlong address, jlong size)
 {
     pmem_persist((const void*)address, size);
@@ -20,7 +20,7 @@ JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeFlush
 // return 1 if started new and added to that one
 // return 2 if added to existing
 // return -1 on error
-JNIEXPORT int JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddToTransaction
+JNIEXPORT int JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddToTransaction
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jlong size)
 {
     int result = -1;    
@@ -33,7 +33,7 @@ JNIEXPORT int JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddToTransac
     return result;
 }
 
-JNIEXPORT int JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddRangeToTransaction
+JNIEXPORT int JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddRangeToTransaction
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jlong size)
 {
     int result = -1;    
@@ -56,13 +56,13 @@ JNIEXPORT int JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddRangeToTr
     return result;
 }
 
-JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddToTransactionNoCheck
+JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddToTransactionNoCheck
   (JNIEnv *env, jobject obj, jlong address, jlong size)
 {
     return pmemobj_tx_add_range_direct((const void *)address, (size_t)size);
 }
 
-JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeHasAutoFlush
+JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeHasAutoFlush
   (JNIEnv *env, jobject obj)
 {
     return pmem_has_auto_flush();

@@ -7,17 +7,19 @@
 
 package com.intel.pmem.llpl;
 
+import java.util.function.Function;
 import java.util.function.Consumer;
 
 /**
  * Implements a read and write interface for accessing a previously allocated block of memory on a heap. Access through a
- * {@code CompactAccessor} is bounds-checked to be within the block's allocated space.
- *  
- * @see com.intel.pmem.llpl.AnyMemoryBlock   
+ * {@code CompactAccessor} is bounds-checked to be within the heap associated with the accessor's heap.
+ * 
+ * @since 1.1
+ * 
+ * @see com.intel.pmem.llpl.AnyAccessor   
  */
 
-/*TODO: Should not be a subclass of AnyMemoryBlock as it violates Liskov's substitution principle*/
-public final class CompactAccessor extends AnyMemoryBlock {
+public final class CompactAccessor extends AnyAccessor {
 
     static final long METADATA_SIZE = 0;
 
@@ -33,79 +35,6 @@ public final class CompactAccessor extends AnyMemoryBlock {
         return (Heap)super.heap();
     }
 
-    /**
-     * Retrieves the {@code byte} value at {@code offset} within this memory block.  
-     * @param offset the location from which to retrieve data
-     * @return the {@code byte} value stored at {@code offset}
-     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block
-     * bounds or, for compact memory blocks, outside of heap bounds
-     * @throws IllegalStateException if the memory block is not in a valid state for use
-     */
-     /*public byte getByte(long offset) {
-        checkValid();
-        checkBounds(offset, 1);
-        return AnyHeap.UNSAFE.getByte(payloadAddress(offset));
-    }
-*/
-    /**
-     * Retrieves the {@code short} value at {@code offset} within this memory block.  
-     * @param offset the location from which to retrieve data
-     * @return the {@code short} value stored at {@code offset}
-     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block
-     * bounds or, for compact memory blocks, outside of heap bounds
-     * @throws IllegalStateException if the memory block is not in a valid state for use
-     */
- /*   public short getShort(long offset) {
-        checkValid();
-        checkBounds(offset, 2);
-        return AnyHeap.UNSAFE.getShort(payloadAddress(offset));
-    }
-*/
-    /**
-     * Retrieves the {@code int} value at {@code offset} within this memory block.  
-     * @param offset the location from which to retrieve data
-     * @return the {@code int} value stored at {@code offset}
-     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block
-     * bounds or, for compact memory blocks, outside of heap bounds
-          * @throws IllegalStateException if the memory block is not in a valid state for use
-     */
- /*   public int getInt(long offset) {
-        checkValid();
-        checkBounds(offset, 4);
-        return AnyHeap.UNSAFE.getInt(payloadAddress(offset));
-    }
-*/
-    /**
-     * Retrieves the {@code long} value at {@code offset} within this memory block.  
-     * @param offset the location from which to retrieve data
-     * @return the {@code long} value stored at {@code offset}
-     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block
-     * bounds or, for compact memory blocks, outside of heap bounds
-     * @throws IllegalStateException if the memory block is not in a valid state for use
-     */
- /*   public long getLong(long offset) {
-        checkValid();
-        checkBounds(offset, 8);
-        return AnyHeap.UNSAFE.getLong(payloadAddress(offset));
-    }
-*/
-    /**
-     * Copies {@code length} bytes from this memory block, starting at {@code srcOffset}, to the 
-     * {@code dstArray} byte array starting at array index {@code dstOffset}.  
-     * @param srcOffset the starting offset in this memory block
-     * @param dstArray the destination byte array
-     * @param dstOffset the starting offset in the destination array
-     * @param length the number of bytes to copy
-     * @throws IndexOutOfBoundsException if copying would cause access of data outside of array or memory block bounds 
-     * @throws IllegalStateException if the memory block is not in a valid state for use
-     */
- /*   public void copyToArray(long srcOffset, byte[] dstArray, int dstOffset, int length) {
-        checkValid();
-        checkBoundsAndLength(srcOffset, length);
-        if (dstOffset < 0 || dstOffset + length > dstArray.length) throw new IndexOutOfBoundsException("array index out of bounds.");
-        uncheckedCopyToArray(directAddress() + metadataSize() + srcOffset, dstArray, dstOffset, length);
-    }
-*/
     /**
      * {@inheritDoc}
      * @param offset {@inheritDoc}
@@ -156,7 +85,7 @@ public final class CompactAccessor extends AnyMemoryBlock {
 
     /**
      * {@inheritDoc}  
-     * @param srcBlock {@inheritDoc}
+     * @param srcAccessor {@inheritDoc}
      * @param srcOffset {@inheritDoc}
      * @param dstOffset {@inheritDoc}
      * @param length {@inheritDoc}
@@ -164,8 +93,8 @@ public final class CompactAccessor extends AnyMemoryBlock {
      * @throws IllegalStateException {@inheritDoc}
      */
     @Override
-    public void copyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.rawCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+    public void copyFrom(MemoryAccessor srcAccessor, long srcOffset, long dstOffset, long length) {
+        super.rawCopy(srcAccessor, srcOffset, dstOffset, length);
     }
 
     /**
@@ -220,17 +149,45 @@ public final class CompactAccessor extends AnyMemoryBlock {
     }
 
     /**
+     * Executes the supplied {@code Function}, passing in a {@code Range} object suitable for modifying bytes in 
+     * the specified range of offsets within this accessor's memory.  
+     * @param startOffset the starting offset of the range
+     * @param rangeLength the number of bytes in the range
+     * @param op the function to execute
+     * @param <T> the return type of the supplied function
+     * @return the object returned from the supplied function
+     * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this accessor's heap bounds
+     */    
+    public <T> T withRange(long startOffset, long rangeLength, Function<Range, T> op) {
+        return super.rawWithRange(startOffset, rangeLength, op);
+    }
+
+    /**
+     * Executes the supplied {@code Consumer} function, passing in a {@code Range} object
+     * suitable for modifying bytes in the specified range of offsets within this accessor's memory.
+     * @param startOffset the starting offset of the range
+     * @param rangeLength the number of bytes in the range
+     * @param op the function to execute
+     * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this accessor's heap bounds
+     */    
+    public void withRange(long startOffset, long rangeLength, Consumer<Range> op) {
+        super.rawWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
+    }
+
+    /**
     * Deallocates the memory this accessor references.
     * @param transactional if true, the deallocation operation will be done transactionally
     * @throws HeapException if the memory could not be deallocated
     */
     public void freeMemory(boolean transactional) {
-        heap().freeMemoryBlock(this, transactional);
+        checkValid();
+        heap().freeMemory(directAddress(), transactional);
+        super.reset();
     }
 
-    /*void checkBounds(long offset, long length) {
-        super.checkBounds(offset, length);
-    }*/
+    public void freeMemory() {
+        freeMemory(false);
+    }
 
     /**
      * Checks that the range of bytes from {@code offset} (inclusive) to {@code offset} + length (exclusive) 
@@ -240,11 +197,11 @@ public final class CompactAccessor extends AnyMemoryBlock {
      * @throws IndexOutOfBoundsException if the range is not within this accessor's bounds
      */
     void checkBounds(long offset, long length) {
-        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 
     void checkBoundsAndLength(long offset, long length) {
-        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 
     @Override
@@ -259,6 +216,7 @@ public final class CompactAccessor extends AnyMemoryBlock {
     * @throws HeapException if the accessor could not be updated
     */
     public void handle(long handle) {
+        heap().checkBounds(handle, METADATA_SIZE);
         super.handle(handle, false);
     }
 

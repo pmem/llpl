@@ -15,6 +15,8 @@ import java.util.function.Consumer;
  * Using this memory block gives compile-time knowledge that all changes to persistent 
  * memory are done durably. Allocations and other modifications to persistent memory 
  * may optionally be done transactionally.  
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -32,10 +34,6 @@ public final class PersistentMemoryBlock extends AbstractPersistentMemoryBlock {
     @Override
     long metadataSize() { 
         return METADATA_SIZE; 
-    }
-
-    void checkBounds(long offset, long length) {
-        super.checkBounds(offset, length);
     }
 
     /**

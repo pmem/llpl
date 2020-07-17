@@ -592,7 +592,12 @@ public class PersistentHeap2Tests {
         Assert.assertTrue (mb.isValid());
         Assert.assertTrue (mb.size() == TestVars.MEMORY_BLOCK_SIZE);
 		mb.free(false);
-		mb.free(false);
+        try {
+		    mb.free(false);
+        }
+        catch (IllegalStateException e) {
+            Assert.assertTrue(true);
+        }
 		Assert.assertTrue (!mb.isValid());
     }
 
@@ -602,7 +607,12 @@ public class PersistentHeap2Tests {
 		PersistentCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024, false);
         Assert.assertTrue (mb.isValid());
 		mb.free(false);
-		mb.free(false);
+        try {
+		    mb.free(false);
+        }
+        catch (IllegalStateException e) {
+            Assert.assertTrue(true);
+        }
 		Assert.assertTrue (!mb.isValid());
     }
 
@@ -613,7 +623,12 @@ public class PersistentHeap2Tests {
         Assert.assertTrue (mb.isValid());
         Assert.assertTrue (mb.size() == TestVars.MEMORY_BLOCK_SIZE);
 		mb.free(true);
-		mb.free(true);
+        try {
+		    mb.free(true);
+        }
+        catch (IllegalStateException e) {
+            Assert.assertTrue(true);
+        }
 		Assert.assertTrue (!mb.isValid());
     }
 
@@ -623,7 +638,12 @@ public class PersistentHeap2Tests {
 		PersistentCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024, true);
         Assert.assertTrue (mb.isValid());
 		mb.free(true);
-		mb.free(true);
+        try {
+		    mb.free(true);
+        }
+        catch (IllegalStateException e) {
+            Assert.assertTrue(true);
+        }
 		Assert.assertTrue (!mb.isValid());
     }
 

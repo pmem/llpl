@@ -428,6 +428,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -451,6 +452,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -474,6 +476,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -497,6 +500,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -520,6 +524,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -543,6 +548,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -566,6 +572,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -589,6 +596,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -612,6 +620,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -635,6 +644,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -658,6 +668,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024);
@@ -681,6 +692,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -800,6 +812,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -823,6 +836,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -846,6 +860,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -869,6 +884,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -892,6 +908,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -915,6 +932,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);
@@ -938,6 +956,7 @@ public class TransactionalMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		TransactionalCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024);

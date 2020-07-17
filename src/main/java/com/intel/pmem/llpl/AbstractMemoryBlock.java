@@ -89,8 +89,8 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
      * @throws IllegalStateException {@inheritDoc}
      */
     @Override
-    public void copyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.rawCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+    public void copyFrom(MemoryAccessor srcBlock, long srcOffset, long dstOffset, long length) {
+        super.rawCopy(srcBlock, srcOffset, dstOffset, length);
     }
 
     /**
@@ -118,6 +118,14 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
     @Override
     public void setMemory(byte value, long offset, long length) {
         super.rawSetMemory(value, offset, length);
+    }
+
+    public <T> T withRange(long startOffset, long rangeLength, Function<Range, T> op) {
+        return super.rawWithRange(startOffset, rangeLength, op);
+    }
+
+    public void withRange(long startOffset, long rangeLength, Consumer<Range> op) {
+        super.rawWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
     }
 
     /**
@@ -152,5 +160,9 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
     */
     public void free(boolean transactional) {
         heap().freeMemoryBlock(this, transactional);
+    }
+
+    public void freeMemory() {
+        heap().freeMemoryBlock(this, false);
     }
 }

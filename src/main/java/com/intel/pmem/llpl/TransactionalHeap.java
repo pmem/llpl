@@ -9,11 +9,11 @@ package com.intel.pmem.llpl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Function;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
- * Manages {@link com.intel.pmem.llpl.TransactionalMemoryBlock}s and {@link com.intel.pmem.llpl.TransactionalCompactMemoryBlock}s.
+ * Manages a heap of memory.
  * Use of this heap gives compile-time knowledge that all changes
  * to heap memory are done transactionally.<br><br>
  *
@@ -30,6 +30,8 @@ import java.util.function.Consumer;
  * 5. fused memory pool -- the path argument points to a memory pool configuration file that describes DAX
  * devices [EXPERIMENTAL] or file systems to be fused for use with a single heap.  The combined memory sizes
  * of devices or file systems sets both the minimum and maximum size of the heap.<br>  
+ * 
+ * @since 1.0
  *
  * @see com.intel.pmem.llpl.AnyHeap   
  */
@@ -160,13 +162,60 @@ public final class TransactionalHeap extends AnyHeap {
     }
 
     /**
+     * Creates a new {@code Accessor}. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.Accessor#handle}
+     * @return the new accessor object 
+     */
+    public TransactionalAccessor createAccessor() {
+        return new TransactionalAccessor(this);
+    }
+
+    /**
+     * Creates a new {@code CompactAccessor}. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.CompactAccessor#handle}
+     * @return the new accessor object 
+     */
+    public TransactionalCompactAccessor createCompactAccessor() {
+        return new TransactionalCompactAccessor(this);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateMemory(long size) {
+        long allocationSize = size + TransactionalMemoryBlock.METADATA_SIZE; 
+        long hd = Transaction.create(this, () -> {
+            long handle =  allocateTransactional(allocationSize);
+            if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+            AnyHeap.UNSAFE.putLong(poolHandle() + handle + AnyMemoryBlock.SIZE_OFFSET, size);
+            return handle;
+        });
+        return hd;
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateCompactMemory(long size) {
+        long handle =  Transaction.create(this, () -> allocateTransactional(size));
+        if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+        return handle;
+    }
+
+   /**
     * Allocates a memory block of {@code size} bytes. The allocation is done transactionally.
     * @param size the size of the memory block in bytes
     * @return the allocated memory block 
     * @throws HeapException if the memory block could not be allocated
     */
     public TransactionalMemoryBlock allocateMemoryBlock(long size) {
-        checkValid();
+        //checkValid();
         return new TransactionalMemoryBlock(this, size);
     }
 
@@ -182,7 +231,7 @@ public final class TransactionalHeap extends AnyHeap {
     */
     public TransactionalMemoryBlock allocateMemoryBlock(long size, Consumer<Range> initializer) {
         return Transaction.create(this, () -> {
-            checkValid();
+            //checkValid();
             TransactionalMemoryBlock block = new TransactionalMemoryBlock(this, size);
             Range range = block.range();
             if (initializer == null) throw new IllegalArgumentException("Initializer is null.");
@@ -198,7 +247,7 @@ public final class TransactionalHeap extends AnyHeap {
     * @return the allocated memory block 
     */
     public TransactionalCompactMemoryBlock allocateCompactMemoryBlock(long size) {
-        checkValid();
+        //checkValid();
         return new TransactionalCompactMemoryBlock(this, size);
     }
 
@@ -214,7 +263,7 @@ public final class TransactionalHeap extends AnyHeap {
     */
     public TransactionalCompactMemoryBlock allocateCompactMemoryBlock(long size, Consumer<Range> initializer) {
         return Transaction.create(this, () -> {
-            checkValid();
+            //checkValid();
             TransactionalCompactMemoryBlock block = new TransactionalCompactMemoryBlock(this, size);
             Range range = block.range(0, size);
             if (initializer == null) throw new IllegalArgumentException("Initializer is null.");
@@ -237,6 +286,14 @@ public final class TransactionalHeap extends AnyHeap {
         return new TransactionalMemoryBlock(this, poolHandle(), handle);
     }
 
+    public void execute(Runnable op) {
+        Transaction.create(this, op);
+    }
+
+    public <T> T execute(Supplier<T> op) {
+        return Transaction.create(this, op);
+    }
+
     @Override
     String getHeapLayoutID() {
         return HEAP_LAYOUT_ID;
@@ -244,7 +301,7 @@ public final class TransactionalHeap extends AnyHeap {
 
     @Override
     TransactionalCompactMemoryBlock internalMemoryBlockFromHandle(long handle) {
-        checkValid();
+        //checkValid();
         return new TransactionalCompactMemoryBlock(this, poolHandle(), handle);
     }
 

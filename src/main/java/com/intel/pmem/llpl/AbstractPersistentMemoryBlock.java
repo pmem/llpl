@@ -42,6 +42,10 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
         heap().freeMemoryBlock(this, transactional);
     }
 
+    public void freeMemory() {
+        heap().freeMemoryBlock(this, false);
+    }
+
     /**
      * {@inheritDoc}
      * @param offset {@inheritDoc}
@@ -100,8 +104,8 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
      * @throws IllegalStateException {@inheritDoc}
      */
     @Override
-    public void copyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.durableCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+    public void copyFrom(MemoryAccessor srcBlock, long srcOffset, long dstOffset, long length) {
+        super.durableCopy(srcBlock, srcOffset, dstOffset, length);
     }
 
     /**
@@ -137,7 +141,7 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
      * @param startOffset the starting offset of the range
      * @param rangeLength the number of bytes in the range
      * @param op the function to execute
-     * @param <T> the return type of the supplied fuction
+     * @param <T> the return type of the supplied function
      * @return the object returned from the supplied function
      * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this memory block's bounds
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
@@ -156,7 +160,7 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */    
     public void withRange(long startOffset, long rangeLength, Consumer<Range> op) {
-        super.durableWithRange(startOffset, rangeLength, op);
+        super.durableWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
     }
 
     /**
@@ -214,7 +218,7 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */
     public void transactionalCopyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.transactionalCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+        super.transactionalCopy(srcBlock, srcOffset, dstOffset, length);
     }
 
     /**
@@ -268,6 +272,6 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */    
     public void transactionalWithRange(long startOffset, long rangeLength, Consumer<Range> op) {
-        super.transactionalWithRange(startOffset, rangeLength, op);
+        super.transactionalWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
     }
 }

@@ -1351,4 +1351,364 @@ public class MemoryBlock2Tests {
             assert true;
         }
     }
+
+    @Test
+    public void testWithRangeFullValid() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		    mb.withRange(0, 1024, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.assertEquals(mb.getByte(0), (byte)1);
+		    Assert.assertEquals(mb.getInt(1), 1234);
+            Assert.assertEquals(mb.getShort(5), (short)2345);
+            Assert.assertEquals(mb.getLong(7), 3456);
+            long handle = mb.handle();
+            heap.close();
+            heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            mb = heap.memoryBlockFromHandle(handle);
+		    Assert.assertEquals(mb.getByte(0), (byte)1);
+            Assert.assertEquals(mb.getInt(1), 1234);
+            Assert.assertEquals(mb.getShort(5), (short) 2345);
+            Assert.assertEquals(mb.getLong(7), 3456);
+    }
+
+    @Test
+    public void testWithRangeValid() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		    mb.withRange(100, 500, (Range range) -> {
+			    range.setByte(101, (byte)1);
+                range.setInt(102, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.assertEquals(mb.getByte(101), (byte)1);
+		    Assert.assertEquals(mb.getInt(102), 1234);
+            Assert.assertEquals(mb.getShort(106), (short)2345);
+            Assert.assertEquals(mb.getLong(108), 3456);
+            long handle = mb.handle();
+            heap.close();
+            heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            mb = heap.memoryBlockFromHandle(handle);
+		    Assert.assertEquals(mb.getByte(101), (byte)1);
+            Assert.assertEquals(mb.getInt(102), 1234);
+            Assert.assertEquals(mb.getShort(106), (short) 2345);
+            Assert.assertEquals(mb.getLong(108), 3456);
+    }
+
+    @Test
+    public void testWithRangeInvalidDataOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange(100, 500, (Range range) -> {
+			    range.setByte(99, (byte)1);
+                range.setInt(102, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeInvalidDataSizeForOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange(100, 400, (Range range) -> {
+			    range.setByte(100, (byte)1);
+                range.setInt(499, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeNegativeDataOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange(0, 1025, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(-1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeNegativeRangeOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange(-1, 1025, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeInvalidRangeLength() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange(0, 1025, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeNegativeRangeLength() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange(0, -1, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeCompactFullValid() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+		    mb.withRange(0, 1024, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.assertEquals(mb.getByte(0), (byte)1);
+		    Assert.assertEquals(mb.getInt(1), 1234);
+            Assert.assertEquals(mb.getShort(5), (short)2345);
+            Assert.assertEquals(mb.getLong(7), 3456);
+            long handle = mb.handle();
+            heap.close();
+            heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            mb = heap.compactMemoryBlockFromHandle(handle);
+		    Assert.assertEquals(mb.getByte(0), (byte)1);
+            Assert.assertEquals(mb.getInt(1), 1234);
+            Assert.assertEquals(mb.getShort(5), (short) 2345);
+            Assert.assertEquals(mb.getLong(7), 3456);
+    }
+
+    @Test
+    public void testWithRangeCompactValid() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+		    mb.withRange(100, 500, (Range range) -> {
+			    range.setByte(101, (byte)1);
+                range.setInt(102, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.assertEquals(mb.getByte(101), (byte)1);
+		    Assert.assertEquals(mb.getInt(102), 1234);
+            Assert.assertEquals(mb.getShort(106), (short)2345);
+            Assert.assertEquals(mb.getLong(108), 3456);
+            long handle = mb.handle();
+            heap.close();
+            heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            mb = heap.compactMemoryBlockFromHandle(handle);
+		    Assert.assertEquals(mb.getByte(101), (byte)1);
+            Assert.assertEquals(mb.getInt(102), 1234);
+            Assert.assertEquals(mb.getShort(106), (short) 2345);
+            Assert.assertEquals(mb.getLong(108), 3456);
+    }
+
+    @Test
+    public void testWithRangeCompactInvalidDataOffset() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+		try {
+		    mb.withRange(100, 500, (Range range) -> {
+			    range.setByte(99, (byte)1);
+                range.setInt(102, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeCompactNegativeDataOffset() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+		try {
+		    mb.withRange(0, 1025, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(-1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeCompactNegativeRangeOffset() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+		try {
+		    mb.withRange(-1, 1025, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeCompactNegativeRangeLength() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+		try {
+		    mb.withRange(0, -1, (Range range) -> {
+			    range.setByte(0, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeValidFull() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		    mb.withRange((Range range) -> {
+                range.setByte(101, (byte)1);
+                range.setInt(102, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.assertEquals(mb.getByte(101), (byte)1);
+		    Assert.assertEquals(mb.getInt(102), 1234);
+            Assert.assertEquals(mb.getShort(106), (short)2345);
+            Assert.assertEquals(mb.getLong(108), 3456);
+            long handle = mb.handle();
+            heap.close();
+            heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            mb = heap.memoryBlockFromHandle(handle);
+		    Assert.assertEquals(mb.getByte(101), (byte)1);
+            Assert.assertEquals(mb.getInt(102), 1234);
+            Assert.assertEquals(mb.getShort(106), (short) 2345);
+            Assert.assertEquals(mb.getLong(108), 3456);
+    }
+
+    @Test
+    public void testWithRangeFullInvalidDataSizeForOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange((Range range) -> {
+                range.setByte(100, (byte)1);
+                range.setInt(1023, 1234);
+                range.setShort(106, (short)2345);
+                range.setLong(108, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
+
+    @Test
+    public void testWithRangeFullLastDataOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		    mb.withRange((Range range) -> {
+                range.setByte(1023, (byte)1);
+                range.setInt(1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.assertEquals(mb.getByte(1023), (byte)1);
+		    Assert.assertEquals(mb.getInt(1), 1234);
+            Assert.assertEquals(mb.getShort(5), (short)2345);
+            Assert.assertEquals(mb.getLong(7), 3456);
+            long handle = mb.handle();
+            heap.close();
+            heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            mb = heap.memoryBlockFromHandle(handle);
+		    Assert.assertEquals(mb.getByte(1023), (byte)1);
+            Assert.assertEquals(mb.getInt(1), 1234);
+            Assert.assertEquals(mb.getShort(5), (short) 2345);
+            Assert.assertEquals(mb.getLong(7), 3456);
+    }
+
+    @Test
+    public void testWithRangeFullNegativeDataOffset() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+		try {
+		    mb.withRange((Range range) -> {
+                range.setByte(0, (byte)1);
+                range.setInt(-1, 1234);
+                range.setShort(5, (short)2345);
+                range.setLong(7, 3456);
+            });
+		    Assert.fail("IndexOutOfBoundsException wasn't thrown");
+		} 
+        catch (IndexOutOfBoundsException e) {
+			assert true;
+		}
+    }
 }

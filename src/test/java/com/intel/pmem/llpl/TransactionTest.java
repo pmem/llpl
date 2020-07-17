@@ -28,9 +28,9 @@ class TransactionTest {
                     Transaction.create(heap, () -> {
                          t1.run(() -> {
                              Transaction.create(heap).run(() -> {
-                                 block1.transactionalWithRange(0, 10, (Range r) -> {
-                                     r.setLong(2, 123456);
-                                 });
+                                 // block1.transactionalWithRange(0, 10, (Range r) -> {
+                                 //     r.setLong(2, 123456);
+                                 // });
                              });
                          });
                     });
@@ -126,7 +126,6 @@ class TransactionTest {
             String pHeapName = "/mnt/mem/persistent_heap";
             PersistentHeap pHeap = PersistentHeap.exists(pHeapName) ? PersistentHeap.openHeap(pHeapName) : PersistentHeap.createHeap(pHeapName, 100_000_000);
             PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(1024, true);
-            PersistentMemoryBlock mb1 = pHeap.allocateMemoryBlock(1024, true);
             mb.transactionalWithRange(20, 29, (Range range) -> {
                 range.setLong(20, 123456);
                 range.setInt(24, 890);

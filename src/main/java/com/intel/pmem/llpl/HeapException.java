@@ -9,6 +9,8 @@ package com.intel.pmem.llpl;
 
 /**
  * Thrown to indicate that a heap operation failed to execute successfully.  
+ * 
+ * @since 1.0
  */
 public class HeapException extends RuntimeException {
 	public HeapException(String message) {

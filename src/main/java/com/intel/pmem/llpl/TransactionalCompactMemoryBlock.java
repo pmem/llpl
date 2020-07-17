@@ -15,6 +15,8 @@ package com.intel.pmem.llpl;
  * {@code TransactionalMemoryBlock}s.  
  * Using this memory block gives compile-time knowledge that all changes to persistent 
  * memory are done transactionally. 
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -34,11 +36,11 @@ public final class TransactionalCompactMemoryBlock extends AbstractTransactional
 
     @Override
     void checkBounds(long offset, long length) {
-        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 
     @Override
     void checkBoundsAndLength(long offset, long length) {
-        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 }

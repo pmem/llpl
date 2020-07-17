@@ -10,9 +10,10 @@ package com.intel.pmem.llpl;
 import java.io.File;
 import java.util.function.Supplier;
 import java.io.IOException;
+import java.util.function.Consumer;
 
 /**
- * Manages {@link com.intel.pmem.llpl.MemoryBlock}s and {@link com.intel.pmem.llpl.CompactMemoryBlock}s.
+ * Manages a heap of memory.
    Can be used for volatile and persistent applications.<br><br>  
  *
  * Heap {@code createHeap()} factory methods accept a {@code String} path argument that specifies the identity of the heap and an optional
@@ -28,6 +29,8 @@ import java.io.IOException;
  * 5. fused memory pool -- the path argument points to a memory pool configuration file that describes DAX
  * devices [EXPERIMENTAL] or file systems to be fused for use with a single heap.  The combined memory sizes
  * of devices or file systems sets both the minimum and maximum size of the heap.<br>  
+ * 
+ * @since 1.0
  *
  * @see com.intel.pmem.llpl.AnyHeap   
  */
@@ -183,7 +186,7 @@ public final class Heap extends AnyHeap {
     * @throws HeapException if the memory could not be allocated
     */
     public long allocateMemory(long size, boolean transactional) {
-        long allocationSize = size + Accessor.METADATA_SIZE; 
+        long allocationSize = size + MemoryBlock.METADATA_SIZE; 
         Supplier<Long> body = () -> {
             long handle =  transactional ? allocateTransactional(allocationSize) : allocateAtomic(allocationSize);
             if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
@@ -192,6 +195,10 @@ public final class Heap extends AnyHeap {
         };
         long handle = transactional ? new Transaction(this).run(body) : body.get();
         return handle;
+    }
+
+    public long allocateMemory(long size) {
+        return allocateMemory(size, false);
     }
 
     /**
@@ -207,6 +214,10 @@ public final class Heap extends AnyHeap {
         return handle;
     }
 
+    public long allocateCompactMemory(long size) {
+        return allocateCompactMemory(size, false);
+    }
+
     /**
     * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
     * @param size the size of the memory block in bytes
@@ -215,8 +226,69 @@ public final class Heap extends AnyHeap {
     * @throws HeapException if the memory block could not be allocated
     */
     public MemoryBlock allocateMemoryBlock(long size, boolean transactional) {
-        checkValid();
+        //checkValid();
         return new MemoryBlock(this, size, transactional);
+    }
+
+    public MemoryBlock allocateMemoryBlock(long size) {
+        //checkValid();
+        return new MemoryBlock(this, size, false);
+    }
+
+    public MemoryBlock allocateMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateMemoryBlock(size, false, initializer);
+    }
+
+    /**
+    * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * The supplied initializer function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param transactional true if the allocation should be done transactionally
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public MemoryBlock allocateMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
+        MemoryBlock block = new MemoryBlock(this, size, transactional);
+        Range range = block.range();
+        initializer.accept(range);
+        range.markInvalid();
+        return block;
+    }
+
+    /**
+    * Allocates a compact memory block of {@code size} bytes. The allocation is done atomically.
+    * The supplied initializer function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public CompactMemoryBlock allocateCompactMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateCompactMemoryBlock(size, false, initializer);    
+    }
+
+    /**
+    * Allocates a compact memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * The supplied initializer function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param transactional true if the allocation should be done transactionally
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public CompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
+        CompactMemoryBlock block = new CompactMemoryBlock(this, size, transactional);
+        Range range = block.range(0, size);
+        initializer.accept(range);
+        range.markInvalid();
+        return block;
     }
 
     /**
@@ -228,6 +300,16 @@ public final class Heap extends AnyHeap {
     */
     public CompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional) {
         return new CompactMemoryBlock(this, size, transactional);
+    }
+
+    /**
+    * Allocates a compact memory block of {@code size} bytes. The allocation is done atomically.
+    * @param size the size of the memory block in bytes
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public CompactMemoryBlock allocateCompactMemoryBlock(long size) {
+        return new CompactMemoryBlock(this, size, false);
     }
 
     /**
@@ -243,9 +325,17 @@ public final class Heap extends AnyHeap {
         return new MemoryBlock(this, poolHandle(), handle);
     }
 
+    public void execute(Runnable op) {
+        op.run();
+    }
+
+    public <T> T execute(Supplier<T> op) {
+        return op.get();
+    }
+
     @Override
     CompactMemoryBlock internalMemoryBlockFromHandle(long handle) {
-        checkValid();
+        //checkValid();
         return new CompactMemoryBlock(this, poolHandle(), handle);
     }
 

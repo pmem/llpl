@@ -69,88 +69,6 @@ public class TransactionalMemoryBlock1Tests {
 	}
 
 	@Test
-	public void testAddToTransactionRange() {
-		heap = TestVars.createTransactionalHeap();
-		TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
-		TransactionalCompactMemoryBlock mbCompact = heap.allocateCompactMemoryBlock(1024);
-		Transaction.create(heap, () -> {
-			mb.addToTransaction(190, 210);
-            mb.addToTransaction(10, 150);
-			Transaction.checkTransactionActive(true);
-			mb.setInt(100, 100);
-			mbCompact.setLong(200, 200);
-			assert (mb.getInt(100) == 100);
-			assert (mbCompact.getLong(200) == 200);
-			Transaction.checkTransactionActive(true);
-		});
-		Transaction.checkTransactionActive(false);
-		assert (mb.getInt(100) == 100);
-		assert (mbCompact.getLong(200) == 200);
-	}
-
-	@Test
-	public void testAddToTransactionNegativeOffset() {
-		heap = TestVars.createTransactionalHeap();
-		TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
-		try {
-			mb.addToTransaction(-1, 100);
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
-	public void testAddToTransactionZeroLength() {
-		heap = TestVars.createTransactionalHeap();
-		TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
-		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
-		try {
-			t.run(() -> {
-				assert (Transaction.State.Active == t.state());
-				mb.addToTransaction(0, 0);
-			});
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
-	public void testAddToTransactionNegativeLength() {
-		heap = TestVars.createTransactionalHeap();
-		TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
-		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
-		try {
-			t.run(() -> {
-				Assert.assertEquals(Transaction.State.Active, t.state());
-				mb.addToTransaction(0, -1);
-			});
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
-	public void testAddToTransactionLargeLength() {
-		heap = TestVars.createTransactionalHeap();
-		TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
-		try {
-			mb.addToTransaction(0, 10L * 1024 * 1024);
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
 	public void testCopyFromMemoryBlockNull() {
 		heap = TestVars.createTransactionalHeap();
 		TransactionalMemoryBlock mbNew = heap.allocateMemoryBlock(1024);
@@ -225,18 +143,18 @@ public class TransactionalMemoryBlock1Tests {
         assert (mbInternal == null);
     }
 
-	@Test
-    public void testAddToTransactionFull() {
-		heap = TestVars.createTransactionalHeap();
+    // AbstractTransactionalMemoryBlock.freeMemory()
+    @Test
+    public void testMemoryBlockFreeMemory(){
+        heap = TestVars.createTransactionalHeap();
+        // allocate memory
         TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
-        Transaction.create(heap, () -> {
-            mb.addToTransaction();
-            Transaction.checkTransactionActive(true);
-            mb.setInt(100, 100);
-            assert (mb.getInt(100) == 100);
-            Transaction.checkTransactionActive(true);
-        });
-        Transaction.checkTransactionActive(false);
-        assert (mb.getInt(100) == 100);
+        // assert valid
+        Assert.assertTrue(mb.isValid());
+        // free memory
+        mb.freeMemory();
+        // assert not valid
+        Assert.assertFalse(mb.isValid());
     }
+
 }

@@ -125,7 +125,7 @@ public class LinkedList {
         while (accessor.isValid()) {
             prev = accessor.handle();
             Node.advance(accessor);
-            heap.freeMemory(prev, false);
+            accessor.freeMemory(false);
         } 
         setFirst(null);
         sentinel.setLong(COUNT_OFFSET, 0);

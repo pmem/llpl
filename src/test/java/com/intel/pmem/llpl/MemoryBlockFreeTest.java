@@ -15,7 +15,7 @@ class MemoryBlockFreeTest {
         Heap heap = Heap.exists(heapName) ? Heap.openHeap(heapName) : Heap.createHeap(heapName, 2147483648L);
         MemoryBlock mb = heap.allocateMemoryBlock(10, true);
         assert(mb.isValid());
-        heap.freeMemoryBlock(mb);
+        mb.freeMemory();
         assert(!mb.isValid());
         boolean caught = false;
         try {

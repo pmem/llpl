@@ -9,11 +9,11 @@ package com.intel.pmem.llpl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Function;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
- * Manages {@link com.intel.pmem.llpl.PersistentMemoryBlock}s and {@link com.intel.pmem.llpl.PersistentCompactMemoryBlock}s.
+ * Manages a heap of memory.
  * Use of this heap gives compile-time knowledge that all changes
  * to heap memory are done durably. Modification to heap memory may optionally be done transactionally.<br><br>
  *
@@ -30,6 +30,8 @@ import java.util.function.Consumer;
  * 5. fused memory pool -- the path argument points to a memory pool configuration file that describes DAX
  * devices [EXPERIMENTAL] or file systems to be fused for use with a single heap.  The combined memory sizes
  * of devices or file systems sets both the minimum and maximum size of the heap.<br>  
+ * 
+ * @since 1.0
  *
  * @see com.intel.pmem.llpl.AnyHeap   
   */
@@ -161,6 +163,64 @@ public final class PersistentHeap extends AnyHeap {
     }
 
     /**
+     * Creates a new {@code Accessor}. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.Accessor#handle}
+     * @return the new accessor object 
+     */
+    public PersistentAccessor createAccessor() {
+        return new PersistentAccessor(this);
+    }
+
+    /**
+     * Creates a new {@code CompactAccessor}. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using {@link com.intel.pmem.llpl.CompactAccessor#handle}
+     * @return the new accessor object 
+     */
+    public PersistentCompactAccessor createCompactAccessor() {
+        return new PersistentCompactAccessor(this);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional {@inheritDoc}
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateMemory(long size, boolean transactional) {
+        long allocationSize = size + PersistentMemoryBlock.METADATA_SIZE; 
+        Supplier<Long> body = () -> {
+            long handle =  transactional ? allocateTransactional(allocationSize) : allocateAtomic(allocationSize);
+            if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+            AnyHeap.UNSAFE.putLong(poolHandle() + handle + AnyMemoryBlock.SIZE_OFFSET, size);
+            return handle;
+        };
+        long handle = transactional ? new Transaction(this).run(body) : body.get();
+        return handle;
+    }
+
+    public long allocateMemory(long size) {
+        return allocateMemory(size, false);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional {@inheritDoc}
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateCompactMemory(long size, boolean transactional) {
+        long handle =  transactional ? Transaction.create(this, () -> allocateTransactional(size)) : allocateAtomic(size);
+        if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+        return handle;
+    }
+
+    public long allocateCompactMemory(long size) {
+        return allocateCompactMemory(size, false);
+    }
+
+    /**
     * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
     * @param size the size of the memory block in bytes
     * @param transactional true if the allocation should be done transactionally
@@ -168,8 +228,16 @@ public final class PersistentHeap extends AnyHeap {
     * @throws HeapException if the memory block could not be allocated
     */
     public PersistentMemoryBlock allocateMemoryBlock(long size, boolean transactional) {
-        checkValid();
+        //checkValid();
         return new PersistentMemoryBlock(this, size, transactional);
+    }
+
+    public PersistentMemoryBlock allocateMemoryBlock(long size) {
+        return new PersistentMemoryBlock(this, size, false);
+    }
+
+    public PersistentMemoryBlock allocateMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateMemoryBlock(size, false, initializer);
     }
 
     /**
@@ -184,15 +252,17 @@ public final class PersistentHeap extends AnyHeap {
     * @throws HeapException if the memory block could not be allocated
     */
     public PersistentMemoryBlock allocateMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
-        return Transaction.create(this, () -> {
-            checkValid();
+        Supplier<PersistentMemoryBlock> body = () -> {
+            //checkValid();
             PersistentMemoryBlock block = new PersistentMemoryBlock(this, size, transactional);
             Range range = block.range();
             if (initializer == null) throw new IllegalArgumentException("Initializer is null.");
             initializer.accept(range);
+            if (!transactional) range.flush();
             range.markInvalid();
             return block;
-        });
+        };
+        return transactional ? Transaction.create(this, body) : body.get();
     }
 
     /**
@@ -203,8 +273,17 @@ public final class PersistentHeap extends AnyHeap {
     * @throws HeapException if the memory block could not be allocated
     */
     public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional) {
-        checkValid();
+        //checkValid();
         return new PersistentCompactMemoryBlock(this, size, transactional);
+    }
+
+    public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size) {
+        //checkValid();
+        return new PersistentCompactMemoryBlock(this, size, false);
+    }
+
+    public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateCompactMemoryBlock(size, false, initializer);
     }
 
     /**
@@ -218,15 +297,17 @@ public final class PersistentHeap extends AnyHeap {
     * @return the allocated memory block 
     */
     public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
-        return Transaction.create(this, () -> {
-            checkValid();
+        Supplier<PersistentCompactMemoryBlock> body = () -> {
+            //checkValid();
             PersistentCompactMemoryBlock block = new PersistentCompactMemoryBlock(this, size, transactional);
             Range range = block.range(0, size);
             if (initializer == null) throw new IllegalArgumentException("Initializer is null.");
             initializer.accept(range);
+            if (!transactional) range.flush();
             range.markInvalid();
             return block;
-        });
+        };
+        return transactional ? Transaction.create(this, body) : body.get();
     }
 
     /**
@@ -253,6 +334,15 @@ public final class PersistentHeap extends AnyHeap {
         return new PersistentCompactMemoryBlock(this, poolHandle(), handle);
     }
 
+    public void execute(Runnable op) {
+        op.run();
+    }
+
+    public <T> T execute(Supplier<T> op) {
+        return op.get();
+    }
+
+
     @Override
     String getHeapLayoutID() {
         return HEAP_LAYOUT_ID;
@@ -260,7 +350,7 @@ public final class PersistentHeap extends AnyHeap {
 
     @Override
     PersistentCompactMemoryBlock internalMemoryBlockFromHandle(long handle) {
-        checkValid();
+        //checkValid();
         return new PersistentCompactMemoryBlock(this, poolHandle(), handle);
     }
 }

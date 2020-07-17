@@ -14,6 +14,8 @@ import java.util.function.Consumer;
  * Access through a {@code TransactionalMemoryBlock} is bounds-checked to be within the block's allocated space. 
  * Using this memory block gives compile-time knowledge that all changes to persistent 
  * memory are done transactionally. 
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -33,9 +35,9 @@ public final class TransactionalMemoryBlock extends AbstractTransactionalMemoryB
         return METADATA_SIZE; 
     }
 
-    void checkBounds(long offset, long length) {
+    /*void checkBounds(long offset, long length) {
         super.checkBounds(offset, length);
-    }
+    }*/
 
     /**
      * Tansactionally executes the supplied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes 

@@ -237,6 +237,7 @@ public class TransactionalHeap1Tests {
 	@Test
 	public void testCreateGrowableWithLimitHeap() {
 		if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+		Assert.assertFalse(TransactionalHeap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, TestVars.HEAP_SIZE);
 		Assert.assertTrue(TransactionalHeap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
@@ -588,4 +589,94 @@ public class TransactionalHeap1Tests {
 		TransactionalCompactMemoryBlock mb = heap.compactMemoryBlockFromHandle(heap.size() - 1);
 		Assert.assertTrue(mb.isValid());
 	}
+
+    @Test
+    public void testHeapExecuteSupplier(){
+        heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb1 = heap.execute(() -> {
+            TransactionalMemoryBlock mbInternal = heap.allocateMemoryBlock(1024);
+            mbInternal.setShort(0,(short)100);
+            mbInternal.setLong(2,200L);
+            return mbInternal;
+        });
+        Assert.assertEquals(mb1.getShort(0), (short)100);
+        Assert.assertEquals(mb1.getLong(2), 200L);
+    }
+
+    @Test
+    public void testHeapExecuteRunnable(){
+        heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        heap.execute(() -> {
+            mb.setShort(0,(short)100);
+            mb.setLong(2,200L);
+        });
+        Assert.assertEquals(mb.getShort(0), (short)100);
+        Assert.assertEquals(mb.getLong(2), 200L);
+    }
+
+    @Test
+    public void testFailOpenWrongHeapType(){
+        heap = TestVars.createTransactionalHeap();
+        Heap heap2 = null;
+        Assert.assertTrue(true);
+        try {
+            // Attempt to open a TransactionalHeap as a Heap
+            heap2 = Heap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            Assert.fail("This should fail - THeap cannot be opened as a Heap");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testHeapFailMemoryAllocationTooLarge(){
+        TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        final long largeSize = 32L * 1024L * 1024L * 1024L;
+        // initial large allocation of 16 GB should succeed
+        long handle = 0;
+        try {
+            // this allocation should fail since the heap has just allocated all of its memory
+            handle = heap.allocateMemory(largeSize);
+            Assert.fail("This should fail - heap cannot be larger than TOTAL_SIZE");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testHeapFailCompactMemoryAllocationTooLarge(){
+        TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        final long heapSize = 8L * 1024L * 1024L;
+        final int divisor = 16;
+        final long allocationSize = heapSize / ((long)divisor);
+        long handle = 0;
+        heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, heapSize);
+        // perform multiple allocations to fill the heap
+        for (int i=0; i<(divisor); i++) {
+            try {
+                handle = heap.allocateCompactMemory(allocationSize);
+            } catch(TransactionException e) {
+                long totalAllocSize = (long)(i+1) * allocationSize;
+                System.out.println(
+                        "testHeapFailCompactMemoryAllocationTooLarge failed after " +
+                        (i+1) + " iterations of " + allocationSize + " bytes each, " +
+                        totalAllocSize + " total bytes allocated, heap size " +
+                        heapSize + " bytes");
+                break;
+            }
+        }
+        try {
+            // this allocation should fail since the heap has just allocated all of its memory
+            handle = heap.allocateCompactMemory(allocationSize);
+            Assert.fail("This should fail with a 'TransactionException: Failed to end transaction.out of memory'");
+        }
+        catch(TransactionException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
 }

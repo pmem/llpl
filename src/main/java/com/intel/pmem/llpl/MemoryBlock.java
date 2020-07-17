@@ -12,6 +12,8 @@ import java.util.function.Consumer;
 /**
  * Implements a read and write interface for accessing a {@link com.intel.pmem.llpl.Heap}. Access through a 
  * {@code MemoryBlock} is bounds-checked to be within the block's allocated space.
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -33,9 +35,9 @@ public final class MemoryBlock extends AbstractMemoryBlock {
      * @param length The number of bytes in the range to check
      * @throws IndexOutOfBoundsException if the range is not within this memory block's bounds
      */
-    void checkBounds(long offset, long length) {
+    /*void checkBounds(long offset, long length) {
         super.checkBounds(offset, length);
-    }
+    }*/
 
     @Override
     long metadataSize() { 
@@ -48,7 +50,6 @@ public final class MemoryBlock extends AbstractMemoryBlock {
     * transaction or rolled-back on an abort of the current transaction
     * @throws IllegalStateException if the memory block is not in a valid state for use
     */
-    @Override
     public void addToTransaction() {
         super.addToTransaction(0, size());
     }
@@ -65,9 +66,22 @@ public final class MemoryBlock extends AbstractMemoryBlock {
     /**
     * Ensures that any modifications made to this memory block are written to persistent memory media.
     */
-    @Override
     public void flush() {
         flush(0, size());
+    }
+
+    /**
+     * Executes the supplied {@code Consumer} function, passing in a {@code Range} object
+     * suitable for modifying bytes within this memory block.
+     * @param body the function to execute
+     */    
+
+    public void withRange(Consumer<Range> body) {
+        withRange(0, size(), body);
+    }
+
+    Range range() {
+        return range(0, size()); 
     }
 }
 
