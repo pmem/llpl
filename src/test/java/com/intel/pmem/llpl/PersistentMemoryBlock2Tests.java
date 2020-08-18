@@ -760,6 +760,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -783,6 +784,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -806,6 +808,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -829,6 +832,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -852,6 +856,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -875,6 +880,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -898,6 +904,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -921,6 +928,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -944,6 +952,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -967,6 +976,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -990,6 +1000,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1013,6 +1024,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1036,6 +1048,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1059,6 +1072,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1082,6 +1096,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1105,6 +1120,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1128,6 +1144,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1151,6 +1168,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1174,6 +1192,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1197,6 +1216,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1220,6 +1240,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1243,6 +1264,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1266,6 +1288,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1289,6 +1312,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1312,6 +1336,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1335,6 +1360,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1358,6 +1384,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1381,6 +1408,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1404,6 +1432,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1427,6 +1456,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1450,6 +1480,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1473,6 +1504,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1496,6 +1528,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1519,6 +1552,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1542,6 +1576,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1565,6 +1600,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentMemoryBlock mbNew = heapNew.allocateMemoryBlock(1024, true);
@@ -1588,6 +1624,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1611,6 +1648,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1634,6 +1672,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1657,6 +1696,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1680,6 +1720,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1703,6 +1744,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1726,6 +1768,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1749,6 +1792,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1772,6 +1816,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1795,6 +1840,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1818,6 +1864,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 0 + 1024;
 		for(int i = 0; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);
@@ -1841,6 +1888,7 @@ public class PersistentMemoryBlock2Tests {
 		long endOffset = 56 + 100;
 		for(int i = 56; i < endOffset; i++)
 	        Assert.assertEquals(mb.getByte(i), (byte) -1);
+
         Assert.assertTrue (TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1"));
 		heapNew = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "1");
 		PersistentCompactMemoryBlock mbNew = heapNew.allocateCompactMemoryBlock(1024, true);

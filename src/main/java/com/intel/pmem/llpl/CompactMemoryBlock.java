@@ -8,10 +8,12 @@
 package com.intel.pmem.llpl;
 
 /**
- * Implements a read and write interface for accessing a {@link com.intel.pmem.llpl.Heap}.
- * Access through an {@code CompactMemoryBlock} is bounds-checked to be within the {@code Heap} from which it was allocated
+ * Implements a read and write interface for accessing a previously-allocated compact block of memory on a {@link com.intel.pmem.llpl.Heap}.
+ * Access through a {@code CompactMemoryBlock} is bounds-checked to be within the {@code Heap} from which it was allocated
  * but not checked to be within its allocated space in that heap. {@code CompactMemoryBlock}s have a smaller footprint than 
  * {@code MemoryBlock}s.  
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -31,11 +33,11 @@ public final class CompactMemoryBlock extends AbstractMemoryBlock {
 
     @Override
     void checkBounds(long offset, long length) {
-        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || heap().outOfBounds(offset + length + uncheckedGetHandle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 
     @Override
     void checkBoundsAndLength(long offset, long length) {
-        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + uncheckedGetHandle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 }

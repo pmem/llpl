@@ -8,25 +8,25 @@
 package com.intel.pmem.llpl;
 
 import java.io.File;
+import java.util.function.Supplier;
 import java.io.IOException;
+import java.util.function.Consumer;
 
 /**
- * Manages {@link com.intel.pmem.llpl.MemoryBlock}s and {@link com.intel.pmem.llpl.CompactMemoryBlock}s.
-   Can be used for volatile and persistent applications.<br><br>  
+ * Manages a heap of memory.  
+ * Usable for both volatile and persistent applications.  
+ * This class supports fixed-position memory accessor classes {@link MemoryBlock} and {@link CompactMemoryBlock}
+ * and repositionable memory accessor classes {@link Accessor} and {@link CompactAccessor}.<br><br>
+ * These classes offer full manual control over if and when modifications to memory are flushed for persistence,
+ * as well as if and when intended modifications are added to a transaction.  This manual control makes it
+ * possible to impelment almost any kind of data consistency policy, at the cost of additional care, on the 
+ * part of the developer, to make sure these steps are done where needed. 
+ *  
+ <br><br>  
  *
- * Heap {@code createHeap()} factory methods accept a {@code String} path argument that specifies the identity of the heap and an optional
- * {@code long} size argument. There are 5 ways to configure the size of a heap:<br><br>
- * 1. fixed size -- the path argument is a file path and a supplied size arugument sets both the minimum and 
- * maximum size of the heap.<br>
- * 2. growable -- the path argument is a file path and the heap size starts with size {@code MINIMUM_HEAP_SIZE}, growing 
- * in size as needed up to the available memory.<br>
- * 3. growable with limit -- the path argument is a file path and the heap size starts with size {@code MINIMUM_HEAP_SIZE},
- * growing in size as needed up to a maximum size set by the supplied size argument.<br>
- * 4. DAX device -- the path argument is DAX device name and the size of the dax device sets both the minimum and
- * maximum size of the heap.<br>
- * 5. fused memory pool -- the path argument points to a memory pool configuration file that describes DAX
- * devices [EXPERIMENTAL] or file systems to be fused for use with a single heap.  The combined memory sizes
- * of devices or file systems sets both the minimum and maximum size of the heap.<br>  
+ * See {@link AnyHeap} introduction for a description of different ways of controlling heap size.
+ * 
+ * @since 1.0
  *
  * @see com.intel.pmem.llpl.AnyHeap   
  */
@@ -156,6 +156,58 @@ public final class Heap extends AnyHeap {
         return heap;
     }
 
+    @Override
+    public Accessor createAccessor() {
+        return new Accessor(this);
+    }
+
+    @Override
+    public CompactAccessor createCompactAccessor() {
+        return new CompactAccessor(this);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional true if the allocation should be done transactionally
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateMemory(long size, boolean transactional) {
+        long allocationSize = size + MemoryBlock.METADATA_SIZE; 
+        Supplier<Long> body = () -> {
+            long handle =  transactional ? allocateTransactional(allocationSize) : allocateAtomic(allocationSize);
+            if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+            AnyHeap.UNSAFE.putLong(poolHandle() + handle + AnyMemoryBlock.SIZE_OFFSET, size);
+            return handle;
+        };
+        long handle = transactional ? new Transaction(this).run(body) : body.get();
+        return handle;
+    }
+
+    @Override
+    public long allocateMemory(long size) {
+        return allocateMemory(size, false);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional true if the allocation should be done transactionally
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateCompactMemory(long size, boolean transactional) {
+        long handle =  transactional ? Transaction.create(this, () -> allocateTransactional(size)) : allocateAtomic(size);
+        if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+        return handle;
+    }
+
+    @Override
+    public long allocateCompactMemory(long size) {
+        return allocateCompactMemory(size, false);
+    }
+
     /**
     * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
     * @param size the size of the memory block in bytes
@@ -164,14 +216,66 @@ public final class Heap extends AnyHeap {
     * @throws HeapException if the memory block could not be allocated
     */
     public MemoryBlock allocateMemoryBlock(long size, boolean transactional) {
-        checkValid();
         return new MemoryBlock(this, size, transactional);
+    }
+
+    @Override
+    public MemoryBlock allocateMemoryBlock(long size) {
+        return new MemoryBlock(this, size, false);
+    }
+
+    @Override
+    public MemoryBlock allocateMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateMemoryBlock(size, false, initializer);
+    }
+
+    /**
+    * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * The supplied {@code initializer} function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param transactional if true, the allocation will be done transactionally
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public MemoryBlock allocateMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
+        MemoryBlock block = new MemoryBlock(this, size, transactional);
+        Range range = block.range();
+        initializer.accept(range);
+        range.markInvalid();
+        return block;
+    }
+
+    @Override
+    public CompactMemoryBlock allocateCompactMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateCompactMemoryBlock(size, false, initializer);    
+    }
+
+    /**
+    * Allocates a compact memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * The supplied {@code initializer} function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param transactional if true, the allocation will be done transactionally
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public CompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
+        CompactMemoryBlock block = new CompactMemoryBlock(this, size, transactional);
+        Range range = block.range(0, size);
+        initializer.accept(range);
+        range.markInvalid();
+        return block;
     }
 
     /**
     * Allocates a compact memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
     * @param size the size of the memory block in bytes
-    * @param transactional true if the allocation should be done transactionally
+    * @param transactional if true, the allocation will be done transactionally
     * @return the allocated memory block 
     * @throws HeapException if the memory block could not be allocated
     */
@@ -179,13 +283,11 @@ public final class Heap extends AnyHeap {
         return new CompactMemoryBlock(this, size, transactional);
     }
 
-    /**
-    * Returns a previously-allocated memory block associated with the given handle.
-    * @param handle the handle of a previously-allocated memory block
-    * @return the memory block associated with the given handle
-    * @throws IllegalArgumentException if {@code handle} is not valid
-    * @throws HeapException if the memory block could not be created
-    */
+    @Override
+    public CompactMemoryBlock allocateCompactMemoryBlock(long size) {
+        return new CompactMemoryBlock(this, size, false);
+    }
+
     @Override
     public MemoryBlock memoryBlockFromHandle(long handle) {
         checkBounds(handle, MemoryBlock.METADATA_SIZE);
@@ -193,8 +295,17 @@ public final class Heap extends AnyHeap {
     }
 
     @Override
+    public void execute(Runnable op) {
+        op.run();
+    }
+
+    @Override
+    public <T> T execute(Supplier<T> op) {
+        return op.get();
+    }
+
+    @Override
     CompactMemoryBlock internalMemoryBlockFromHandle(long handle) {
-        checkValid();
         return new CompactMemoryBlock(this, poolHandle(), handle);
     }
 
@@ -202,13 +313,8 @@ public final class Heap extends AnyHeap {
     String getHeapLayoutID() {
         return HEAP_LAYOUT_ID;
     }
-	
-    /**
-    * Returns a previously-allocated compact memory block associated with the given handle.
-    * @param handle the handle of a previously-allocated memory block
-    * @return the compact memory block associated with the given handle
-    * @throws IllegalArgumentException if {@code handle} is not valid
-    */
+
+    @Override	
     public CompactMemoryBlock compactMemoryBlockFromHandle(long handle) {
         checkBounds(handle);
         return new CompactMemoryBlock(this, poolHandle(), handle);

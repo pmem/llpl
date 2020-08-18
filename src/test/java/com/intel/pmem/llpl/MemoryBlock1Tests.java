@@ -257,4 +257,105 @@ public class MemoryBlock1Tests {
         Assert.assertEquals(Transaction.State.Committed, t.state());
         assert (mb.getInt(100) == 100);
     }
+
+    public void testWithRangeFunctionValid() {
+               heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        MemoryBlock mbInternal = mb.withRange(0, 1024, (Range range) -> {
+            range.setByte(0, (byte)1);
+            range.setInt(1, 1234);
+            range.setShort(5, (short)2345);
+            range.setLong(7, 3456);
+            MemoryBlock mbNew = heap.allocateMemoryBlock(1024);
+            mbNew.setInt(12, 1234);
+            return mbNew;
+        });
+        assert (mb.getByte(0) == (byte)1);
+        assert (mb.getInt(1) == 1234);
+        assert (mb.getShort(5) == (short)2345);
+        assert (mb.getLong(7) == 3456);
+        assert (mbInternal.getInt(12) == 1234);
+        long handle = mb.handle();
+        long handleInternal = mbInternal.handle();
+        heap.close();
+        heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        mb = heap.memoryBlockFromHandle(handle);
+        mbInternal = heap.memoryBlockFromHandle(handleInternal);
+        assert (mb.getByte(0) == (byte)1);
+        assert (mb.getInt(1) == 1234);
+        assert (mb.getShort(5) == (short) 2345);
+        assert (mb.getLong(7) == 3456);
+        assert (mbInternal.getInt(12) == 1234);
+    }
+
+    @Test
+    public void testWithRangeFunctionNull() {
+               heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        MemoryBlock mbInternal = mb.withRange(0, 1024, (Range range) -> {
+            range.setByte(0, (byte)1);
+            range.setInt(1, 1234);
+            range.setShort(5, (short)2345);
+            range.setLong(7, 3456);
+            return null;
+        });
+        assert (mb.getByte(0) == (byte)1);
+        assert (mb.getInt(1) == 1234);
+        assert (mb.getShort(5) == (short)2345);
+        assert (mb.getLong(7) == 3456);
+        assert (mbInternal == null);
+    }
+
+    // AbstractMemoryBlock.freeMemory()
+    @Test
+    public void testMemoryBlockFreeMemory(){
+        heap = TestVars.createHeap();
+        // allocate memory
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        // assert valid
+        Assert.assertTrue(mb.isValid());
+        // free memory
+        mb.freeMemory();
+        // assert not valid
+        Assert.assertFalse(mb.isValid());
+    }
+
+    // AbstractMemoryBlock.withRange(long, long, Consumer)
+    @Test
+    public void testMemoryBlockWithRangeConsumer(){
+        heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        long offset = 0;
+        long length = 1 + Integer.BYTES + Short.BYTES;
+        mb.withRange(offset, length, (Range range) -> {
+            range.setByte(0, (byte)1);
+			range.setInt(1, 1234);
+			range.setShort(5, (short)2345);
+        });
+        Assert.assertEquals(mb.getByte(0), (byte)1);
+        Assert.assertEquals(mb.getInt(1), 1234);
+        Assert.assertEquals(mb.getShort(5), (short)2345);
+    }
+
+    // MemoryAccessor.withRange(long, long, Function)
+    @Test
+    public void testMemoryBlockWithRangeFunction(){
+        heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        long offset = 0;
+        long length = 1 + Integer.BYTES + Short.BYTES;
+        MemoryBlock mbInternal = mb.withRange(offset, length, (Range range) -> {
+            range.setByte(0, (byte)1);
+			range.setInt(1, 1234);
+			range.setShort(5, (short)2345);
+            MemoryBlock mbNew = heap.allocateMemoryBlock(1024);
+            mbNew.setInt(0,54321);
+            return mbNew;
+        });
+        Assert.assertEquals(mb.getByte(0), (byte)1);
+        Assert.assertEquals(mb.getInt(1), 1234);
+        Assert.assertEquals(mb.getShort(5), (short)2345);
+        Assert.assertEquals(mbInternal.getInt(0), 54321);
+    }
+
 }

@@ -23,6 +23,8 @@ import java.util.function.Consumer;
  * a single, thread-local transaction.  Any uncaught exceptions thrown from a transaction body will cause the 
  * transaction to abort and to roll-back any transactional memory modifications already made during execution of
  * the transaction body.
+ * 
+ * @since 1.0
  */
 public final class Transaction {
     static {
@@ -61,7 +63,8 @@ public final class Transaction {
     }
 
     /**
-     * Checks whether this transaction object is in a valid state for use. A transaction is marked invalid, for example, after it commits or aborts. 
+     * Checks whether this transaction object is in a valid state for use. A transaction is marked invalid, 
+     * for example, after it commits or aborts. 
      * @return true if this transaction is valid for use
      */
     public boolean isValid() {
@@ -73,7 +76,8 @@ public final class Transaction {
     }
 
     /**
-    * Creates a new transaction and executes the supplied body function within the transaction. Transactional modifications are limited to specified heap.
+    * Creates a new transaction and executes the supplied body function within the transaction. Transactional 
+    * modifications are limited to specified heap.
     * @param heap the heap associated with the transaction
     * @param body a function that represents the transaction body
     */
@@ -82,7 +86,8 @@ public final class Transaction {
     }
 
     /**
-    * Creates a new transaction and executes the supplied body function within the transaction. Transactional modifications are limited to specified heap.
+    * Creates a new transaction and executes the supplied body function within the transaction. Transactional 
+    * modifications are limited to specified heap.
     * @param heap the heap associated with the transaction
     * @param body a function that represents the transaction body
     * @param <T> the return type of the supplied function
@@ -107,7 +112,7 @@ public final class Transaction {
     /**
     * Transactionally executes the supplied body function as part of this {@code Transaction}. 
     * @param body a function that represents the transaction body
-    * @param <T> the return type of the supplied fuction
+    * @param <T> the return type of the supplied function
     * @throws IllegalStateException if there was an error starting the transaction
     * @throws TransactionException if the tranaction is not active
     * @return the value returned by the body function

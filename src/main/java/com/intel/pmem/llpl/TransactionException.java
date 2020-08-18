@@ -9,6 +9,8 @@ package com.intel.pmem.llpl;
 
 /**
  * Thrown to indicate that a transaction failed to execute successfully.  
+ * 
+ * @since 1.0
  */
 public class TransactionException extends RuntimeException {
     public TransactionException(String message) {

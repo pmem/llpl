@@ -8,13 +8,16 @@
 package com.intel.pmem.llpl;
 
 /**
- * Implements a read and write interface for transactional access to a {@link com.intel.pmem.llpl.TransactionalHeap}.
+ * Implements a read and write interface for accessing a previously-allocated compact 
+ * block of memory {@link com.intel.pmem.llpl.TransactionalHeap}.
  * Access through a {@code TransactionalCompactMemoryBlock} is bounds-checked to be within the 
  * {@code TransactionalHeap} from which it was allocated but not checked to be within its allocated 
  * space in that heap. {@code TransactionalCompactMemoryBlock}s have a smaller footprint than 
  * {@code TransactionalMemoryBlock}s.  
  * Using this memory block gives compile-time knowledge that all changes to persistent 
  * memory are done transactionally. 
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -34,11 +37,11 @@ public final class TransactionalCompactMemoryBlock extends AbstractTransactional
 
     @Override
     void checkBounds(long offset, long length) {
-        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || heap().outOfBounds(offset + length + uncheckedGetHandle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 
     @Override
     void checkBoundsAndLength(long offset, long length) {
-        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + uncheckedGetHandle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 }

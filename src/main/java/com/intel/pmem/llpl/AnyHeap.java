@@ -18,12 +18,15 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.util.function.Supplier;
+import java.util.function.Consumer;
 import sun.misc.Unsafe;
 
 /**
- * The base class for all heap classes.  A heap contains memory allocated in units of memory blocks.<br><br>  
- Heap {@code createHeap()} factory methods accept a {@code String} path argument that specifies the identity of the heap and an optional
+ * The base class for all heap classes.  A heap contains memory that can be allocated, then accessed, and deallocated if no longer needed.<br><br>  
+ * Heap {@code createHeap()} factory methods accept a {@code String} path argument that specifies the identity of the heap and an optional
  * {@code long} size argument. There are 5 ways to configure the size of a heap:<br><br>
+ *
  * 1. fixed size -- the path argument is a file path and a supplied size arugument sets both the minimum and 
  * maximum size of the heap.<br>
  * 2. growable -- the path argument is a file path and the heap size starts with size {@code MINIMUM_HEAP_SIZE}, growing 
@@ -34,7 +37,22 @@ import sun.misc.Unsafe;
  * maximum size of the heap.<br>
  * 5. fused memory pool -- the path argument points to a memory pool configuration file that describes DAX
  * devices [EXPERIMENTAL] or file systems to be fused for use with a single heap.  The combined memory sizes
- * of devices or file systems sets both the minimum and maximum size of the heap.<br>  
+ * of devices or file systems sets both the minimum and maximum size of the heap.<br><br>  
+ * 
+ * A previously created heap can be re-opened after a restart using the {@code openHeap()} method which accepts 
+ * the {@code String} path argument that was used when the heap was created.<br><br>
+ * 
+ * For allocating memory, there is a choice of regular allocations which store 
+ * the allocated size, or compact allocations which do not store the allocated size, thus saving space. 
+ * Some memory allocation methods return a memory block object, which may be used directly to access the allocated memory.
+ * An instance of a memory block object always refers to the same allocated memory.  Other memory allocation
+ * methods return a {@code long} handle to memory.  This handle can be bound to a memory block object as a separate 
+ * step using one of the {@code memoryBlockFromHandle} methods. Alternately, a handle can be bound to a repositionable 
+ * accessor object (created with the {@code createAccessor} or {@code createCompactAccessor} method) by calling the 
+ * accessor's {@code handle(long handle)} method.  You can retrieve any memory accessor's handle by calling
+ * its {@code handle()} method.  
+ * 
+ * @since 1.0
  *
  * @see com.intel.pmem.llpl.Heap   
  * @see com.intel.pmem.llpl.PersistentHeap   
@@ -46,10 +64,11 @@ public abstract class AnyHeap {
     private static final int MAX_USER_CLASSES = (TOTAL_ALLOCATION_CLASSES - USER_CLASS_INDEX) / 2;
     static Unsafe UNSAFE;
     private static final Map<String, AnyHeap> heaps = new ConcurrentHashMap<>();
-    private static final long HEAP_VERSION = 900;
+    private static final long HEAP_VERSION = 1100;
+    private static final long MIN_HEAP_VERSION = 900;
 
     /**
-    * The minimum size for a heap. Attempting to create a heap with a size smaller that this will throw an 
+    * The minimum size for a heap, in bytes. Attempting to create a heap with a size smaller that this will throw an 
     * {@code IllegalArgumentException}.
     */
     public static final long MINIMUM_HEAP_SIZE;
@@ -63,9 +82,6 @@ public abstract class AnyHeap {
         catch (Exception e) {
             throw new RuntimeException("Unable to initialize UNSAFE.");
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            heaps.forEach((String K, AnyHeap V) -> { nativeCloseHeap(V.poolHandle()); });
-        }));
         MINIMUM_HEAP_SIZE = nativeMinHeapSize();
     }
 
@@ -87,7 +103,7 @@ public abstract class AnyHeap {
         if (poolHandle == 0) throw new HeapException("Failed to create heap.");
         valid = true;
         this.size = nativeProbeHeapSize(poolHandle, this.size);
-        metadata = new Metadata(this);
+        metadata = Metadata.create(this);
         open = true;
     }
 
@@ -99,7 +115,8 @@ public abstract class AnyHeap {
         if (poolHandle == 0) throw new HeapException("Failed to open heap.");
         valid = true;
         this.size = nativeProbeHeapSize(poolHandle, this.size);
-        metadata = new Metadata(this);
+        metadata = Metadata.open(this);
+        if (MIN_HEAP_VERSION > metadata.getVersion()) throw new HeapException("Failed to open heap. Incompatible heap version."); 
         open = true;
     }
 
@@ -109,12 +126,19 @@ public abstract class AnyHeap {
         private static final long HEAP_VERSION_OFFSET = 8;
         private AnyMemoryBlock metaBlock;
 
-        public Metadata(AnyHeap heap) {
+        private Metadata(AnyHeap heap) {
             long metadataHandle = nativeGetRoot(heap.poolHandle());
             this.metaBlock = heap.internalMemoryBlockFromHandle(metadataHandle);
-            if (metaBlock.getLong(HEAP_VERSION_OFFSET) == 0L) { 
-                metaBlock.transactionalSetLong(HEAP_VERSION_OFFSET, AnyHeap.HEAP_VERSION);
-            }
+        }
+
+        static Metadata create(AnyHeap heap) {
+            Metadata m = new Metadata(heap);
+            m.metaBlock.transactionalSetLong(HEAP_VERSION_OFFSET, AnyHeap.HEAP_VERSION);
+            return m;
+        }
+
+        static Metadata open(AnyHeap heap) {
+            return new Metadata(heap);
         }
 
         public long getUserRoot() {return metaBlock.getLong(USER_ROOT_OFFSET);}
@@ -123,7 +147,7 @@ public abstract class AnyHeap {
     }
     
     static boolean getHeap(String path) {
-	return heaps.containsKey(path);
+	   return heaps.containsKey(path);
     }
 
     static AnyHeap getHeap(String path, Class cls) {
@@ -131,7 +155,7 @@ public abstract class AnyHeap {
     	try {
     	    cls.cast(h);	
     	} 
-	catch (ClassCastException e){
+	    catch (ClassCastException e){
     	    throw new HeapException("Failed to open heap. wrong heap type (wrong layout)");
     	}
 	   return h;
@@ -150,20 +174,19 @@ public abstract class AnyHeap {
     }
 
     void close() {
-        checkValid();
         nativeCloseHeap(poolHandle);
         heaps.remove(path);
         markInvalid(this);
     }
 
     /**
-     * [EXPERIMENTAL] Registers a specific size for optimized allocation of memory blocks of that size.  Use this for very
-     * common block sizes to optimize allocation speed and minimize footprint of memory blocks on the heap.<br> 
-     * Separate registrations are required for regular and compact memory blocks of a given size. Each heap 
+     * [EXPERIMENTAL] Registers a specific size for optimized allocation of blocks of memory of that size.  Use this for very
+     * common allocation sizes to optimize allocation speed and minimize footprint of allocations on the heap.<br> 
+     * Separate registrations are required for regular and compact (low overhead) allocations of a given size. Each heap 
      * instance maintains a separate set of registered sizes.  Size registration is itself not persistent so 
      * sizes must be registered each time a heap is opened.
-     * @param size the required size of an allocated memory block
-     * @param compact true if {@code size} is associated with a compact memory block
+     * @param size the required size of an allocation
+     * @param compact true if {@code size} is associated with a compact allocation
      * @return true if size was successfully registered
      * @throws HeapException if the allocation size could not be registered
      */
@@ -200,14 +223,6 @@ public abstract class AnyHeap {
     }
 
     /**
-     * Checks that this heap is in a valid state for use -- for example, that it has not been deleted and is open.
-     * @throws IllegalStateException if the heap is not in a valid state for use
-     */
-    void checkValid() {
-        if (!valid) throw new IllegalStateException("Heap is not valid");
-    }
-
-    /**
     * Tests for the existence of a heap associated with the given path.
     * @param path the path to the heap
     * @return true if the heap exists
@@ -229,25 +244,40 @@ public abstract class AnyHeap {
     }
 
     /**
-     * Returns the size, in bytes, of this heap.
-     * @return the size, in bytes, of this heap
+     * Returns the size of this heap, in bytes.
+     * @return the size of this heap, in bytes
      */
     public long size() {
-        checkValid();
         return size;
     }
 
     /**
-     * Checks that {@code offset} is within the bounds of this heap.
-     * @param offset The offset to check
-     * @throws IndexOutOfBoundsException if the offset is not within this memory block's bounds
+     * Executes the supplied operation with semantics of the implementing heap subclass.  A 
+     * {@code TransactionalHeap} will execute the operation in the context of a transaction.
+     * Other heaps currently just execute the operation normally.
+     * This method is primarily useful in writing code that will operate correctly with 
+     * different kinds of heaps.
+     * @param op the operation to execute
      */
+    public abstract void execute(Runnable op);
+
+    /**
+     * Executes the supplied operation with semantics of the implementing heap subclass. A 
+     * {@code TransactionalHeap} will execute the operation in the context of a transaction.
+     * Other heaps currently just execute the operation normally.
+     * This method is primarily useful in writing code that will operate correctly with 
+     * different kinds of heaps.
+     * @param <T> the return type of the supplied operation
+     * @param op the operation to execute
+     * @return the object returned by the operation
+     */
+    public abstract <T> T execute(Supplier<T> op);
+
     void checkBounds(long handle) {
         checkBounds(handle, 0);
     }
 
     void checkBounds(long handle, long length) {
-        checkValid();
         if (handle <= 0 || outOfBounds(handle + length)) {
             throw new IllegalArgumentException("Handle is invalid for this heap");
         }
@@ -262,54 +292,125 @@ public abstract class AnyHeap {
 
     /**
      * Returns the {@code long} value stored in this heap's root location.  The root location can be
-     * used to store any {@code long} value but typically holds the handle of an allocated memory block.
+     * used to store any {@code long} value but typically holds the handle of an allocated block of memory.
      * Initially, zero is stored in the root location.
      @return the value of the heap's root location
      */
     public long getRoot() {
-        checkValid();
         return metadata.getUserRoot();
     }
 
     /**
      * Stores a {@code long} value in this heap's root location.  The root location can be
-     * used to store any {@code long} value but typically holds the handle of an allocated memory block.
+     * used to store any {@code long} value but typically holds the handle of an allocated block of memory.
      * @param value the value to be stored
      */
     public void setRoot(long value) {
-        checkValid();
         metadata.setUserRoot(value);
     }
 
     /**
-    * Returns a previously-allocated memory block associated with the given handle.
-    * @param handle the handle of a previously-allocated memory block
+    * Allocates memory of {@code size} bytes. For {@code TransactionalHeap}s, the allocation will be done transactionally.
+    * @param size the number of bytes to allocate
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public abstract long allocateMemory(long size);
+
+    /**
+    * Allocates memory of {@code size} bytes. For {@code TransactionalHeap}s, the allocation will be done transactionally.
+    * @param size the number of bytes to allocate
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public abstract long allocateCompactMemory(long size);
+
+   /**
+    * Allocates a memory block of {@code size} bytes. For {@code TransactionalHeap}s, the allocation will be done transactionally.
+    * @param size the size of the memory block in bytes
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public abstract AnyMemoryBlock allocateMemoryBlock(long size);
+
+    /**
+    * Allocates a compact memory block of {@code size} bytes. For {@code TransactionalHeap}s, the allocation will be done transactionally.
+    * @param size the size of the memory block in bytes
+    * @return the allocated memory block 
+    */
+    public abstract AnyMemoryBlock allocateCompactMemoryBlock(long size);
+
+    /**
+    * Allocates a memory block of {@code size} bytes. For {@code TransactionalHeap}s, the allocation will be done transactionally.
+    * The supplied {@code initializer} function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public abstract AnyMemoryBlock allocateMemoryBlock(long size, Consumer<Range> initializer);
+
+    /**
+    * Allocates a compact (low overhead) memory block of {@code size} bytes. For {@code TransactionalHeap}s,
+    * the allocation will be done transactionally.
+    * The supplied {@code initializer} function is executed, passing a Range object that can be used to 
+    * write within the memory block's range of bytes.  Allocating a memory block with an initializer
+    * function can be more efficient than separate allocation and initialization. 
+    * @param size the size of the memory block in bytes
+    * @param initializer a function to be run to initialize the new memory block
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public abstract AnyMemoryBlock allocateCompactMemoryBlock(long size, Consumer<Range> initializer);
+
+     /**
+     * Creates a new accessor object. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using the {@code handle(long handle)} method.
+     * @return the new accessor object 
+     */
+    public abstract AnyAccessor createAccessor();
+
+    /**
+     * Creates a new accessor object usable with compact allocations. In its initial state the accessor refers
+     * to no memory and is not usable until it is assigned a handle using the {@code handle(long handle)} method.
+     * @return the new accessor object 
+     */
+    public abstract AnyAccessor createCompactAccessor();
+
+    /**
+    * Returns a memory block that refers to a previous allocation specified by the given handle.
+    * The supplied handle must be associated non-compact live allocation this heap.
+    * @param handle the handle of a previously-allocated memory
     * @return the memory block associated with the given handle
     * @throws HeapException if the memory block could not be created
     */
-    abstract AnyMemoryBlock memoryBlockFromHandle(long handle);
+    public abstract AnyMemoryBlock memoryBlockFromHandle(long handle);
 
     /**
-    * Returns a previously-allocated compact memory block associated with the given handle.
-    * @param handle the handle of a previously-allocated memory block
+    * Returns a memory block that refers to a previous compact allocation specified by the given handle.
+    * The supplied handle must be associated compact live allocation this heap.
+    * @param handle the handle of a previously-allocated memory
     * @return the compact memory block associated with the given handle
     * @throws HeapException if the memory block could not be created
     */
-    abstract AnyMemoryBlock compactMemoryBlockFromHandle(long handle);
+    public abstract AnyMemoryBlock compactMemoryBlockFromHandle(long handle);
 
     abstract String getHeapLayoutID();
+
     abstract AnyMemoryBlock internalMemoryBlockFromHandle(long handle);
 
-    void freeMemoryBlock(AnyMemoryBlock block) {
-        freeMemoryBlock(block, true);
+    void freeMemory(long directAddress, boolean transactional) {
+        int result = transactional ? nativeFree(poolHandle, directAddress) : nativeFreeAtomic(directAddress);
+        if (result < 0) {
+            throw new HeapException("Failed to free memory.");
+        }
     }
 
     void freeMemoryBlock(AnyMemoryBlock block, boolean transactional) {
-        checkValid();
-        int result = transactional ? nativeFree(poolHandle, block.directAddress()) : nativeFreeAtomic(block.directAddress());
-        if (result < 0) {
-            throw new HeapException("Failed to free block.");
-        }
+        block.checkValid();
+        freeMemory(block.directAddress(), transactional);
         block.markInvalid();
     }
 

@@ -13,19 +13,19 @@
 extern "C" {
 #endif
 
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeFlush
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeFlush
   (JNIEnv *env, jobject obj, jlong address, jlong size);
 
-JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddToTransaction
+JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddToTransaction
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jlong size);
 
-JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddToTransactionNoCheck
+JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddToTransactionNoCheck
   (JNIEnv *env, jobject obj, jlong address, jlong size);
 
-JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeAddRangeToTransaction
+JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddRangeToTransaction
   (JNIEnv *env, jobject obj, jlong poolHandle, jlong address, jlong size);
 
-JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_AnyMemoryBlock_nativeHasAutoFlush
+JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeHasAutoFlush
   (JNIEnv *env, jobject obj);
 #ifdef __cplusplus
 }

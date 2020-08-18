@@ -20,109 +20,59 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
         super(heap, offset, bounded);
     }
 
-    /**
-    * Returns the heap from which this memory block was allocated.
-    * @return the {@code Heap} from which this memory block was allocated
-    */
+    @Override
     public Heap heap() {
-        return (Heap)super.heap();
+        return (Heap)super.heapInternal();
     }
 
     @Override
     abstract long metadataSize();
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
     public void setByte(long offset, byte value) {
         super.rawSetByte(offset, value);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
-     @Override
+    @Override
     public void setShort(long offset, short value) {
         super.rawSetShort(offset, value);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
     public void setInt(long offset, int value) {
         super.rawSetInt(offset, value);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
     public void setLong(long offset, long value) {
         super.rawSetLong(offset, value);
     }
 
-    /**
-     * {@inheritDoc}  
-     * @param srcBlock {@inheritDoc}
-     * @param srcOffset {@inheritDoc}
-     * @param dstOffset {@inheritDoc}
-     * @param length {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc} 
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
-    public void copyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.rawCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+    public void copyFrom(MemoryAccessor srcAccessor, long srcOffset, long dstOffset, long length) {
+        super.rawCopy(srcAccessor, srcOffset, dstOffset, length);
     }
 
-    /**
-     * {@inheritDoc} 
-     * @param srcArray {@inheritDoc}
-     * @param srcOffset {@inheritDoc}
-     * @param dstOffset {@inheritDoc}
-     * @param length {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
-    public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
-        super.rawCopyFromArray(srcArray, srcOffset, dstOffset, length);
+    public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int length) {
+        super.rawCopyFromArray(srcArray, srcIndex, dstOffset, length);
     }
 
-    /**
-     *{@inheritDoc}
-     * @param value {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param length {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc} 
-     * @throws IllegalStateException {@inheritDoc}
-     */    
     @Override
     public void setMemory(byte value, long offset, long length) {
         super.rawSetMemory(value, offset, length);
     }
 
+    public <T> T withRange(long startOffset, long rangeLength, Function<Range, T> op) {
+        return super.rawWithRange(startOffset, rangeLength, op);
+    }
+
+    public void withRange(long startOffset, long rangeLength, Consumer<Range> op) {
+        super.rawWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
+    }
+
     /**
-    * Ensures that any modifications made within the supplied range within this memory 
-    * block are written to persistent memory media.
+    * Ensures that the supplied range of bytes within this memory block are written to persistent memory media.
     * @param offset the location from which to flush bytes
     * @param length the number of bytes to flush
     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block bounds 
@@ -152,5 +102,10 @@ abstract class AbstractMemoryBlock extends AnyMemoryBlock {
     */
     public void free(boolean transactional) {
         heap().freeMemoryBlock(this, transactional);
+    }
+
+    @Override
+    public void freeMemory() {
+        heap().freeMemoryBlock(this, false);
     }
 }

@@ -22,12 +22,9 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
         super(heap, offset, bounded);
     }
 
-    /**
-    * Returns the heap from which this memory block was allocated.
-    * @return the {@code PersistentHeap} from which this memory block was allocated
-    */
+    @Override
     public PersistentHeap heap() {
-        return (PersistentHeap)super.heap();
+        return (PersistentHeap)super.heapInternal();
     }
 
     @Override
@@ -42,121 +39,54 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
         heap().freeMemoryBlock(this, transactional);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
+    @Override
+    public void freeMemory() {
+        heap().freeMemoryBlock(this, false);
+    }
+
     @Override
     public void setByte(long offset, byte value) {
         super.durableSetByte(offset, value);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
     public void setShort(long offset, short value) {
         super.durableSetShort(offset, value);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
     public void setInt(long offset, int value) {
         super.durableSetInt(offset, value);
     }
 
-    /**
-     * {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param value {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
     public void setLong(long offset, long value) {
         super.durableSetLong(offset, value);
     }
 
-    /**
-     * {@inheritDoc}  
-     * @param srcBlock {@inheritDoc}
-     * @param srcOffset {@inheritDoc}
-     * @param dstOffset {@inheritDoc}
-     * @param length {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc} 
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
-    public void copyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.durableCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+    public void copyFrom(MemoryAccessor srcAccessor, long srcOffset, long dstOffset, long length) {
+        super.durableCopy(srcAccessor, srcOffset, dstOffset, length);
     }
 
-    /**
-     * {@inheritDoc} 
-     * @param srcArray {@inheritDoc}
-     * @param srcOffset {@inheritDoc}
-     * @param dstOffset {@inheritDoc}
-     * @param length {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
-     * @throws IllegalStateException {@inheritDoc}
-     */
     @Override
-    public void copyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
-        super.durableCopyFromArray(srcArray, srcOffset, dstOffset, length);
+    public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int length) {
+        super.durableCopyFromArray(srcArray, srcIndex, dstOffset, length);
     }
 
-    /**
-     *{@inheritDoc}
-     * @param value {@inheritDoc}
-     * @param offset {@inheritDoc}
-     * @param length {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc} 
-     * @throws IllegalStateException {@inheritDoc}
-     */    
     @Override
     public void setMemory(byte value, long offset, long length) {
         super.durableSetMemory(value, offset, length);
     }
 
-    /**
-     * Executes the supplied {@code Function} passing in a {@code Range} object suitable for durably modifying bytes in 
-     * the specified range of offsets within this memory block.  
-     * @param startOffset the starting offset of the range
-     * @param rangeLength the number of bytes in the range
-     * @param op the function to execute
-     * @param <T> the return type of the supplied fuction
-     * @return the object returned from the supplied function
-     * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this memory block's bounds
-     * @throws TransactionException if a transaction was not active and a new transaction could not be created
-     */    
+    @Override
     public <T> T withRange(long startOffset, long rangeLength, Function<Range, T> op) {
         return super.durableWithRange(startOffset, rangeLength, op);
     }
 
-    /**
-     * Executes the supplied {@code Consumer} function passing in a {@code Range} object suitable for durably modifying bytes in 
-     * the specified range of offsets within this memory block.  
-     * @param startOffset the starting offset of the range
-     * @param rangeLength the number of bytes in the range
-     * @param op the function to execute
-     * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this memory block's bounds
-     * @throws TransactionException if a transaction was not active and a new transaction could not be created
-     */    
+    @Override
     public void withRange(long startOffset, long rangeLength, Consumer<Range> op) {
-        super.durableWithRange(startOffset, rangeLength, op);
+        super.durableWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
     }
 
     /**
@@ -204,7 +134,7 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
     }
 
     /**
-     * Transactionally copies {@code length} bytes from the {@code srcBlock} memory block, starting at {@code srcOffset}, to  
+     * Transactionally copies {@code length} bytes from {@code srcBlock}, starting at {@code srcOffset}, to  
      * this memory block starting at {@code dstOffset}.  
      * @param srcBlock the memory block from which to copy bytes
      * @param srcOffset the starting offset in the source memory block
@@ -214,21 +144,21 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */
     public void transactionalCopyFromMemoryBlock(AnyMemoryBlock srcBlock, long srcOffset, long dstOffset, long length) {
-        super.transactionalCopyFromMemoryBlock(srcBlock, srcOffset, dstOffset, length);
+        super.transactionalCopy(srcBlock, srcOffset, dstOffset, length);
     }
 
     /**
-     * Transactionally copies {@code length} bytes from the {@code srcArray} byte array, starting at {@code srcOffset}, to  
+     * Transactionally copies {@code length} bytes from {@code srcArray}, starting at {@code srcIndex}, to  
      * this memory block starting at {@code dstOffset}.  
      * @param srcArray the memory block from which to copy bytes
-     * @param srcOffset the starting offset in the source memory block
+     * @param srcIndex the starting offset in the source memory block
      * @param dstOffset the starting offset to which byte are to be copied
      * @param length the number of bytes to copy
      * @throws IndexOutOfBoundsException if the operation would cause access of data outside of memory block bounds
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */
-    public void transactionalCopyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
-        super.transactionalCopyFromArray(srcArray, srcOffset, dstOffset, length);
+    public void transactionalCopyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int length) {
+        super.transactionalCopyFromArray(srcArray, srcIndex, dstOffset, length);
     }
 
     /**
@@ -245,11 +175,11 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
     }    
 
     /**
-     * Transactionally executes the suppied {@code Function}, passing in a {@code Range} object suitable for modifying bytes in 
+     * Transactionally executes the supplied {@code Function}, passing in a {@link Range} object suitable for modifying bytes in 
      * the specified bytes within this memory block.  
      * @param startOffset the starting offset of the range
      * @param rangeLength the number of bytes in the range
-     * @param op the function to execute
+     * @param op the op to execute
      * @return the object returned from the supplied {@code Function}
      * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this memory block's bounds
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
@@ -259,15 +189,15 @@ abstract class AbstractPersistentMemoryBlock extends AnyMemoryBlock {
     }
 
     /**
-     * Transactionally executes the suppied {@code Consumer}, passing in a {@code Range} object suitable for modifying bytes in 
+     * Transactionally executes the supplied {@code Consumer}, passing in a {@link Range} object suitable for modifying bytes in 
      * the specified bytes within this memory block.  
      * @param startOffset the starting offset of the range
      * @param rangeLength the number of bytes in the range
-     * @param op the function to execute
+     * @param op the op to execute
      * @throws IndexOutOfBoundsException if the the specified range of bytes is not within this memory block's bounds
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */    
     public void transactionalWithRange(long startOffset, long rangeLength, Consumer<Range> op) {
-        super.transactionalWithRange(startOffset, rangeLength, op);
+        super.transactionalWithRange(startOffset, rangeLength, (Range r) -> {op.accept(r); return (Void)null;});
     }
 }

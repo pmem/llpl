@@ -9,27 +9,19 @@ package com.intel.pmem.llpl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Function;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
- * Manages {@link com.intel.pmem.llpl.PersistentMemoryBlock}s and {@link com.intel.pmem.llpl.PersistentCompactMemoryBlock}s.
+ * Manages a heap of memory.  
+ * This class supports fixed-position memory accessor classes {@link PersistentMemoryBlock} and {@link PersistentCompactMemoryBlock}
+ * and repositionable memory accessor classes {@link PersistentAccessor} and {@link PersistentCompactAccessor}.<br><br>
  * Use of this heap gives compile-time knowledge that all changes
- * to heap memory are done durably. Modification to heap memory may optionally be done transactionally.<br><br>
+ * to heap memory are done durably. Modifications to heap memory may optionally be done transactionally.
  *
- * Heap {@code createHeap()} factory methods accept a {@code String} path argument that specifies the identity of the heap and an optional
- * {@code long} size argument. There are 5 ways to configure the size of a heap:<br><br>
- * 1. fixed size -- the path argument is a file path and a supplied size arugument sets both the minimum and 
- * maximum size of the heap.<br>
- * 2. growable -- the path argument is a file path and the heap size starts with size {@code MINIMUM_HEAP_SIZE}, growing 
- * in size as needed up to the available memory.<br>
- * 3. growable with limit -- the path argument is a file path and the heap size starts with size {@code MINIMUM_HEAP_SIZE},
- * growing in size as needed up to a maximum size set by the supplied size argument.<br>
- * 4. DAX device -- the path argument is DAX device name and the size of the dax device sets both the minimum and
- * maximum size of the heap.<br>
- * 5. fused memory pool -- the path argument points to a memory pool configuration file that describes DAX
- * devices [EXPERIMENTAL] or file systems to be fused for use with a single heap.  The combined memory sizes
- * of devices or file systems sets both the minimum and maximum size of the heap.<br>  
+ * See {@link AnyHeap} introduction for a description of different ways of controlling heap size.
+ * 
+ * @since 1.0
  *
  * @see com.intel.pmem.llpl.AnyHeap   
   */
@@ -160,98 +152,167 @@ public final class PersistentHeap extends AnyHeap {
         return heap;
     }
 
+    @Override
+    public PersistentAccessor createAccessor() {
+        return new PersistentAccessor(this);
+    }
+
+    @Override
+    public PersistentCompactAccessor createCompactAccessor() {
+        return new PersistentCompactAccessor(this);
+    }
+
     /**
-    * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
-    * @param size the size of the memory block in bytes
-    * @param transactional true if the allocation should be done transactionally
-    * @return the allocated memory block 
-    * @throws HeapException if the memory block could not be allocated
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional if true, the allocation will be done transactionally
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
     */
-    public PersistentMemoryBlock allocateMemoryBlock(long size, boolean transactional) {
-        checkValid();
-        return new PersistentMemoryBlock(this, size, transactional);
+    public long allocateMemory(long size, boolean transactional) {
+        long allocationSize = size + PersistentMemoryBlock.METADATA_SIZE; 
+        Supplier<Long> body = () -> {
+            long handle =  transactional ? allocateTransactional(allocationSize) : allocateAtomic(allocationSize);
+            if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+            AnyHeap.UNSAFE.putLong(poolHandle() + handle + AnyMemoryBlock.SIZE_OFFSET, size);
+            return handle;
+        };
+        long handle = transactional ? new Transaction(this).run(body) : body.get();
+        return handle;
+    }
+
+    @Override
+    public long allocateMemory(long size) {
+        return allocateMemory(size, false);
+    }
+
+    /**
+    * Allocates memory of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * @param size the number of bytes to allocate
+    * @param transactional if true, the allocation will be done transactionally
+    * @return a handle to the allocated memory 
+    * @throws HeapException if the memory could not be allocated
+    */
+    public long allocateCompactMemory(long size, boolean transactional) {
+        long handle =  transactional ? Transaction.create(this, () -> allocateTransactional(size)) : allocateAtomic(size);
+        if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
+        return handle;
+    }
+
+    @Override
+    public long allocateCompactMemory(long size) {
+        return allocateCompactMemory(size, false);
     }
 
     /**
     * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
-    * The supplied initializer function is executed, passing a Range object that can be used to 
+    * @param size the size of the memory block in bytes
+    * @param transactional if true, the allocation will be done transactionally
+    * @return the allocated memory block 
+    * @throws HeapException if the memory block could not be allocated
+    */
+    public PersistentMemoryBlock allocateMemoryBlock(long size, boolean transactional) {
+        return new PersistentMemoryBlock(this, size, transactional);
+    }
+
+    @Override
+    public PersistentMemoryBlock allocateMemoryBlock(long size) {
+        return new PersistentMemoryBlock(this, size, false);
+    }
+
+    @Override
+    public PersistentMemoryBlock allocateMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateMemoryBlock(size, false, initializer);
+    }
+
+    /**
+    * Allocates a memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
+    * The supplied {@code initializer} function is executed, passing a Range object that can be used to 
     * write within the memory block's range of bytes.  Allocating a memory block with an initializer
     * function can be more efficient than separate allocation and initialization. 
     * @param size the size of the memory block in bytes
-    * @param transactional true if the allocation should be done transactionally
+    * @param transactional if true, the allocation will be done transactionally
     * @param initializer a function to be run to initialize the new memory block
     * @return the allocated memory block 
     * @throws HeapException if the memory block could not be allocated
     */
     public PersistentMemoryBlock allocateMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
-        return Transaction.create(this, () -> {
-            checkValid();
+        Supplier<PersistentMemoryBlock> body = () -> {
             PersistentMemoryBlock block = new PersistentMemoryBlock(this, size, transactional);
             Range range = block.range();
             if (initializer == null) throw new IllegalArgumentException("Initializer is null.");
             initializer.accept(range);
+            if (!transactional) range.flush();
             range.markInvalid();
             return block;
-        });
+        };
+        return transactional ? Transaction.create(this, body) : body.get();
     }
 
     /**
     * Allocates a compact memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
     * @param size the size of the memory block in bytes
-    * @param transactional true if the allocation should be done transactionally
+    * @param transactional if true, the allocation will be done transactionally
     * @return the allocated memory block 
     * @throws HeapException if the memory block could not be allocated
     */
     public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional) {
-        checkValid();
         return new PersistentCompactMemoryBlock(this, size, transactional);
+    }
+
+    @Override
+    public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size) {
+        return new PersistentCompactMemoryBlock(this, size, false);
+    }
+
+    @Override
+    public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size, Consumer<Range> initializer) {
+        return allocateCompactMemoryBlock(size, false, initializer);
     }
 
     /**
     * Allocates a compact memory block of {@code size} bytes. The allocation may be done transactionally or non-transactionally.
-    * The supplied initializer function is executed, passing a Range object that can be used to 
+    * The supplied {@code initializer} function is executed, passing a Range object that can be used to 
     * write within the memory block's range of bytes.  Allocating a memory block with an initializer
     * function can be more efficient than separate allocation and initialization. 
     * @param size the size of the memory block in bytes
-    * @param transactional true if the allocation should be done transactionally
+    * @param transactional if true, the allocation will be done transactionally
     * @param initializer a function to be run to initialize the new memory block
     * @return the allocated memory block 
     */
     public PersistentCompactMemoryBlock allocateCompactMemoryBlock(long size, boolean transactional, Consumer<Range> initializer) {
-        return Transaction.create(this, () -> {
-            checkValid();
+        Supplier<PersistentCompactMemoryBlock> body = () -> {
             PersistentCompactMemoryBlock block = new PersistentCompactMemoryBlock(this, size, transactional);
             Range range = block.range(0, size);
             if (initializer == null) throw new IllegalArgumentException("Initializer is null.");
             initializer.accept(range);
+            if (!transactional) range.flush();
             range.markInvalid();
             return block;
-        });
+        };
+        return transactional ? Transaction.create(this, body) : body.get();
     }
 
-    /**
-    * Returns a previously-allocated memory block associated with the given handle.
-    * @param handle the handle of a previously-allocated memory block
-    * @return the memory block associated with the given handle
-    * @throws IllegalArgumentException if {@code handle} is not valid
-    * @throws HeapException if the memory block could not be created
-    */
     @Override
     public PersistentMemoryBlock memoryBlockFromHandle(long handle) {
         checkBounds(handle, PersistentMemoryBlock.METADATA_SIZE);
         return new PersistentMemoryBlock(this, poolHandle(), handle);
     }
 
-    /**
-    * Returns a previously-allocated compact memory block associated with the given handle.
-    * @param handle the handle of a previously-allocated memory block
-    * @return the compact memory block associated with the given handle
-    * @throws IllegalArgumentException if {@code handle} is not valid
-    */
+    @Override
     public PersistentCompactMemoryBlock compactMemoryBlockFromHandle(long handle) {
         checkBounds(handle);
         return new PersistentCompactMemoryBlock(this, poolHandle(), handle);
     }
+
+    public void execute(Runnable op) {
+        op.run();
+    }
+
+    public <T> T execute(Supplier<T> op) {
+        return op.get();
+    }
+
 
     @Override
     String getHeapLayoutID() {
@@ -260,7 +321,6 @@ public final class PersistentHeap extends AnyHeap {
 
     @Override
     PersistentCompactMemoryBlock internalMemoryBlockFromHandle(long handle) {
-        checkValid();
         return new PersistentCompactMemoryBlock(this, poolHandle(), handle);
     }
 }

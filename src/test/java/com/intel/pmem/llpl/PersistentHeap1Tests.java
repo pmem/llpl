@@ -235,6 +235,7 @@ public class PersistentHeap1Tests {
 	@Test
 	public void testCreateGrowableWithLimitHeap() {
 		if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+		Assert.assertFalse(PersistentHeap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		heap = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, TestVars.HEAP_SIZE);
 		Assert.assertTrue(PersistentHeap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
@@ -625,4 +626,94 @@ public class PersistentHeap1Tests {
 		PersistentCompactMemoryBlock mb = heap.compactMemoryBlockFromHandle(heap.size() - 1);
 		Assert.assertTrue(mb.isValid());
 	}
+
+    @Test
+    public void testHeapExecuteSupplier(){
+        heap = TestVars.createPersistentHeap();
+        PersistentMemoryBlock mb1 = heap.execute(() -> {
+            PersistentMemoryBlock mbInternal = heap.allocateMemoryBlock(1024);
+            mbInternal.setShort(0,(short)100);
+            mbInternal.setLong(2,200L);
+            return mbInternal;
+        });
+        Assert.assertEquals(mb1.getShort(0), (short)100);
+        Assert.assertEquals(mb1.getLong(2), 200L);
+    }
+
+    @Test
+    public void testHeapExecuteRunnable(){
+        heap = TestVars.createPersistentHeap();
+        PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        heap.execute(() -> {
+            mb.setShort(0,(short)100);
+            mb.setLong(2,200L);
+        });
+        Assert.assertEquals(mb.getShort(0), (short)100);
+        Assert.assertEquals(mb.getLong(2), 200L);
+    }
+
+    @Test
+    public void testHeapTransactionalAllocation(){
+        heap = TestVars.createPersistentHeap();
+        boolean transactional = true;
+        long handle = heap.allocateMemory(1024, transactional);
+        PersistentMemoryBlock mb = heap.memoryBlockFromHandle(handle);
+        mb.setLong(0,100);
+        Assert.assertEquals(mb.getLong(0), 100);
+    }
+
+    @Test
+    public void testHeapFailCreationTooLargeSize(){
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        // Normal tests would use TestVars to create a folder then a growable
+        // heap. This test seeks to force an exception path by requesting a
+        // heap to be created that's larger than the MAXIMUM_HEAP_SIZE
+        final long MAXIMUM_HEAP_SIZE = TestVars.TOTAL_SIZE;
+        try {
+            // create a heap that is larger than the available pmem
+            heap = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME,
+                                   MAXIMUM_HEAP_SIZE + 1<<40);
+            Assert.fail("HeapException not thrown");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testHeapFailMemoryAllocationTooLarge(){
+        TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        heap = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        final long largeSize = 32L * 1024L * 1024L * 1024L;
+        // initial large allocation of 16 GB should succeed
+        long handle = 0;
+        try {
+            // this allocation should fail since the heap has just allocated all of its memory
+            handle = heap.allocateMemory(largeSize);
+            Assert.fail("HeapException not thrown");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+        Assert.assertEquals(handle, 0L);
+    }
+
+    @Test
+    public void testHeapFailCompactMemoryAllocationTooLarge(){
+        TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        heap = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        final long largeSize = 32L * 1024L * 1024L * 1024L;
+        // initial large allocation of 16 GB should succeed
+        long handle = 0;
+        try {
+            // this allocation should fail since the heap has just allocated all of its memory
+            handle = heap.allocateCompactMemory(largeSize);
+            Assert.fail("HeapException not thrown");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+        Assert.assertEquals(handle, 0L);
+    }
+
 }
