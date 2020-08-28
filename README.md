@@ -2,8 +2,8 @@
 # Low Level Persistence Library #
 
 ## OVERVIEW ##
-The Low Level Persistence Library offers access to persistent memory using `MemoryBlocks` allocated from
-a persistent Heap.  
+The Low Level Persistence Library offers access to blocks of persistent memory allocated on
+a persistent heap.  
 
 This Java library uses the Persistent Memory Development Kit (PMDK).
 For more information on PMDK, please visit http://pmem.io and https://github.com/pmem/pmdk.
