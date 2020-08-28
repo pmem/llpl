@@ -237,6 +237,7 @@ public class TransactionalHeap1Tests {
 	@Test
 	public void testCreateGrowableWithLimitHeap() {
 		if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+		Assert.assertFalse(TransactionalHeap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, TestVars.HEAP_SIZE);
 		Assert.assertTrue(TransactionalHeap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
@@ -365,14 +366,12 @@ public class TransactionalHeap1Tests {
 				Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i));
 				heaps[i] = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i);
 				MAX_HEAPS_ALLOCATED++;
-				System.out.println("Heap size GNL: " + heaps[i].size());
 				heaps[i].setRoot((i + 1) * 1234);
 				Assert.assertTrue(heaps[i].getRoot() == (i + 1) * 1234);
 				TransactionalMemoryBlock mb = null;
 				mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_2G);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_2G);
-				System.out.println("Growable no limit Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -519,7 +518,6 @@ public class TransactionalHeap1Tests {
 				TransactionalMemoryBlock mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_100MB);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_100MB);
-				System.out.println("Fixed Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -588,4 +586,106 @@ public class TransactionalHeap1Tests {
 		TransactionalCompactMemoryBlock mb = heap.compactMemoryBlockFromHandle(heap.size() - 1);
 		Assert.assertTrue(mb.isValid());
 	}
+
+    @Test
+    public void testHeapExecuteSupplier(){
+        heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb1 = heap.execute(() -> {
+            TransactionalMemoryBlock mbInternal = heap.allocateMemoryBlock(1024);
+            mbInternal.setShort(0,(short)100);
+            mbInternal.setLong(2,200L);
+            return mbInternal;
+        });
+        Assert.assertEquals(mb1.getShort(0), (short)100);
+        Assert.assertEquals(mb1.getLong(2), 200L);
+    }
+
+    @Test
+    public void testHeapExecuteRunnable(){
+        heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        heap.execute(() -> {
+            mb.setShort(0,(short)100);
+            mb.setLong(2,200L);
+        });
+        Assert.assertEquals(mb.getShort(0), (short)100);
+        Assert.assertEquals(mb.getLong(2), 200L);
+    }
+
+    @Test
+    public void testFailOpenWrongHeapType(){
+        heap = TestVars.createTransactionalHeap();
+        Heap heap2 = null;
+        Assert.assertTrue(true);
+        try {
+            // Attempt to open a TransactionalHeap as a Heap
+            heap2 = Heap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+            Assert.fail("This should fail - THeap cannot be opened as a Heap");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+        Assert.assertEquals(heap2, null);
+    }
+
+    @Test
+    public void testHeapFailCreationTooLargeSize(){
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        // Normal tests would use TestVars to create a folder then a growable
+        // heap. This test seeks to force an exception path by requesting a
+        // heap to be created that's larger than the MAXIMUM_HEAP_SIZE
+        final long MAXIMUM_HEAP_SIZE = TestVars.TOTAL_SIZE;
+        try {
+            // create a heap that is larger than the available pmem
+            heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME,
+                                   MAXIMUM_HEAP_SIZE + 1<<40);
+            Assert.fail("HeapException not thrown");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testHeapFailMemoryAllocationTooLarge(){
+        TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        final long largeSize = 32L * 1024L * 1024L * 1024L;
+        // initial large allocation of 16 GB should succeed
+        try {
+            // this allocation should fail since the heap has just allocated all of its memory
+            heap.allocateMemory(largeSize);
+            Assert.fail("HeapException not thrown");
+        }
+        catch(HeapException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testHeapFailCompactMemoryAllocationTooLarge(){
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+        final long heapSize = 8L * 1024L * 1024L;
+        final int divisor = 16;
+        final long allocationSize = heapSize / ((long)divisor);
+        heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, heapSize);
+        // perform multiple allocations to fill the heap
+        for (int i=0; i<(divisor); i++) {
+            // set handle back to 0 before each allocation attempt
+            try {
+                heap.allocateCompactMemory(allocationSize);
+            } catch(TransactionException e) {
+                break;
+            }
+        }
+        try {
+            // this allocation should fail since the heap has just allocated all of its memory
+            heap.allocateCompactMemory(allocationSize);
+            Assert.fail("TransactionException not thrown");
+        }
+        catch(TransactionException e) {
+            Assert.assertTrue(true);
+        }
+    }
 }

@@ -10,11 +10,15 @@ package com.intel.pmem.llpl;
 import java.util.function.Consumer;
 
 /**
- * Implements a bounded read and write interface for access to a {@link com.intel.pmem.llpl.PersistentHeap}. 
+ * Implements a read and write interface for accessing a previously-allocated block of memory on 
+ * a {@link com.intel.pmem.llpl.PersistentHeap}. 
  * Access through a {@code PersistentMemoryBlock} is bounds-checked to be within the block's allocated space. 
  * Using this memory block gives compile-time knowledge that all changes to persistent 
- * memory are done durably. Allocations and other modifications to persistent memory 
- * may optionally be done transactionally.  
+ * memory are done durably. 
+ * Optionally, the "transaactional"-prefix versions of methods (e.g. {@code transactionalCopyFromArray}) 
+ * can be used for stronger, transactional data consistency semantics.  
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -34,23 +38,19 @@ public final class PersistentMemoryBlock extends AbstractPersistentMemoryBlock {
         return METADATA_SIZE; 
     }
 
-    void checkBounds(long offset, long length) {
-        super.checkBounds(offset, length);
-    }
-
     /**
-     * Executes the suppied {@code Consumer}, passing in a {@code Range} object suitable for durably modifying bytes 
+     * Executes the supplied {@code Consumer}, passing in a {@link Range} object suitable for durably modifying bytes 
      * within this memory block.  
-     * @param op the function to execute
+     * @param op the op to execute
      */    
     public void withRange(Consumer<Range> op) {
         withRange(0, size(), op);
     }
 
     /**
-     * Tansactionally executes the suppied {@code Consumer}, passing in a {@code Range} object suitable for modifying bytes 
+     * Tansactionally executes the supplied {@code Consumer}, passing in a {@link Range} object suitable for modifying bytes 
      * within this memory block.  
-     * @param op the function to execute
+     * @param op the op to execute
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */    
     public void transactionalWithRange(Consumer<Range> op) {

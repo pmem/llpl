@@ -8,13 +8,17 @@
 package com.intel.pmem.llpl;
 
 /**
- * Implements a read and write interface for accessing a {@link com.intel.pmem.llpl.PersistentHeap}.
+ * Implements a read and write interface for accessing a previously-allocated compact 
+ * block of memory on a {@link com.intel.pmem.llpl.PersistentHeap}.
  * Access through a {@code PersistentCompactMemoryBlock} is bounds-checked to be within the {@code PersistentHeap} from which it was allocated
  * but not checked to be within its allocated space in that heap. {@code PersistentCompactMemoryBlock}s have a smaller footprint than 
  * {@code PersistentMemoryBlock}s.  
  * Using this memory block gives compile-time knowledge that all changes to persistent 
- * memory are done durably. Allocations and other modifications to persistent memory 
- * may optionally be done transactionally. 
+ * memory are done durably. 
+ * Optionally, the "transacational"-prefix versions of methods (e.g. {@code transactionalCopyFromArray}) 
+ * can be used for stronger, transactional data consistency semantics.  
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -32,20 +36,13 @@ public final class PersistentCompactMemoryBlock extends AbstractPersistentMemory
         return 0; 
     }
 
-    /**
-     * Checks that the range of bytes from {@code offset} (inclusive) to {@code offset} + length (exclusive) 
-     * is within the bounds of this memory block's heap. 
-     * @param offset The start if the range to check
-     * @param length The number of bytes in the range to check
-     * @throws IndexOutOfBoundsException if the range is not within this memory block's heap bounds
-     */
     @Override
     void checkBounds(long offset, long length) {
-        if (offset < 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || heap().outOfBounds(offset + length + uncheckedGetHandle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 
     @Override
     void checkBoundsAndLength(long offset, long length) {
-        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + handle())) throw new IndexOutOfBoundsException(AnyMemoryBlock.outOfBoundsMessage(offset, length));
+        if (offset < 0 || length <= 0 || heap().outOfBounds(offset + length + uncheckedGetHandle())) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(offset, length));
     }
 }

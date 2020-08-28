@@ -1,11 +1,45 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.intel.pmem.llpl</groupId>
+    <groupId>com.intel.pmem</groupId>
     <artifactId>llpl</artifactId>
-    <version>1.0.0-release</version>
+    <version>1.1.0-release</version>
+    <packaging>jar</packaging>
     <name>LLPL</name>
     <description>This project will provide APIs to interface with persistent memory</description>
+    <url>https://github.com/pmem/llpl</url>
+    <licenses>
+      <license>
+        <name>BSD-3-Clause</name>
+        <url>https://opensource.org/licenses/BSD-3-Clause</url>
+      </license>
+    </licenses>
+    <developers>
+      <developer>
+        <name>Olasoji Denloye</name>
+        <email>olasoji.denloye@intel.com</email>
+        <organization>Intel</organization>
+        <organizationUrl></organizationUrl>
+      </developer>
+    </developers>
+
+    <scm>
+      <connection>scm:git:git://github.com/pmem/llpl.git</connection>
+      <developerConnection>scm:git:git@github.com:pmem/llpl.git</developerConnection>
+      <url>https://github.com/pmem/llpl/tree/master</url>
+    </scm>
+
+    <distributionManagement>
+      <snapshotRepository>
+        <id>ossrh</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
+      <repository>
+        <id>ossrh</id>
+        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/
+      </url>
+      </repository>
+    </distributionManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -67,7 +101,7 @@
                                 <exec executable="make" dir="${project.build.directory}/cppbuild" failonerror="true">
                                     <arg line="VERBOSE=1"/>
                                 </exec>
-                                <copy file="${project.build.directory}/cppbuild/libllpl.so" tofile="${project.build.directory}/classes/libllpl.so"/>
+                                <copy file="${project.build.directory}/cppbuild/libllpl.so" tofile="${project.build.directory}/classes/com/intel/pmem/llpl/linux/amd64/libllpl.so"/>
                             </tasks>
                         </configuration>
                         <goals>
@@ -95,21 +129,42 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.1</version>
                 <configuration>
-			<argLine>@{argLine} -Djava.library.path=${project.build.directory}/cppbuild</argLine>
+			<!--argLine>@{argLine} -Djava.library.path=${project.build.directory}/cppbuild</argLine-->
 			<suiteXmlFiles>
 				<suiteXmlFile>testng.xml</suiteXmlFile>
 			</suiteXmlFiles>
                 </configuration>
 	    </plugin>
+        <plugin>
+	    	<groupId>org.apache.maven.plugins</groupId>
+        	<artifactId>maven-source-plugin</artifactId>
+            <version>2.2.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+	    </plugin>
 	    <plugin>
 	    	<groupId>org.apache.maven.plugins</groupId>
         	<artifactId>maven-javadoc-plugin</artifactId>
-		<version>3.1.1</version>
-		<configuration>
-			<source>8</source>
-			<javadocVersion>1.0.0</javadocVersion>
-		</configuration>
-	</plugin>
+            <version>3.1.1</version>
+            <configuration>
+                <source>8</source>
+                <javadocVersion>1.0.0</javadocVersion>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+	    </plugin>
 	<plugin>
   		<groupId>org.jacoco</groupId>
   		<artifactId>jacoco-maven-plugin</artifactId>

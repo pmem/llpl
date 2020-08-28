@@ -29,13 +29,15 @@ public class CopyMemoryTest {
     }
 
     static void blockToBlockTest() {
-        MemoryBlock bmb = heap.allocateMemoryBlock(150, true);
-        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(150, true);
-        PersistentMemoryBlock pmb = dHeap.allocateMemoryBlock(150, true);
+        MemoryBlock bmb = heap.allocateMemoryBlock(150, false);
+        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(150, false);
+        PersistentMemoryBlock pmb = dHeap.allocateMemoryBlock(150, false);
         TransactionalMemoryBlock tmb = tHeap.allocateMemoryBlock(150);
 
-        bmb.durableSetLong(0L, 0x44);
-        umb.durableSetLong(100L, 0x22);
+        bmb.setLong(0L, 0x44);
+        bmb.flush(0, 8);
+        umb.setLong(100L, 0x22);
+        umb.flush(100L, 8);
         pmb.setLong(40L, 0x88);
         Transaction.create(tHeap, () -> {tmb.setLong(80L, 0xcc);});
 
@@ -64,16 +66,18 @@ public class CopyMemoryTest {
         assert(tmb.getLong(110L) == 0xcc);
         assert(umb.getLong(130L) == 0xcc);
 
-        bmb.free(true);
-        umb.free(true);
-        pmb.free(true);
+        bmb.flush();
+        umb.flush(0, 150);
+        bmb.free(false);
+        umb.free(false);
+        pmb.free(false);
         tmb.free();
    }
 
     static void arrayToBlockTest() {
-        MemoryBlock bmb = heap.allocateMemoryBlock(150, true);
-        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(150, true);
-        PersistentMemoryBlock pmb = dHeap.allocateMemoryBlock(150, true);
+        MemoryBlock bmb = heap.allocateMemoryBlock(150, false);
+        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(150, false);
+        PersistentMemoryBlock pmb = dHeap.allocateMemoryBlock(150, false);
         TransactionalMemoryBlock tmb = tHeap.allocateMemoryBlock(150);
         byte[] srcArray = new byte[50];
 
@@ -106,21 +110,25 @@ public class CopyMemoryTest {
             assert(tmb.getByte(50 + i - srcOffset) == (byte)i);
         }
 
-        bmb.free(true);
-        umb.free(true);
-        pmb.free(true);
+        bmb.flush();
+        umb.flush(0, 150);
+        bmb.free(false);
+        umb.free(false);
+        pmb.free(false);
         tmb.free();
     }
 
     static void blockToArrayTest() {
-        MemoryBlock bmb = heap.allocateMemoryBlock(150, true);
-        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(150, true);
-        PersistentMemoryBlock pmb = dHeap.allocateMemoryBlock(150, true);
+        MemoryBlock bmb = heap.allocateMemoryBlock(150, false);
+        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(150, false);
+        PersistentMemoryBlock pmb = dHeap.allocateMemoryBlock(150, false);
         TransactionalMemoryBlock tmb = tHeap.allocateMemoryBlock(150);
         byte[] dstArray = new byte[50];
 
-        bmb.durableSetLong(10L, 0x44);
-        umb.durableSetLong(130L, 0x22);
+        bmb.setLong(10L, 0x44);
+        bmb.flush(10L, 8);
+        umb.setLong(130L, 0x22);
+        umb.flush(130L, 8);
         pmb.setLong(50L, 0x88);
         Transaction.create(tHeap, () -> {tmb.setLong(90L, 0xcc);});
 
@@ -134,9 +142,11 @@ public class CopyMemoryTest {
         assert(dstArray[20] == (byte)0xcc);
         assert(dstArray[30] == (byte)0x22);
 
-        bmb.free(true);
-        umb.free(true);
-        pmb.free(true);
+        bmb.flush();
+        umb.flush(0, 150);
+        bmb.free(false);
+        umb.free(false);
+        pmb.free(false);
         tmb.free();
     }
 }

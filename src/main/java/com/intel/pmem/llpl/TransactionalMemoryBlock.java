@@ -10,10 +10,12 @@ package com.intel.pmem.llpl;
 import java.util.function.Consumer;
 
 /**
- * Implements a read and write interface for transactional access to a {@link com.intel.pmem.llpl.TransactionalHeap}.
+ * Implements a read and write interface for accessing a previously-allocated block of memory
+ * on a {@link com.intel.pmem.llpl.TransactionalHeap}.
  * Access through a {@code TransactionalMemoryBlock} is bounds-checked to be within the block's allocated space. 
- * Using this memory block gives compile-time knowledge that all changes to persistent 
- * memory are done transactionally. 
+ * Using this memory block gives compile-time knowledge that all changes to persistent memory are done transactionally. 
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -33,18 +35,14 @@ public final class TransactionalMemoryBlock extends AbstractTransactionalMemoryB
         return METADATA_SIZE; 
     }
 
-    void checkBounds(long offset, long length) {
-        super.checkBounds(offset, length);
-    }
-
     /**
-     * Tansactionally executes the supplied {@code Consumer} function, passing in a {@code Range} object suitable for modifying bytes 
+     * Tansactionally executes the supplied {@code Consumer}, passing in a {@link Range} object suitable for modifying bytes 
      * within this memory block.  
-     * @param body the function to execute
+     * @param op the op to execute
      * @throws TransactionException if a transaction was not active and a new transaction could not be created
      */    
-    public void withRange(Consumer<Range> body) {
-        withRange(0, size(), body);
+    public void withRange(Consumer<Range> op) {
+        withRange(0, size(), op);
     }
 
     /**

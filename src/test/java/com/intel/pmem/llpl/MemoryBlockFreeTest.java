@@ -15,29 +15,13 @@ class MemoryBlockFreeTest {
         Heap heap = Heap.exists(heapName) ? Heap.openHeap(heapName) : Heap.createHeap(heapName, 2147483648L);
         MemoryBlock mb = heap.allocateMemoryBlock(10, true);
         assert(mb.isValid());
-        heap.freeMemoryBlock(mb);
+        mb.freeMemory();
         assert(!mb.isValid());
-        boolean caught = false;
-        try {
-            mb.checkValid();
-        } 
-        catch (Exception e) {
-            caught = true;
-        }
-        assert(caught);
 
         mb = heap.allocateMemoryBlock(10, false);
         assert(mb.isValid());
         mb.free(true);
         assert(!mb.isValid());
-        caught = false;
-        try {
-            mb.checkValid();
-        } 
-        catch (Exception e) {
-            caught = true;
-        }
-        assert(caught);
 
         String pHeapName = "/mnt/mem/persistent_pool_durable";
         PersistentHeap pHeap = PersistentHeap.exists(pHeapName) ? PersistentHeap.openHeap(pHeapName) : PersistentHeap.createHeap(pHeapName, 100_000_000L);
@@ -45,14 +29,6 @@ class MemoryBlockFreeTest {
         assert(dmb.isValid());
         dmb.free(true);
         assert(!dmb.isValid());
-        caught = false;
-        try {
-            dmb.checkValid();
-        } 
-        catch (IllegalStateException e) {
-            caught = true;
-        }
-        assert(caught);
 
         String tHeapName = "/mnt/mem/persistent_pool_transactional";
         TransactionalHeap tHeap = TransactionalHeap.exists(tHeapName) ? TransactionalHeap.openHeap(tHeapName) : TransactionalHeap.createHeap(tHeapName, 100_000_000L);
@@ -60,14 +36,6 @@ class MemoryBlockFreeTest {
         assert(tmb.isValid());
         tmb.free();
         assert(!tmb.isValid());
-        caught = false;
-        try {
-            tmb.checkValid();
-        } 
-        catch (IllegalStateException e) {
-            caught = true;
-        }
-        assert(caught);
         new File("/mnt/mem/persistent_pool_base").delete();
         new File("/mnt/mem/persistent_pool_durable").delete();
         new File("/mnt/mem/persistent_pool_transactional").delete();

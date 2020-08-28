@@ -26,6 +26,7 @@ public class LLPLTestConfig {
         	if (TestVars.HEAP_USER_PATH.startsWith("/dev/dax")) {
 		    	TestVars.ISDAX = true;
 				TestVars.HEAP_NAME = "";
+				System.out.println("Path: " + TestVars.HEAP_USER_PATH);
 			}
 			else {
 				if(!TestVars.HEAP_USER_PATH.endsWith(File.separator))

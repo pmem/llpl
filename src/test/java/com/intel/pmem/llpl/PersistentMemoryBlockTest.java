@@ -33,7 +33,7 @@ class PersistentMemoryBlockTest {
             range.setMemory((byte)-1, 12, 52);
             savedRanges[0] = range;
         });
-
+        assert(block3.isValid());
 
         boolean caught = false;
         try{

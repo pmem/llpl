@@ -44,7 +44,7 @@ public class ARTreeExample {
             ARTree.EntryIterator it = tree.getEntryIterator();
             while (it.hasNext()) {
                 ARTree.Entry e = it.next();
-                Planet.fromHandle(heap, e.getValue()).print2();
+                if (e != null) Planet.fromHandle(heap, e.getValue()).print2();
             }
         }
     }

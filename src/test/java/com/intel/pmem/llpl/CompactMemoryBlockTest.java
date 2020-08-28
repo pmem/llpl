@@ -16,25 +16,29 @@ class CompactMemoryBlockTest {
         int nBlocks = 10;
         long[] offsets = new long[nBlocks];
         for (int i = 0; i < nBlocks; i++) offsets[i] = heap.allocateCompactMemoryBlock(1024, false).handle();
-        CompactMemoryBlock block = null; 
+        CompactMemoryBlock block; 
 
         for (int i = 0; i < nBlocks; i++) {
             block = heap.compactMemoryBlockFromHandle(offsets[i]);
-            block.durableSetByte(0, (byte)5);
+            block.setByte(0, (byte)5);
+            block.flush(0, 1);
             assert(block.getByte(0) == (byte)5);
 
-            block.durableSetShort(1, (short)5);
+            block.setShort(1, (short)5);
+            block.flush(1, 2);
             assert(block.getShort(1) == (short)5);
             assert(block.getByte(0) == (byte)5);
             assert(block.getShort(0) == (short)1285);
 
-            block.durableSetInt(2, 327686);
+            block.setInt(2, 327686);
+            block.flush(2, 4);
             assert(block.getInt(2) == 327686);
             assert(block.getShort(1) == (short)1541);
             assert(block.getInt(1) == 83887621);
             assert(block.getInt(0) == 394501);
 
-            block.durableSetLong(4, 123456789101112L);
+            block.setLong(4, 123456789101112L);
+            block.flush(4, 8);
             assert(block.getLong(4) == 123456789101112L);
             assert(block.getLong(3) == 31604938009884672L);
             assert(block.getInt(3) == 255473664);
@@ -48,10 +52,8 @@ class CompactMemoryBlockTest {
             assert(block.getByte(3) == (byte)0);
         }
 
-        // size() is not supported, should not compile (outside of package)
-        block.size();
         new File("/mnt/mem/persistent_pool").delete();
 
-        System.out.println("================================= All CompactMemoryBlock tests passed ========================");
+        System.out.println("================================= All CompactMemoryBlock tests passed ==========================");
     }
 }

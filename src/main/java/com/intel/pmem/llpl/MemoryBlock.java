@@ -10,8 +10,11 @@ package com.intel.pmem.llpl;
 import java.util.function.Consumer;
 
 /**
- * Implements a read and write interface for accessing a {@link com.intel.pmem.llpl.Heap}. Access through a 
+ * Implements a read and write interface for accessing a previously-allocated block of 
+ * memory on a {@link com.intel.pmem.llpl.Heap}. Access through a 
  * {@code MemoryBlock} is bounds-checked to be within the block's allocated space.
+ * 
+ * @since 1.0
  *  
  * @see com.intel.pmem.llpl.AnyMemoryBlock   
  */
@@ -26,17 +29,6 @@ public final class MemoryBlock extends AbstractMemoryBlock {
         super(heap, poolHandle, offset, true);
     }
 
-    /**
-     * Checks that the range of bytes from {@code offset} (inclusive) to {@code offset} + length (exclusive) 
-     * is within the bounds of this memory block. 
-     * @param offset The start if the range to check
-     * @param length The number of bytes in the range to check
-     * @throws IndexOutOfBoundsException if the range is not within this memory block's bounds
-     */
-    void checkBounds(long offset, long length) {
-        super.checkBounds(offset, length);
-    }
-
     @Override
     long metadataSize() { 
         return METADATA_SIZE; 
@@ -48,16 +40,14 @@ public final class MemoryBlock extends AbstractMemoryBlock {
     * transaction or rolled-back on an abort of the current transaction
     * @throws IllegalStateException if the memory block is not in a valid state for use
     */
-    @Override
     public void addToTransaction() {
         super.addToTransaction(0, size());
     }
 
     /**
-     * Returns the allocated size, in bytes, of this memory block.  
-     * @return the allocated size, in bytes, of this memory block
+     * Returns the allocated size, in bytes, of the memory of this memory block.  
+     * @return the allocated size, in bytes, of the memory of this memory block 
      */
-    @Override
     public long size() { 
         return super.size(); 
     }
@@ -65,9 +55,24 @@ public final class MemoryBlock extends AbstractMemoryBlock {
     /**
     * Ensures that any modifications made to this memory block are written to persistent memory media.
     */
-    @Override
     public void flush() {
         flush(0, size());
+    }
+
+    /**
+     * Executes the supplied {@code Consumer}, passing in a {@link Range} object
+     * suitable for modifying bytes within this memory block.
+     * @param op the op to execute
+
+     * @since 1.1
+     */    
+
+    public void withRange(Consumer<Range> op) {
+        withRange(0, size(), op);
+    }
+
+    Range range() {
+        return range(0, size()); 
     }
 }
 

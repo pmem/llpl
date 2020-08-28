@@ -71,89 +71,6 @@ public class PersistentMemoryBlock1Tests {
 	}
 
 	@Test
-	public void testAddToTransactionRange() {
-		heap = TestVars.createPersistentHeap();
-		PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024, true);
-		PersistentCompactMemoryBlock mbCompact = heap.allocateCompactMemoryBlock(1024, true);
-		Transaction t = Transaction.create(heap);
-		t.run(() -> {
-			mb.addToTransaction(10, 150);
-                        mbCompact.addToTransaction(190, 210);
-                        assert (Transaction.State.Active == t.state());
-			mb.setInt(100, 100);
-			mbCompact.setLong(200, 200);
-			assert (mb.getInt(100) == 100);
-			assert (mbCompact.getLong(200) == 200);
-                        assert (Transaction.State.Active == t.state());
-		});
-                Assert.assertEquals(Transaction.State.Committed, t.state());
-		assert (mb.getInt(100) == 100);
-		assert (mbCompact.getLong(200) == 200);
-	}
-
-	@Test
-	public void testAddToTransactionNegativeOffset() {
-		heap = TestVars.createPersistentHeap();
-		PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024, true);
-		try {
-			mb.addToTransaction(-1, 100);
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
-	public void testAddToTransactionZeroLength() {
-		heap = TestVars.createPersistentHeap();
-		PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024, true);
-		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
-		try {
-			t.run(() -> {
-				assert (Transaction.State.Active == t.state());
-				mb.addToTransaction(0, 0);
-			});
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
-	public void testAddToTransactionNegativeLength() {
-		heap = TestVars.createPersistentHeap();
-		PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024, true);
-		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
-		try {
-			t.run(() -> {
-				Assert.assertEquals(Transaction.State.Active, t.state());
-				mb.addToTransaction(0, -1);
-			});
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
-	public void testAddToTransactionLargeLength() {
-		heap = TestVars.createPersistentHeap();
-		PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024, true);
-		try {
-			mb.addToTransaction(0, 10L * 1024 * 1024);
-			Assert.fail("IndexOutOfBoundsException not thrown");
-		} 
-        catch (IndexOutOfBoundsException e) {
-			assert true;
-		}
-	}
-
-	@Test
 	public void testCopyFromMemoryBlockNull() {
 		heap = TestVars.createPersistentHeap();
 		PersistentMemoryBlock mbNew = heap.allocateMemoryBlock(1024, true);
@@ -277,19 +194,18 @@ public class PersistentMemoryBlock1Tests {
         assert (mbInternal == null);
     }
 
-	@Test
-    public void testAddToTransactionFull() {
-		heap = TestVars.createPersistentHeap();
-        PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024, true);
-		Transaction t = Transaction.create(heap);
-        t.run(() -> {
-            mb.addToTransaction();
-            assert (Transaction.State.Active == t.state());
-            mb.setInt(100, 100);
-            assert (mb.getInt(100) == 100);
-            assert (Transaction.State.Active == t.state());
-        });
-        assert (Transaction.State.Committed == t.state());
-        assert (mb.getInt(100) == 100);
+    // AbstractPersistentMemoryBlock.freeMemory()
+    @Test
+    public void testMemoryBlockFreeMemory(){
+        heap = TestVars.createPersistentHeap();
+        // allocate memory
+        PersistentMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        // assert valid
+        Assert.assertTrue(mb.isValid());
+        // free memory
+        mb.freeMemory();
+        // assert not valid
+        Assert.assertFalse(mb.isValid());
     }
+
 }

@@ -109,9 +109,8 @@ public class TransactionsTests {
 		pHeap = TestVars.createPersistentHeap();
 		PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
         Transaction.create(pHeap, () -> {
-            mb.addToTransaction();
-            mb.setLong(4, 1000);
-            mb.setInt(0, 777);
+            mb.transactionalSetLong(4, 1000);
+            mb.transactionalSetInt(0, 777);
         });
         assert(mb.getLong(4) == 1000);
         assert(mb.getInt(0) == 777);
@@ -123,9 +122,8 @@ public class TransactionsTests {
 		PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
         try {
             Transaction.create(pHeap, () -> {
-                mb.addToTransaction();
-                mb.setLong(4, 1000);
-                mb.setInt(14, 777);
+                mb.transactionalSetLong(4, 1000);
+                mb.transactionalSetInt(14, 777);
             });
 		    Assert.fail("Exception not thrown");
         } 
@@ -141,13 +139,12 @@ public class TransactionsTests {
 		PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
         try {
             Transaction.create(pHeap, () -> {
-                mb.addToTransaction();
                 try {
-                    mb.setLong(4, 1000);
-                    mb.setInt(14, 777);
+                    mb.transactionalSetLong(4, 1000);
+                    mb.transactionalSetInt(14, 777);
                 } 
                 catch (IndexOutOfBoundsException e) {
-                    mb.setInt(0, 777);
+                    mb.transactionalSetInt(0, 777);
                 }
             });
             assert(mb.getLong(4) == 1000);
@@ -271,9 +268,8 @@ public class TransactionsTests {
 		pHeap = TestVars.createPersistentHeap();
         PersistentMemoryBlock block = Transaction.create(pHeap, () -> {
 		    PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
-            mb.addToTransaction();
-            mb.setLong(4, 1000);
-            mb.setInt(0, 777);
+            mb.transactionalSetLong(4, 1000);
+            mb.transactionalSetInt(0, 777);
             return mb;
         });
         assert(block.getLong(4) == 1000);
@@ -287,9 +283,8 @@ public class TransactionsTests {
         try {
             block = Transaction.create(pHeap, () -> {
 		        PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
-                mb.addToTransaction();
-                mb.setLong(4, 1000);
-                mb.setInt(14, 777);
+                mb.transactionalSetLong(4, 1000);
+                mb.transactionalSetInt(14, 777);
                 return mb;
             });
 		    Assert.fail("Exception not thrown");
@@ -305,13 +300,12 @@ public class TransactionsTests {
         try {
             PersistentMemoryBlock block = Transaction.create(pHeap, () -> {
 		        PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
-                mb.addToTransaction();
                 try {
-                    mb.setLong(4, 1000);
-                    mb.setInt(14, 777);
+                    mb.transactionalSetLong(4, 1000);
+                    mb.transactionalSetInt(14, 777);
                 } 
                 catch (IndexOutOfBoundsException e) {
-                    mb.setInt(0, 777);
+                    mb.transactionalSetInt(0, 777);
                 }
                 return mb;
             });
@@ -451,9 +445,8 @@ public class TransactionsTests {
         Transaction tx = Transaction.create(pHeap);
         assert(Transaction.State.New == tx.state());
         tx.run(() -> {
-            mb.addToTransaction();
-            mb.setLong(4, 1000);
-            mb.setInt(0, 777);
+            mb.transactionalSetLong(4, 1000);
+            mb.transactionalSetInt(0, 777);
             assert(Transaction.State.Active == tx.state());
         });
         assert(Transaction.State.Committed == tx.state());
@@ -469,9 +462,8 @@ public class TransactionsTests {
         assert(Transaction.State.New == tx.state());
         try {
             tx.run(() -> {
-                mb.addToTransaction();
-                mb.setLong(4, 1000);
-                mb.setInt(14, 777);
+                mb.transactionalSetLong(4, 1000);
+                mb.transactionalSetInt(14, 777);
                 assert(Transaction.State.Active == tx.state());
             });
 		    Assert.fail("Exception not thrown");
@@ -491,13 +483,12 @@ public class TransactionsTests {
             Transaction tx = Transaction.create(pHeap);
             assert(Transaction.State.New == tx.state());
             tx.run(() -> {
-                mb.addToTransaction();
                 try {
-                    mb.setLong(4, 1000);
-                    mb.setInt(14, 777);
+                    mb.transactionalSetLong(4, 1000);
+                    mb.transactionalSetInt(14, 777);
                 } 
                 catch (IndexOutOfBoundsException e) {
-                    mb.setInt(0, 777);
+                    mb.transactionalSetInt(0, 777);
                 }
                 assert(Transaction.State.Active == tx.state());
             });
@@ -649,9 +640,8 @@ public class TransactionsTests {
         assert(Transaction.State.New == tx.state());
         PersistentMemoryBlock block = tx.run(() -> {
 		    PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
-            mb.addToTransaction();
-            mb.setLong(4, 1000);
-            mb.setInt(0, 777);
+            mb.transactionalSetLong(4, 1000);
+            mb.transactionalSetInt(0, 777);
             assert(Transaction.State.Active == tx.state());
             return mb;
         });
@@ -669,9 +659,8 @@ public class TransactionsTests {
         try {
             block = tx.run(() -> {
 		        PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
-                mb.addToTransaction();
-                mb.setLong(4, 1000);
-                mb.setInt(14, 777);
+                mb.transactionalSetLong(4, 1000);
+                mb.transactionalSetInt(14, 777);
                 assert(Transaction.State.Active == tx.state());
                 return mb;
             });
@@ -691,13 +680,12 @@ public class TransactionsTests {
             assert(Transaction.State.New == tx.state());
             PersistentMemoryBlock block = tx.run(() -> {
 		        PersistentMemoryBlock mb = pHeap.allocateMemoryBlock(16, true);
-                mb.addToTransaction();
                 try {
-                    mb.setLong(4, 1000);
-                    mb.setInt(14, 777);
+                    mb.transactionalSetLong(4, 1000);
+                    mb.transactionalSetInt(14, 777);
                 } 
                 catch (IndexOutOfBoundsException e) {
-                    mb.setInt(0, 777);
+                    mb.transactionalSetInt(0, 777);
                 }
                 assert(Transaction.State.Active == tx.state());
                 return mb;
@@ -766,6 +754,7 @@ public class TransactionsTests {
                     mb.setInt(0, 777);
                 }
                 assert(Transaction.State.Active == tx.state());
+                Assert.assertTrue(true);
                 return mb;
             });
             assert(Transaction.State.Committed == tx.state());

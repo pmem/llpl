@@ -490,7 +490,12 @@ public class TransactionalHeap2Tests {
         Assert.assertTrue (mb.isValid());
         Assert.assertTrue (mb.size() == TestVars.MEMORY_BLOCK_SIZE);
 		mb.free();
-		mb.free();
+        try {
+		    mb.free();
+        }
+        catch (IllegalStateException e) {
+            Assert.assertTrue(true);
+        }
 		Assert.assertTrue (!mb.isValid());
     }
 
@@ -500,7 +505,12 @@ public class TransactionalHeap2Tests {
         TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
         Assert.assertTrue (mb.isValid());
 		mb.free();
-		mb.free();
+        try {
+		    mb.free();
+        }
+        catch (IllegalStateException e) {
+            Assert.assertTrue(true);
+        }
 		Assert.assertTrue (!mb.isValid());
     }
 

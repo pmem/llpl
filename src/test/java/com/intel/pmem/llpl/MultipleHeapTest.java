@@ -46,9 +46,11 @@ class MultipleHeapTest {
             int ii = i;
             blocks[i] = heaps[i].allocateMemoryBlock(1024, true);
             Transaction.create(heaps[ii], () -> {
+                blocks[ii].addToTransaction(100, 8);
                 blocks[ii].setLong(100, ii * 12345);
             });
             Transaction.create(heaps[i], () -> {
+                blocks[ii].addToTransaction(200, 4);
                 blocks[ii].setInt(200, ii * 23456);
             });
         }
