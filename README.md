@@ -48,6 +48,17 @@ Available Maven commands include:
    - `package` - builds jar file into ```target``` directory
 
 ### USING THIS LIBRARY IN EXISTING JAVA APPLICATIONS ###
+#### WITH MAVEN ####
+LLPL is available from the Maven central repository. Add the following dependency to your pom.xml:
+```
+<dependency>
+    <groupId>com.intel.pmem</groupId>
+    <artifactId>llpl</artifactId>
+    <version>1.1.0-release</version>
+    <type>jar</type>
+</dependency>
+```
+#### WITH CLASSPATH ####  
 To import this library into an existing Java application, include the project's target/classes 
 directory in your Java classpath and the project's ```target/cppbuild``` directory in your 
 ```java.library.path```.  For example: 
