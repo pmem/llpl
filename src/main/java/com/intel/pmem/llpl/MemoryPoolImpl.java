@@ -9,12 +9,13 @@
 
 package com.intel.pmem.llpl;
 
+import java.io.File;
+import java.nio.ByteBuffer;
 import sun.misc.Unsafe;
 
 class MemoryPoolImpl implements MemoryPool {
 
 	static Unsafe UNSAFE;
-	private static final long META_DATA_SIZE = 64;
 
     static {
         System.loadLibrary("llpl");
@@ -30,14 +31,22 @@ class MemoryPoolImpl implements MemoryPool {
 
 	private long poolAddress;
 	private long poolSize;
-	private long dataStartAddress;
 
 	MemoryPoolImpl(String path, long byteCount) {
-		if (byteCount <= 0) throw new IllegalArgumentException("byteCount must be greater than zero");
-		this.poolAddress = nativeOpenPool(path, byteCount + META_DATA_SIZE);
-		this.dataStartAddress = poolAddress + META_DATA_SIZE;
+		if (byteCount < 0) throw new IllegalArgumentException("byteCount must be greater than or equal to zero");
+        if (path.startsWith("/dev/dax") && byteCount != 0) throw new IllegalArgumentException("byteCount must be zero when using Device DAX");
+		this.poolAddress = nativeOpenPool(path, byteCount);
 		if (poolAddress == 0) throw new RuntimeException("Unable to create pool");
-		this.poolSize = byteCount;
+		this.poolSize = byteCount == 0 ? nativePoolSize(path) : byteCount;
+	}
+
+	MemoryPoolImpl(String path) {
+        File file = new File(path);
+        if (path.startsWith("/dev/dax")) this.poolSize = nativePoolSize(path);
+        else if (file.exists() && file.isFile()) this.poolSize = file.length();
+        else throw new IllegalArgumentException("path supplied must be an existing file");
+		this.poolAddress = nativeOpenPool(path, this.poolSize);
+		if (poolAddress == 0) throw new RuntimeException("Unable to create pool");
 	}
 
 	private void checkBounds(long offset, long byteCount) {
@@ -47,7 +56,7 @@ class MemoryPoolImpl implements MemoryPool {
 	}
 
 	private long dataAddress(long offset) {
-		return dataStartAddress + offset;
+		return poolAddress + offset;
 	} 
 
 	@Override
@@ -107,13 +116,13 @@ class MemoryPoolImpl implements MemoryPool {
 	}
 
 	@Override
-	public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, long byteCount) {
+	public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount) {
         long srcAddress = UNSAFE.ARRAY_BYTE_BASE_OFFSET + UNSAFE.ARRAY_BYTE_INDEX_SCALE * srcIndex;
         UNSAFE.copyMemory(srcArray, srcAddress, null, dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyToArray(long srcOffset, byte[] dstArray, int dstIndex, long byteCount) {
+	public void copyToArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount) {
 	    long dstAddress = UNSAFE.ARRAY_BYTE_BASE_OFFSET + UNSAFE.ARRAY_BYTE_INDEX_SCALE * dstIndex;
         UNSAFE.copyMemory(null, dataAddress(srcOffset), dstArray, dstAddress, byteCount);
 	}
@@ -124,6 +133,36 @@ class MemoryPoolImpl implements MemoryPool {
 	}
 
 	@Override
+	public void copyMemoryNT(long srcOffset, long dstOffset, long byteCount) {
+		nativeCopyMemoryNT(dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
+	}
+
+	@Override
+	public void copyFromArrayNT(byte[] srcArray, long dstOffset, int byteCount) {
+		nativeCopyFromArrayNT(srcArray, dataAddress(dstOffset), byteCount);
+	}
+
+	@Override
+	public void copyFromShortArrayNT(short[] srcArray, long dstOffset, int elementCount) {
+		nativeCopyFromShortArrayNT(srcArray, dataAddress(dstOffset), Short.BYTES * elementCount);
+	}
+
+	@Override
+	public void copyFromIntArrayNT(int[] srcArray, long dstOffset, int elementCount) {
+		nativeCopyFromIntArrayNT(srcArray, dataAddress(dstOffset), Integer.BYTES * elementCount);
+	}
+
+	@Override
+	public void copyFromLongArrayNT(long[] srcArray, long dstOffset, int elementCount) {
+		nativeCopyFromLongArrayNT(srcArray, dataAddress(dstOffset), Long.BYTES * elementCount);
+	}
+
+	@Override
+	public void setMemoryNT(long offset, long byteCount, int value) {
+        nativeSetMemoryNT(dataAddress(offset), byteCount, value); 
+	}
+
+	@Override
 	public void flush(long offset, long byteCount) {
 		nativeFlush(dataAddress(offset), byteCount);
 	}
@@ -131,4 +170,11 @@ class MemoryPoolImpl implements MemoryPool {
 	private static native long nativeOpenPool(String path, long byteCount);
 	private static native int nativeClosePool(long poolAddress, long byteCount);
 	private static native void nativeFlush(long offset, long byteCount);
+	private static native long nativePoolSize(String path);
+	private static native void nativeCopyMemoryNT(long srcOffset, long dstOffset, long byteCount);
+	private static native void nativeCopyFromArrayNT(byte[] srcArray, long dst, int byteCount);
+	private static native void nativeCopyFromShortArrayNT(short[] srcArray, long dst, int Count);
+	private static native void nativeCopyFromIntArrayNT(int[] srcArray, long dst, int byteCount);
+	private static native void nativeCopyFromLongArrayNT(long[] srcArray, long dst, int byteCount);
+    private static native void nativeSetMemoryNT(long offset, long length, int value);
 }

@@ -8,6 +8,7 @@
 // NOTE: this code is [EXPERIMENTAL] 
 
 package com.intel.pmem.llpl;
+import java.nio.ByteBuffer;
 
 /**
  * [EXPERIMENTAL] Defines a read and write interface for accessing a pool of persistent memory.
@@ -38,8 +39,12 @@ package com.intel.pmem.llpl;
  */
 
 public interface MemoryPool {
-	public static MemoryPool openPool(String path, long byteCount) {
+	public static MemoryPool createPool(String path, long byteCount) {
 		return new MemoryPoolImpl(path, byteCount);
+	}
+
+	public static MemoryPool openPool(String path) {
+		return new MemoryPoolImpl(path);
 	}
 
 	public void close();
@@ -55,9 +60,16 @@ public interface MemoryPool {
 	public void setLong(long offset, long value);
 	
 	public void copyMemory(long srcOffset, long dstOffset, long byteCount);
-	public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, long byteCount);
-	public void copyToArray(long srcOffset, byte[] dstArray, int dstIndex, long byteCount);
+	public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount);
+	public void copyToArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount);
 	public void setMemory(long offset, long byteCount, byte value);
+
+	public void copyMemoryNT(long srcOffset, long dstOffset, long byteCount);
+	public void copyFromArrayNT(byte[] srcArray, long dstOffset, int byteCount);
+	public void copyFromShortArrayNT(short[] srcArray, long dstOffset, int elementCount);
+	public void copyFromIntArrayNT(int[] srcArray, long dstOffset, int elementCount);
+	public void copyFromLongArrayNT(long[] srcArray, long dstOffset, int elementCount);
+	public void setMemoryNT(long offset, long byteCount, int value);
 
 	public long size();
 
