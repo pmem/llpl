@@ -112,6 +112,11 @@ public final class TransactionalCompactAccessor extends AnyAccessor {
     }
 
     @Override
+    public long size() {
+        throw new UnsupportedOperationException("Size method is not supported for compact accessors");
+    }
+
+    @Override
     public <T> T withRange(long startOffset, long rangeLength, Function<Range, T> op) {
         return super.transactionalWithRange(startOffset, rangeLength, op);
     }
