@@ -178,7 +178,9 @@ public final class Heap extends AnyHeap {
         Supplier<Long> body = () -> {
             long handle =  transactional ? allocateTransactional(allocationSize) : allocateAtomic(allocationSize);
             if (handle == 0) throw new HeapException("Failed to allocate memory of size " + size);
-            AnyHeap.UNSAFE.putLong(poolHandle() + handle + AnyMemoryBlock.SIZE_OFFSET, size);
+            long address = poolHandle() + handle +AnyMemoryBlock.SIZE_OFFSET;
+            AnyHeap.UNSAFE.putLong(address, size);
+            if (!transactional) MemoryAccessor.nativeFlush(address, 8L);
             return handle;
         };
         long handle = transactional ? new Transaction(this).run(body) : body.get();

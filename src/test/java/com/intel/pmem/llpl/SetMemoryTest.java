@@ -16,8 +16,8 @@ public class SetMemoryTest {
         Heap heap = Heap.exists(heapName) ? Heap.openHeap(heapName) : Heap.createHeap(heapName, 2_147_483_648L);
         TransactionalHeap tHeap = TransactionalHeap.exists(tHeapName) ? TransactionalHeap.openHeap(tHeapName) : TransactionalHeap.createHeap(tHeapName, 100_000_000L);
 
-        MemoryBlock rmb = heap.allocateMemoryBlock(120, true);
-        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(120, true);
+        MemoryBlock rmb = heap.allocateMemoryBlock(120, false);
+        CompactMemoryBlock umb = heap.allocateCompactMemoryBlock(120, false);
         TransactionalMemoryBlock tmb = tHeap.allocateMemoryBlock(120);
 
         rmb.setMemory((byte)0x44, 10, 50);
@@ -34,6 +34,8 @@ public class SetMemoryTest {
         for (int i = 0; i < 50; i++) {
             assert(tmb.getByte(50 + i) == (byte)0xcc);
         }
+        rmb.flush();
+        umb.flush(0, 120);
         new File(heapName).delete();
         new File(tHeapName).delete();
         System.out.println("================================= All SetMemory tests passed ===================================");

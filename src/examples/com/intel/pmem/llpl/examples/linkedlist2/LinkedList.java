@@ -123,14 +123,15 @@ public class LinkedList {
     public void clear() {
         sentinel.handle(sentinel.getLong(FIRST_OFFSET));
         if (!sentinel.isValid()) return;
-        long prev;
+        long next;
         while (sentinel.isValid()) {
-            prev = sentinel.handle();
-            Node.advance(sentinel);
+            next = Node.nextHandle(sentinel);
             sentinel.freeMemory();
+            if (next > 0) sentinel.handle(next);
+            else sentinel.resetHandle();
         } 
-        setFirst(null);
         sentinel.handle(handle);
+        sentinel.setLong(FIRST_OFFSET, 0);
         sentinel.setLong(COUNT_OFFSET, 0);
     }
 
@@ -158,6 +159,10 @@ public class LinkedList {
         return (firstHandle == 0) ? null : Node.fromHandle(heap, firstHandle);
     }
 
+    private long firstHandle() {
+        return sentinel.getLong(FIRST_OFFSET);
+    }
+
     private void decrementSize() {
         sentinel.setLong(COUNT_OFFSET, size() - 1);
     }
@@ -176,7 +181,8 @@ public class LinkedList {
             this.l = l;
             size = l.size(); 
             acc = l.heap.createAccessor();
-            acc.handle(l.first().handle());
+            long handle;
+            if ((handle = l.firstHandle()) != 0) acc.handle(handle);
         } 
     
         public boolean hasNext() {
@@ -229,6 +235,10 @@ public class LinkedList {
 
         public static long getValue(AnyAccessor acc) {
             return acc.getLong(VALUE_OFFSET);
+        }
+
+        static long nextHandle(AnyAccessor acc) {
+            return acc.getLong(NEXT_OFFSET);
         }
 
         public static void advance(AnyAccessor acc) {

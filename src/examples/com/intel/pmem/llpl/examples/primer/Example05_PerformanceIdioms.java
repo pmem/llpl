@@ -77,5 +77,6 @@ public class Example05_PerformanceIdioms {
 			range.setInt(8, stringLength);
 			range.copyFromArray(bytes, 0, 12, stringLength);
 		});
+        assert(txBlock2.isValid());
 	}
 }

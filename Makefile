@@ -27,6 +27,7 @@ TARGET_DIR = target
 CPP_BUILD_DIR = $(TARGET_DIR)/cppbuild
 CLASSES_DIR = $(TARGET_DIR)/classes
 TEST_CLASSES_DIR = $(TARGET_DIR)/test_classes
+JAR_NATIVE_DIR = $(CLASSES_DIR)/com/intel/pmem/llpl/linux/amd64
 
 BASE_CLASSPATH = $(CLASSES_DIR):com/intel/pmem/
 
@@ -92,6 +93,8 @@ classes: | $(CLASSES_DIR) $(TEST_CLASSES_DIR)
 
 $(CPP_BUILD_DIR)/%.so: $(ALL_OBJ)
 	$(CC) -Wl,-soname,$@ -o $@ $(ALL_OBJ) $(LINK_FLAGS)
+	mkdir -p $(JAR_NATIVE_DIR)
+	cp $@ $(CLASSES_DIR)/com/intel/pmem/llpl/linux/amd64
 
 $(CPP_BUILD_DIR)/%.o: $(CPP_SOURCE_DIR)/%.cpp
 ifndef JAVA_HOME

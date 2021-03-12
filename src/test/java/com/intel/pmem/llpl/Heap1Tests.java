@@ -125,7 +125,7 @@ public class Heap1Tests {
 		heap = Heap.openHeap(TestVars.POOL_SET_FILE);
 		Assert.assertTrue(Heap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		Assert.assertTrue(heap.size() > 0);
-		Assert.assertEquals(heapSize, heap.size());
+		Assert.assertEquals(heap.size(), heapSize);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -150,7 +150,7 @@ public class Heap1Tests {
 		heap = Heap.openHeap(TestVars.POOL_SET_FILE);
 		Assert.assertTrue(Heap.exists(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME));
 		Assert.assertTrue(heap.size() > 0);
-		Assert.assertEquals(heapSize, heap.size());
+		Assert.assertEquals(heap.size(), heapSize);
 		try {
 			heap = Heap.openHeap(TestVars.POOL_SET_FILE);
 		} 
@@ -301,7 +301,7 @@ public class Heap1Tests {
 		File file = new File(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
 		if (!file.exists() || !file.isDirectory())
 			Assert.assertFalse(true);
-		Assert.assertEquals(heapSize, heap.size());
+		Assert.assertEquals(heap.size(), heapSize);
 
 		try {
 			heap = Heap.openHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
@@ -371,7 +371,6 @@ public class Heap1Tests {
 				Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i));
 				heaps[i] = Heap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i);
 				MAX_HEAPS_ALLOCATED++;
-				System.out.println("Heap size GNL: " + i + " " + heaps[i].size());
 				heaps[i].setRoot((i + 1) * 1234);
 				Assert.assertTrue(heaps[i].getRoot() == (i + 1) * 1234);
 				MemoryBlock mb = null;
@@ -381,7 +380,6 @@ public class Heap1Tests {
 					mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_2G, TestVars.TRANSACTIONAL);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_2G);
-				System.out.println("Growable no limit Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -463,7 +461,6 @@ public class Heap1Tests {
 					mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_2G, TestVars.TRANSACTIONAL);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_2G);
-				System.out.println("Growable with limit Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -541,7 +538,6 @@ public class Heap1Tests {
 					mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_100MB, TestVars.TRANSACTIONAL);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_100MB);
-				System.out.println("Fixed Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -684,16 +680,14 @@ public class Heap1Tests {
         heap = Heap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
         final long largeSize = 32L * 1024L * 1024L * 1024L;
         // initial large allocation of 16 GB should succeed
-        long handle = 0;
         try {
             // this allocation should fail since the heap has just allocated all of its memory
-            handle = heap.allocateMemory(largeSize);
+            heap.allocateMemory(largeSize);
             Assert.fail("This should fail - heap cannot be larger than TOTAL_SIZE");
         }
         catch(HeapException e) {
             Assert.assertTrue(true);
         }
-        Assert.assertEquals(handle, 0L);
     }
 
     @Test
@@ -702,16 +696,13 @@ public class Heap1Tests {
         heap = Heap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
         final long largeSize = 32L * 1024L * 1024L * 1024L;
         // initial large allocation of 16 GB should succeed
-        long handle = 0;
         try {
             // this allocation should fail since the heap has just allocated all of its memory
-            handle = heap.allocateCompactMemory(largeSize);
+            heap.allocateCompactMemory(largeSize);
             Assert.fail("This should fail - heap cannot be larger than TOTAL_SIZE");
         }
         catch(HeapException e) {
             Assert.assertTrue(true);
         }
-        Assert.assertEquals(handle, 0L);
     }
-
 }

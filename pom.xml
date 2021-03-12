@@ -101,7 +101,7 @@
                                 <exec executable="make" dir="${project.build.directory}/cppbuild" failonerror="true">
                                     <arg line="VERBOSE=1"/>
                                 </exec>
-                                <copy file="${project.build.directory}/cppbuild/libllpl.so" tofile="${project.build.directory}/classes/libllpl.so"/>
+                                <copy file="${project.build.directory}/cppbuild/libllpl.so" tofile="${project.build.directory}/classes/com/intel/pmem/llpl/linux/amd64/libllpl.so"/>
                             </tasks>
                         </configuration>
                         <goals>
@@ -129,7 +129,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.1</version>
                 <configuration>
-			<argLine>@{argLine} -Djava.library.path=${project.build.directory}/cppbuild</argLine>
+			<!--argLine>@{argLine} -Djava.library.path=${project.build.directory}/cppbuild</argLine-->
 			<suiteXmlFiles>
 				<suiteXmlFile>testng.xml</suiteXmlFile>
 			</suiteXmlFiles>

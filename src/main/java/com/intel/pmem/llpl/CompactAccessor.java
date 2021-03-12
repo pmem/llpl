@@ -135,6 +135,11 @@ public final class CompactAccessor extends AnyAccessor {
         return METADATA_SIZE; 
     }
 
+    @Override
+    public long size() {
+        throw new UnsupportedOperationException("Size method is not supported for compact accessors");
+    }
+
     /**
      * Sets this accessor's handle thereby changing the memory that this accessor references.
      * The supplied handle must be associated with a compact live allocation on this accessor's heap.   

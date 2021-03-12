@@ -39,39 +39,211 @@ import java.nio.ByteBuffer;
  */
 
 public interface MemoryPool {
+
+    /**
+     * Creates a new pool.
+     * @param path a path to the new pool
+     * @param byteCount the number of bytes to provision for the pool
+     * @return the pool at the specified path
+     * @throws RuntimeException if the pool could not be created
+     */
 	public static MemoryPool createPool(String path, long byteCount) {
 		return new MemoryPoolImpl(path, byteCount);
 	}
 
+    /**
+     * Opens an existing pool. Provides access to the pool associated with the specified {@code path}.
+     * @param path the path to the pool
+     * @return the pool at the specified path
+     * @throws RuntimeException if the pool could not be opened
+     */
 	public static MemoryPool openPool(String path) {
 		return new MemoryPoolImpl(path);
 	}
 
+    /**
+     * Closes the pool.
+     * @throws RuntimeException if the pool could not be closed
+     */
 	public void close();
 
+    /**
+     * Retrieves the {@code byte} value at {@code offset} within this pool's memory.
+     * @param offset the location from which to retrieve data
+     * @return the {@code byte} value stored at {@code offset}
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool 
+     * bounds.
+     */
 	public byte getByte(long offset);
+
+    /**
+     * Retrieves the {@code short} value at {@code offset} within this pool's memory.
+     * @param offset the location from which to retrieve data
+     * @return the {@code short} value stored at {@code offset}
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool 
+     * bounds.
+     */
 	public short getShort(long offset);
+
+    /**
+     * Retrieves the {@code int} value at {@code offset} within this pool's memory.
+     * @param offset the location from which to retrieve data
+     * @return the {@code int} value stored at {@code offset}
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool 
+     * bounds.
+     */
 	public int getInt(long offset);
+
+    /**
+     * Retrieves the {@code long} value at {@code offset} within this pool's memory.
+     * @param offset the location from which to retrieve data
+     * @return the {@code long} value stored at {@code offset}
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool 
+     * bounds.
+     */
 	public long getLong(long offset);
-	
+
+	/**
+     * Stores the supplied {@code byte} value at {@code offset} within this pool's memory.
+     * @param offset the location at which to store the value
+     * @param value the value to store
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool bounds.
+     */
 	public void setByte(long offset, byte value);
+
+	/**
+     * Stores the supplied {@code short} value at {@code offset} within this pool's memory.
+     * @param offset the location at which to store the value
+     * @param value the value to store
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool bounds.
+     */
 	public void setShort(long offset, short value);
+
+	/**
+     * Stores the supplied {@code int} value at {@code offset} within this pool's memory.
+     * @param offset the location at which to store the value
+     * @param value the value to store
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool bounds.
+     */
 	public void setInt(long offset, int value);
+
+	/**
+     * Stores the supplied {@code long} value at {@code offset} within this pool's memory.
+     * @param offset the location at which to store the value
+     * @param value the value to store
+     * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool bounds.
+     */
 	public void setLong(long offset, long value);
 	
+    /**
+     * Copies {@code byteCount} bytes from this pool, starting at {@code srcOffset}, to
+     * this pool's memory starting at {@code dstOffset}.
+     * @param srcOffset the starting offset in the source accessor's memory
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of pool bounds.
+     */
 	public void copyMemory(long srcOffset, long dstOffset, long byteCount);
-	public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount);
-	public void copyToArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount);
+
+    /**
+     * Copies {@code byteCount} bytes from the specified {@code pool}, starting at {@code srcOffset}, to
+     * this pool's memory starting at {@code dstOffset}.
+     * @param pool the pool from whose memory to copy bytes
+     * @param srcOffset the starting offset in the source accessor's memory
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of pool bounds.
+     */
+	public void copyFrom(MemoryPool pool, long srcOffset, long dstOffset, long byteCount);
+
+    /**
+     * Copies {@code byteCount} bytes from {@code srcArray}, starting at {@code srcIndex}, to
+     * this pool's memory starting at {@code dstOffset}.
+     * @param srcArray the array from which to copy bytes
+     * @param srcIndex the starting index in the source array
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of array bounds or
+     * outside of pool bounds.
+     */
+	public void copyFromByteArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount);
+
+    /**
+     * Copies {@code byteCount} bytes from this pool's memory, starting at {@code srcOffset}, to the
+     * {@code dstArray} byte array starting at array index {@code dstOffset}.
+     * @param srcOffset the starting offset in this pool's memory
+     * @param dstArray the destination byte array
+     * @param dstIndex the starting offset in the destination array
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of array bounds or
+     * outside of pool bounds.
+     */
+	public void copyToByteArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount);
+
+    /**
+     * Sets {@code byteCount} bytes in this pool's memory, starting at {@code offset}, to the supplied {@code byte}
+     * value.
+     * @param value the value to set
+     * @param offset the starting offset in this pool's memory
+     * @param byteCount the number of bytes to set
+     * @throws IndexOutOfBoundsException if setting would cause access of data outside of pool bounds.
+     */
 	public void setMemory(long offset, long byteCount, byte value);
 
+    /**
+     * Copies {@code byteCount} bytes from this pool in a non-temporal way, starting at {@code srcOffset}, to
+     * this pool's memory starting at {@code dstOffset}.
+     * @param srcOffset the starting offset in the source accessor's memory
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of pool bounds.
+     */
 	public void copyMemoryNT(long srcOffset, long dstOffset, long byteCount);
-	public void copyFromArrayNT(byte[] srcArray, long dstOffset, int byteCount);
-	public void copyFromShortArrayNT(short[] srcArray, long dstOffset, int elementCount);
-	public void copyFromIntArrayNT(int[] srcArray, long dstOffset, int elementCount);
-	public void copyFromLongArrayNT(long[] srcArray, long dstOffset, int elementCount);
-	public void setMemoryNT(long offset, long byteCount, int value);
 
+    /**
+     * Copies {@code byteCount} bytes from the specified {@code pool} in a non-temporal way, starting at {@code srcOffset}, to
+     * this pool's memory starting at {@code dstOffset}.
+     * @param pool the pool from whose memory to copy bytes
+     * @param srcOffset the starting offset in the source accessor's memory
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of pool bounds.
+     */
+	public void copyFromNT(MemoryPool pool, long srcOffset, long dstOffset, long byteCount);
+
+    /**
+     * Copies {@code byteCount} bytes from {@code srcArray} in a non-temporal way, starting at {@code srcIndex}, to
+     * this pool's memory starting at {@code dstOffset}.
+     * @param srcArray the array from which to copy bytes
+     * @param srcIndex the starting index in the source array
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of array bounds or
+     * outside of pool bounds.
+     */
+	public void copyFromByteArrayNT(byte[] srcArray, int srcIndex, long dstOffset, int byteCount);
+
+    /**
+     * Sets {@code byteCount} bytes in this pool's memory in a non-temporal way, starting at {@code offset}, to the supplied {@code byte}
+     * value.
+     * @param value the value to set
+     * @param offset the starting offset in this pool's memory
+     * @param byteCount the number of bytes to set
+     * @throws IndexOutOfBoundsException if setting would cause access of data outside of pool bounds.
+     */
+	public void setMemoryNT(long offset, long byteCount, byte value);
+
+    /**
+     * Returns the provisioned size, in bytes, of this memory pool.
+     * @return the provisioned size, in bytes, of this memory pool 
+     */
 	public long size();
 
+    /**
+    * Ensures that the supplied range of bytes within this pool are written to persistent memory media.
+    * @param offset the starting location from which to flush bytes
+    * @param byteCount the number of bytes to flush
+    * @throws IndexOutOfBoundsException if the operation would cause access of data outside of pool bounds
+    */
 	public void flush(long offset, long byteCount);
 }

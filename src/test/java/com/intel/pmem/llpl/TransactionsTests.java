@@ -754,12 +754,6 @@ public class TransactionsTests {
                     mb.setInt(0, 777);
                 }
                 assert(Transaction.State.Active == tx.state());
-                Transaction.checkTransactionActive(true);
-                try {
-                    Transaction.checkTransactionActive(false);
-                } catch(IllegalStateException e) {
-                    Assert.assertTrue(true);
-                }
                 Assert.assertTrue(true);
                 return mb;
             });
@@ -769,12 +763,6 @@ public class TransactionsTests {
         } 
         catch (Exception e) {
 		    Assert.fail("Transaction did not commit");
-        }
-        try {
-            // Inactive transaction should throw exception
-            Transaction.checkTransactionActive(true);
-        } catch(IllegalStateException e) {
-            Assert.assertTrue(true);
         }
 	}
 }

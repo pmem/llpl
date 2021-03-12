@@ -48,8 +48,9 @@ public class Node256 extends InternalNode {
 
     @Override
     boolean addBlankRadixChild(Leaf child) {
-        if (hasBlankRadixChild()) {
-            findBlankRadixChild().setValue(child.getValue());
+        Leaf l;
+        if ((l = findBlankRadixChild()) != null) {
+            l.setValue(child.getValue());
         } 
         else {
             putChildAtIndex(BLANK_RADIX_CHILD_INDEX, child);

@@ -366,14 +366,12 @@ public class TransactionalHeap1Tests {
 				Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i));
 				heaps[i] = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i);
 				MAX_HEAPS_ALLOCATED++;
-				System.out.println("Heap size GNL: " + heaps[i].size());
 				heaps[i].setRoot((i + 1) * 1234);
 				Assert.assertTrue(heaps[i].getRoot() == (i + 1) * 1234);
 				TransactionalMemoryBlock mb = null;
 				mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_2G);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_2G);
-				System.out.println("Growable no limit Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -520,7 +518,6 @@ public class TransactionalHeap1Tests {
 				TransactionalMemoryBlock mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_100MB);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_100MB);
-				System.out.println("Fixed Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -655,16 +652,14 @@ public class TransactionalHeap1Tests {
         heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
         final long largeSize = 32L * 1024L * 1024L * 1024L;
         // initial large allocation of 16 GB should succeed
-        long handle = 0;
         try {
             // this allocation should fail since the heap has just allocated all of its memory
-            handle = heap.allocateMemory(largeSize);
+            heap.allocateMemory(largeSize);
             Assert.fail("HeapException not thrown");
         }
         catch(HeapException e) {
             Assert.assertTrue(true);
         }
-        Assert.assertEquals(handle, 0L);
     }
 
     @Test
@@ -674,31 +669,23 @@ public class TransactionalHeap1Tests {
         final long heapSize = 8L * 1024L * 1024L;
         final int divisor = 16;
         final long allocationSize = heapSize / ((long)divisor);
-        long handle = 0;
         heap = TransactionalHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, heapSize);
         // perform multiple allocations to fill the heap
         for (int i=0; i<(divisor); i++) {
             // set handle back to 0 before each allocation attempt
-            handle = 0;
             try {
-                handle = heap.allocateCompactMemory(allocationSize);
+                heap.allocateCompactMemory(allocationSize);
             } catch(TransactionException e) {
-                long totalAllocSize = (long)(i+1) * allocationSize;
-                System.out.println("Heap size " + heapSize + " bytes, " + (i+1) +
-                        " iterations of " + allocationSize + " bytes each, " +
-                        totalAllocSize + " total bytes allocated");
                 break;
             }
         }
         try {
             // this allocation should fail since the heap has just allocated all of its memory
-            handle = heap.allocateCompactMemory(allocationSize);
+            heap.allocateCompactMemory(allocationSize);
             Assert.fail("TransactionException not thrown");
         }
         catch(TransactionException e) {
             Assert.assertTrue(true);
         }
-        Assert.assertEquals(handle, 0L);
     }
-
 }

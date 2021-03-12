@@ -27,20 +27,11 @@ JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeFlush
 JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativePoolSize
   (JNIEnv *env, jobject obj, jstring path);
 
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromArrayNT
-  (JNIEnv *env, jobject obj, jbyteArray srcArray, jlong dst, jint byteCount);
-
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromShortArrayNT
-  (JNIEnv *env, jobject obj, jshortArray srcArray, jlong dst, jint byteCount);
-
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromIntArrayNT
-  (JNIEnv *env, jobject obj, jintArray srcArray, jlong dst, jint byteCount);
-
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromLongArrayNT
-  (JNIEnv *env, jobject obj, jlongArray srcArray, jlong dst, jint byteCount);
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromByteArrayNT
+  (JNIEnv *env, jobject obj, jbyteArray srcArray, jint srcIndex, jlong dst, jint byteCount);
 
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeSetMemoryNT
-  (JNIEnv *env, jobject obj, jlong offset, jlong length, jint value);
+  (JNIEnv *env, jobject obj, jlong offset, jlong length, jbyte value);
 
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyMemoryNT
   (JNIEnv *env, jobject obj, jlong src, jlong dst, jlong byteCount);

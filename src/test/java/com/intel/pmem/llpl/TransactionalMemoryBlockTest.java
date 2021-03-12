@@ -48,6 +48,7 @@ class TransactionalMemoryBlockTest {
             range.setLong(4, 23456);
             range.setMemory((byte)-1, 12, 52);
         });
+        assert(block3.isValid());
         
         new File(heapName).delete();
         System.out.println("================================= All TransactionalMemoryBlock tests passed ====================");

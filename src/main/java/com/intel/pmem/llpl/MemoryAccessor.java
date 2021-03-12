@@ -50,7 +50,7 @@ public abstract class MemoryAccessor {
     private long directAddress; 
 
     static {
-        System.loadLibrary("llpl");
+        Util.loadLibrary();
     }
 
     // Constructor
@@ -62,7 +62,13 @@ public abstract class MemoryAccessor {
             this.address = transactional ? heap.allocateTransactional(allocSize) : heap.allocateAtomic(allocSize);
             if (address == 0) throw new HeapException("Failed to allocate memory of size " + size);
             this.directAddress = directAddress(heap, address);
-            if (bounded) setPersistentSize(size);
+            if (bounded) {
+                // Set persistent size
+                long address = directAddress + SIZE_OFFSET;
+                AnyHeap.UNSAFE.putLong(address, size);
+                if (!transactional) nativeFlush(address, 8L);
+                this.size = size;     
+            }
             else this.size = -1;
         };        
         if (transactional) new Transaction(heap).run(body);
@@ -84,6 +90,7 @@ public abstract class MemoryAccessor {
     void reset() {
         address = 0;
         directAddress = 0;
+        size = 0;
     }
 
     void handle(long offset, boolean bounded) {
@@ -530,7 +537,7 @@ public abstract class MemoryAccessor {
     <T> T transactionalWithRange(long startOffset, long length, Function<Range, T> op) {
         Range range = range(startOffset, length);
         int result = range.addToTransaction();
-        T ans = null;
+        T ans;
         if (result == 2) ans = op.apply(range);
         else if (result == 1) ans = new Transaction(heap(), false).run(range, op);
         else throw new TransactionException("No active transaction and unable to create transaction.");
@@ -538,8 +545,9 @@ public abstract class MemoryAccessor {
         return ans;
     }
 
-    long size() {
-        return this.size;
+    public long size() {
+        if (size == -1) throw new UnsupportedOperationException("Size method is not supported for compact allocations");
+        else return size;
     }
 
     Range range(long startOffset, long length) {
@@ -561,12 +569,6 @@ public abstract class MemoryAccessor {
         checkBoundsAndLength(offset, size);
         int result = nativeAddToTransaction(heap().poolHandle(), payloadAddress(offset), size);
         if (result != 2) throw new IllegalStateException("No transaction active.");
-    }
-
-    void setPersistentSize(long size) {
-        long address = directAddress + SIZE_OFFSET;
-        AnyHeap.UNSAFE.putLong(address, size);
-        this.size = size;     
     }
 
     long getPersistentSize() {
@@ -634,7 +636,7 @@ public abstract class MemoryAccessor {
         return String.format("offset + length is out of bounds: %s + %s", offset, length);
     }
 
-    private native static void nativeFlush(long address, long size);
+    native static void nativeFlush(long address, long size);
     private native static int nativeAddToTransaction(long poolHandle, long address, long size);
     private native static int nativeHasAutoFlush();
     native static int nativeAddToTransactionNoCheck(long address, long size);

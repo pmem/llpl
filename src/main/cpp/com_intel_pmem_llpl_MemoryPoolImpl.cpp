@@ -55,42 +55,18 @@ JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativePoolSize
     return heapSize;
 }
 
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromArrayNT
-  (JNIEnv *env, jobject obj, jbyteArray srcArray, jlong dst, jint byteCount)
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromByteArrayNT
+  (JNIEnv *env, jobject obj, jbyteArray srcArray, jint srcIndex, jlong dst, jint byteCount)
 {
     jbyte* src = env->GetByteArrayElements(srcArray, (jboolean *)0);
-    void *addr = pmem_memcpy((void *)dst, src, byteCount, PMEM_F_MEM_NONTEMPORAL);
+    void *addr = pmem_memcpy((void *)dst, src + srcIndex, byteCount, PMEM_F_MEM_NONTEMPORAL);
     env->ReleaseByteArrayElements(srcArray, src, 0);
 }
 
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromShortArrayNT
-  (JNIEnv *env, jobject obj, jshortArray srcArray, jlong dst, jint byteCount)
-{
-    short* src = env->GetShortArrayElements(srcArray, (jboolean *)0);
-    void *addr = pmem_memcpy((void *)dst, src, byteCount, PMEM_F_MEM_NONTEMPORAL);
-    env->ReleaseShortArrayElements(srcArray, src, 0);
-}
-
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromIntArrayNT
-  (JNIEnv *env, jobject obj, jintArray srcArray, jlong dst, jint byteCount)
-{
-    int* src = env->GetIntArrayElements(srcArray, (jboolean *)0);
-    void *addr = pmem_memcpy((void *)dst, src, byteCount, PMEM_F_MEM_NONTEMPORAL);
-    env->ReleaseIntArrayElements(srcArray, src, 0);
-}
-
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromLongArrayNT
-  (JNIEnv *env, jobject obj, jlongArray srcArray, jlong dst, jint byteCount)
-{
-    jlong* src = env->GetLongArrayElements(srcArray, (jboolean *)0);
-    void *addr = pmem_memcpy((void *)dst, src, byteCount, PMEM_F_MEM_NONTEMPORAL);
-    env->ReleaseLongArrayElements(srcArray, src, 0);
-}
-
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeSetMemoryNT
-  (JNIEnv *env, jobject obj, jlong offset, jlong length, jint value)
+  (JNIEnv *env, jobject obj, jlong offset, jlong length, jbyte value)
 {
-    void *addr = pmem_memset((void *)offset, value, length, PMEM_F_MEM_NONTEMPORAL);
+    void *addr = pmem_memset((void *)offset, (int)value, length, PMEM_F_MEM_NONTEMPORAL);
 }
 
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyMemoryNT
@@ -98,3 +74,4 @@ JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyMemoryN
 {
     void *addr = pmem_memcpy((void *)dst, (void *)src, byteCount, PMEM_F_MEM_NONTEMPORAL);
 }
+

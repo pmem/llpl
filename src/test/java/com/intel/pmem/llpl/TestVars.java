@@ -72,7 +72,6 @@ public class TestVars {
 		boolean ret = false;
 		File file = new File(path);
 		if (file.exists()) {
-			System.out.println("FOLDER EXISTS");
 			return ret;
 		}
 		ret = file.mkdir();
@@ -85,7 +84,6 @@ public class TestVars {
 		boolean ret = false;
 		File file = new File(path);
 		if (file.exists()) {
-			System.out.println("FILE EXISTS");
 			return ret;
 		}
 		try {

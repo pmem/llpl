@@ -73,7 +73,7 @@ public abstract class AnyHeap {
     */
     public static final long MINIMUM_HEAP_SIZE;
     static {
-        System.loadLibrary("llpl");
+        Util.loadLibrary();
         try {
             java.lang.reflect.Field f = Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
@@ -192,7 +192,7 @@ public abstract class AnyHeap {
      */
     public synchronized boolean registerAllocationSize(long size, boolean compact) {
         if (userSizes.size() == MAX_USER_CLASSES) throw new HeapException("Max number of allocation sizes reached.");
-        long effectiveSize = 0L;
+        long effectiveSize;
         if (!userSizes.containsKey(effectiveSize = (size + (compact ? 0L : Long.BYTES)))) {
             int id = nativeRegisterAllocationClass(poolHandle, effectiveSize);
             if (id != -1) {
@@ -496,7 +496,7 @@ public abstract class AnyHeap {
         return false;
     }
     
-    static long getUsableSize(AnyMemoryBlock mb) {
+    static long getUsableSize(MemoryAccessor mb) {
         return nativeUsableSize(mb.directAddress());
     }
 

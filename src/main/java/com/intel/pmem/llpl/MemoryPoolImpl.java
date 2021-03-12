@@ -18,7 +18,7 @@ class MemoryPoolImpl implements MemoryPool {
 	static Unsafe UNSAFE;
 
     static {
-        System.loadLibrary("llpl");
+        Util.loadLibrary();
         try {
             java.lang.reflect.Field f = Unsafe.class.getDeclaredField("theUnsafe");
             f.setAccessible(true);
@@ -72,98 +72,119 @@ class MemoryPoolImpl implements MemoryPool {
 
 	@Override
 	public byte getByte(long offset) {
+        checkBounds(offset, Byte.BYTES);
 		return UNSAFE.getByte(dataAddress(offset));
 	}
 
 	@Override
 	public short getShort(long offset) {
+        checkBounds(offset, Short.BYTES);
 		return UNSAFE.getShort(dataAddress(offset));
 	}
 
 	@Override
 	public int getInt(long offset){
+        checkBounds(offset, Integer.BYTES);
 		return UNSAFE.getInt(dataAddress(offset));
 	}
 	
 	@Override
 	public long getLong(long offset){
+        checkBounds(offset, Long.BYTES);
 		return UNSAFE.getLong(dataAddress(offset));
 	}
 	
 	@Override
 	public void setByte(long offset, byte value){
+        checkBounds(offset, Byte.BYTES);
 		UNSAFE.putByte(dataAddress(offset), value);
 	}
 	
 	@Override
 	public void setShort(long offset, short value){
+        checkBounds(offset, Short.BYTES);
 		UNSAFE.putShort(dataAddress(offset), value);
 	}
 	
 	@Override
+
 	public void setInt(long offset, int value){
+        checkBounds(offset, Integer.BYTES);
 		UNSAFE.putInt(dataAddress(offset), value);
 	}
 	
 	@Override
 	public void setLong(long offset, long value){
+        checkBounds(offset, Long.BYTES);
 		UNSAFE.putLong(dataAddress(offset), value);
 	}
 	
 	@Override
 	public void copyMemory(long srcOffset, long dstOffset, long byteCount) {
+        checkBounds(srcOffset, byteCount);
+        checkBounds(dstOffset, byteCount);
 		UNSAFE.copyMemory(dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount) {
+	public void copyFrom(MemoryPool pool, long srcOffset, long dstOffset, long byteCount) {
+        ((MemoryPoolImpl)pool).checkBounds(srcOffset, byteCount);
+        checkBounds(dstOffset, byteCount);
+		UNSAFE.copyMemory(((MemoryPoolImpl)pool).dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
+	}
+
+	@Override
+	public void copyFromByteArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount) {
+        if (srcIndex < 0 || srcIndex + byteCount > srcArray.length) throw new IndexOutOfBoundsException();
+        checkBounds(dstOffset, byteCount);
         long srcAddress = UNSAFE.ARRAY_BYTE_BASE_OFFSET + UNSAFE.ARRAY_BYTE_INDEX_SCALE * srcIndex;
         UNSAFE.copyMemory(srcArray, srcAddress, null, dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyToArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount) {
+	public void copyToByteArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount) {
+        if (dstIndex < 0 || dstIndex + byteCount > dstArray.length) throw new IndexOutOfBoundsException();
+        checkBounds(srcOffset, byteCount);
 	    long dstAddress = UNSAFE.ARRAY_BYTE_BASE_OFFSET + UNSAFE.ARRAY_BYTE_INDEX_SCALE * dstIndex;
         UNSAFE.copyMemory(null, dataAddress(srcOffset), dstArray, dstAddress, byteCount);
 	}
 
 	@Override
 	public void setMemory(long offset, long byteCount, byte value) {
+        checkBounds(offset, byteCount);
         UNSAFE.setMemory(dataAddress(offset), byteCount, value); 
 	}
 
 	@Override
 	public void copyMemoryNT(long srcOffset, long dstOffset, long byteCount) {
+        checkBounds(srcOffset, byteCount);
+        checkBounds(dstOffset, byteCount);
 		nativeCopyMemoryNT(dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyFromArrayNT(byte[] srcArray, long dstOffset, int byteCount) {
-		nativeCopyFromArrayNT(srcArray, dataAddress(dstOffset), byteCount);
+	public void copyFromNT(MemoryPool pool, long srcOffset, long dstOffset, long byteCount) {
+        ((MemoryPoolImpl)pool).checkBounds(srcOffset, byteCount);
+        checkBounds(dstOffset, byteCount);
+		nativeCopyMemoryNT(((MemoryPoolImpl)pool).dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyFromShortArrayNT(short[] srcArray, long dstOffset, int elementCount) {
-		nativeCopyFromShortArrayNT(srcArray, dataAddress(dstOffset), Short.BYTES * elementCount);
+	public void copyFromByteArrayNT(byte[] srcArray, int srcIndex, long dstOffset, int byteCount) {
+        if (srcIndex < 0 || srcIndex + byteCount > srcArray.length) throw new IndexOutOfBoundsException();
+        checkBounds(dstOffset, byteCount);
+		nativeCopyFromByteArrayNT(srcArray, srcIndex, dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyFromIntArrayNT(int[] srcArray, long dstOffset, int elementCount) {
-		nativeCopyFromIntArrayNT(srcArray, dataAddress(dstOffset), Integer.BYTES * elementCount);
-	}
-
-	@Override
-	public void copyFromLongArrayNT(long[] srcArray, long dstOffset, int elementCount) {
-		nativeCopyFromLongArrayNT(srcArray, dataAddress(dstOffset), Long.BYTES * elementCount);
-	}
-
-	@Override
-	public void setMemoryNT(long offset, long byteCount, int value) {
+	public void setMemoryNT(long offset, long byteCount, byte value) {
+        checkBounds(offset, byteCount);
         nativeSetMemoryNT(dataAddress(offset), byteCount, value); 
 	}
 
 	@Override
 	public void flush(long offset, long byteCount) {
+        checkBounds(offset, byteCount);
 		nativeFlush(dataAddress(offset), byteCount);
 	}
 
@@ -172,9 +193,6 @@ class MemoryPoolImpl implements MemoryPool {
 	private static native void nativeFlush(long offset, long byteCount);
 	private static native long nativePoolSize(String path);
 	private static native void nativeCopyMemoryNT(long srcOffset, long dstOffset, long byteCount);
-	private static native void nativeCopyFromArrayNT(byte[] srcArray, long dst, int byteCount);
-	private static native void nativeCopyFromShortArrayNT(short[] srcArray, long dst, int Count);
-	private static native void nativeCopyFromIntArrayNT(int[] srcArray, long dst, int byteCount);
-	private static native void nativeCopyFromLongArrayNT(long[] srcArray, long dst, int byteCount);
-    private static native void nativeSetMemoryNT(long offset, long length, int value);
+	private static native void nativeCopyFromByteArrayNT(byte[] srcArray, int srcIndex, long dst, int byteCount);
+	private static native void nativeSetMemoryNT(long offset, long length, byte value);
 }

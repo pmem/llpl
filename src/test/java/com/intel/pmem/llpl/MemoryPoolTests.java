@@ -51,9 +51,9 @@ public class MemoryPoolTests {
 		Assert.assertTrue(pool.getShort(12) == 345);
 		pool.setByte(14, (byte)45); 
 		Assert.assertTrue(pool.getByte(14) == 45);
-		pool.copyFromArray(bytes1, 0, 16, bytes1.length);
+		pool.copyFromByteArray(bytes1, 0, 16, bytes1.length);
 		pool.copyMemory(16, 32, bytes1.length); 
-		pool.copyToArray(32, bytes2, 0, bytes1.length); 
+		pool.copyToByteArray(32, bytes2, 0, bytes1.length); 
 		Assert.assertTrue(new String(bytes2).equals(string1));
 		pool.setMemory(64, 100, (byte)123); for (long i = 64; i < 164; i++) 
 		Assert.assertTrue(pool.getByte(i) == (byte)123);
@@ -70,9 +70,9 @@ public class MemoryPoolTests {
 		Assert.assertTrue(pool.getShort(12) == 345);
 		pool.setByte(14, (byte)45); 
 		Assert.assertTrue(pool.getByte(14) == 45);
-		pool.copyFromArray(bytes1, 0, 16, bytes1.length);
+		pool.copyFromByteArray(bytes1, 0, 16, bytes1.length);
 		pool.copyMemory(16, 32, bytes1.length); 
-		pool.copyToArray(32, bytes2, 0, bytes1.length); 
+		pool.copyToByteArray(32, bytes2, 0, bytes1.length); 
 		Assert.assertTrue(new String(bytes2).equals(string1));
 		pool.setMemory(64, 100, (byte)123); for (long i = 64; i < 164; i++) 
 		Assert.assertTrue(pool.getByte(i) == (byte)123);
@@ -90,7 +90,7 @@ public class MemoryPoolTests {
 		byte[] bytes1 = string1.getBytes(); 
 		byte[] bytes2 = new byte[bytes1.length];
 		byte[] bytes3 = new byte[bytes1.length];
-        long[] lbytes = new long[] {123456L, 345678L, 5678910L};
+        //long[] lbytes = new long[] {123456L, 345678L, 5678910L};
 		pool.setLong(0, 12345); 
 		Assert.assertTrue(pool.getLong(0) == 12345);
 		pool.setInt(8, 23456); 
@@ -99,16 +99,16 @@ public class MemoryPoolTests {
 		Assert.assertTrue(pool.getShort(12) == 345);
 		pool.setByte(14, (byte)45); 
 		Assert.assertTrue(pool.getByte(14) == 45);
-		pool.copyFromArrayNT(bytes1, 16, bytes1.length);
+		pool.copyFromByteArrayNT(bytes1, 0, 16, bytes1.length);
 		pool.copyMemoryNT(16, 32, bytes1.length); 
-		pool.copyToArray(32, bytes2, 0, bytes1.length); 
+		pool.copyToByteArray(32, bytes2, 0, bytes1.length); 
 		Assert.assertTrue(new String(bytes2).equals(string1));
 		pool.setMemoryNT(64, 100, (byte)123); for (long i = 64; i < 164; i++) 
 		Assert.assertTrue(pool.getByte(i) == (byte)123);
-        pool.copyFromLongArrayNT(lbytes, 128, lbytes.length);
-        Assert.assertEquals(lbytes[0], pool.getLong(128));
-        Assert.assertEquals(lbytes[1], pool.getLong(128 + 8));
-        Assert.assertEquals(lbytes[2], pool.getLong(128 + 16));
+        //pool.copyFromLongArrayNT(lbytes, 128, lbytes.length);
+        //Assert.assertEquals(lbytes[0], pool.getLong(128));
+        //Assert.assertEquals(lbytes[1], pool.getLong(128 + 8));
+        //Assert.assertEquals(lbytes[2], pool.getLong(128 + 16));
 		pool.close();
         //reopen
 		pool = MemoryPool.openPool(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
@@ -122,9 +122,9 @@ public class MemoryPoolTests {
 		Assert.assertTrue(pool.getShort(12) == 345);
 		pool.setByte(14, (byte)45); 
 		Assert.assertTrue(pool.getByte(14) == 45);
-		pool.copyFromArrayNT(bytes1, 16, bytes1.length);
+		pool.copyFromByteArrayNT(bytes1, 0, 16, bytes1.length);
 		pool.copyMemoryNT(16, 32, bytes1.length); 
-		pool.copyToArray(32, bytes2, 0, bytes1.length); 
+		pool.copyToByteArray(32, bytes2, 0, bytes1.length); 
 		Assert.assertTrue(new String(bytes2).equals(string1));
 		pool.setMemoryNT(64, 100, (byte)123); for (long i = 64; i < 164; i++) 
 		Assert.assertTrue(pool.getByte(i) == (byte)123);

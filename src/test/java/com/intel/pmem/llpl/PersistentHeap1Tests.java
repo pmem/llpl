@@ -367,7 +367,6 @@ public class PersistentHeap1Tests {
 				Assert.assertTrue(TestVars.createFolder(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i));
 				heaps[i] = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + i);
 				MAX_HEAPS_ALLOCATED++;
-				System.out.println("Heap size GNL: " + heaps[i].size());
 				heaps[i].setRoot((i + 1) * 1234);
 				Assert.assertTrue(heaps[i].getRoot() == (i + 1) * 1234);
 				PersistentMemoryBlock mb = null;
@@ -377,7 +376,6 @@ public class PersistentHeap1Tests {
 					mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_2G, TestVars.TRANSACTIONAL);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_2G);
-				System.out.println("Growable no limit Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -539,7 +537,6 @@ public class PersistentHeap1Tests {
 					mb = heaps[i].allocateMemoryBlock(TestVars.MEMORY_BLOCK_SIZE_100MB, TestVars.TRANSACTIONAL);
 				Assert.assertTrue(mb.isValid());
 				Assert.assertTrue(mb.size() == TestVars.MEMORY_BLOCK_SIZE_100MB);
-				System.out.println("Fixed Heap: " + MAX_HEAPS_ALLOCATED + " Size: " + heaps[i].size());
 			}
 		} 
         catch (HeapException e) {
@@ -686,16 +683,14 @@ public class PersistentHeap1Tests {
         heap = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
         final long largeSize = 32L * 1024L * 1024L * 1024L;
         // initial large allocation of 16 GB should succeed
-        long handle = 0;
         try {
             // this allocation should fail since the heap has just allocated all of its memory
-            handle = heap.allocateMemory(largeSize);
+            heap.allocateMemory(largeSize);
             Assert.fail("HeapException not thrown");
         }
         catch(HeapException e) {
             Assert.assertTrue(true);
         }
-        Assert.assertEquals(handle, 0L);
     }
 
     @Test
@@ -704,16 +699,13 @@ public class PersistentHeap1Tests {
         heap = PersistentHeap.createHeap(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
         final long largeSize = 32L * 1024L * 1024L * 1024L;
         // initial large allocation of 16 GB should succeed
-        long handle = 0;
         try {
             // this allocation should fail since the heap has just allocated all of its memory
-            handle = heap.allocateCompactMemory(largeSize);
+            heap.allocateCompactMemory(largeSize);
             Assert.fail("HeapException not thrown");
         }
         catch(HeapException e) {
             Assert.assertTrue(true);
         }
-        Assert.assertEquals(handle, 0L);
     }
-
 }

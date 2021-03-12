@@ -44,6 +44,9 @@ class MemoryBlockTest {
         assert(block.getInt(3) == 255473664);
         assert(block.getShort(3) == (short)14336);
         assert(block.getByte(3) == (byte)0);
+
+        block1.flush();
+        //block.flush();
         new File(heapName).delete();
         System.out.println("================================= All MemoryBlock tests passed =================================");
     }

@@ -21,11 +21,11 @@ class MemoryBlockCollectionTest {
         TransactionalHeap tHeap = TransactionalHeap.exists(tHeapName) ? TransactionalHeap.openHeap(tHeapName) : TransactionalHeap.createHeap(tHeapName, 100000000L);
         HashMap<AnyMemoryBlock, Integer> hm = new HashMap<>();
         for (int i = 0; i < 10; i++) {
-            hm.put(heap.allocateMemoryBlock(10, true), i);
+            hm.put(heap.allocateMemoryBlock(10, false), i);
         }
         assert(hm.size() == 10);
         for (int i = 0; i < 10; i++) {
-            hm.put(dHeap.allocateMemoryBlock(10, true), i);
+            hm.put(dHeap.allocateMemoryBlock(10, false), i);
         }
         assert(hm.size() == 20);
         for (int i = 0; i < 10; i++) {
@@ -33,7 +33,7 @@ class MemoryBlockCollectionTest {
         }
         assert(hm.size() == 30);
         for (Map.Entry<AnyMemoryBlock, Integer> e : hm.entrySet()) {
-            // e.getKey().free(true);
+            // e.getKey().free(false);
         }
         new File("/mnt/mem/persistent_pool").delete();
         new File("/mnt/mem/persistent_pool_durable").delete();

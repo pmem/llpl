@@ -280,7 +280,7 @@ public class TransactionalAccessorTests {
         long offset = 0;
         long length = 1;
         acc.setMemory(value, offset, length);
-        Assert.assertEquals(value, mb.getByte(offset));
+        Assert.assertEquals(mb.getByte(offset), value);
     }
 
     @Test
@@ -293,7 +293,7 @@ public class TransactionalAccessorTests {
         long offset = 0;
         long length = 1;
         acc.setMemory(value, offset, length);
-        Assert.assertEquals(value, mb.getByte(offset));
+        Assert.assertEquals(mb.getByte(offset), value);
     }
 
     @Test
@@ -377,7 +377,7 @@ public class TransactionalAccessorTests {
         byte data = 42;
         acc.handle(handle);
         acc.setByte(offset,data);
-        Assert.assertEquals(data,(byte)acc.getByte(offset));
+        Assert.assertEquals(acc.getByte(offset), data);
     }
 
     @Test
@@ -389,7 +389,7 @@ public class TransactionalAccessorTests {
         byte data = 42;
         acc.handle(handle);
         acc.setByte(offset,data);
-        Assert.assertEquals(data,(byte)acc.getByte(offset));
+        Assert.assertEquals(acc.getByte(offset), data);
     }
 
     @Test
@@ -401,7 +401,7 @@ public class TransactionalAccessorTests {
         short data = 42;
         acc.handle(handle);
         acc.setShort(offset,data);
-        Assert.assertEquals(data,(short)acc.getShort(offset));
+        Assert.assertEquals(acc.getShort(offset), data);
     }
 
     @Test
@@ -413,7 +413,7 @@ public class TransactionalAccessorTests {
         short data = 42;
         acc.handle(handle);
         acc.setShort(offset,data);
-        Assert.assertEquals(data,(short)acc.getShort(offset));
+        Assert.assertEquals(acc.getShort(offset), data);
     }
 
     @Test
@@ -425,7 +425,7 @@ public class TransactionalAccessorTests {
         int data = 42;
         acc.handle(handle);
         acc.setInt(offset,data);
-        Assert.assertEquals(data,(int)acc.getInt(offset));
+        Assert.assertEquals(acc.getInt(offset), data);
     }
 
     @Test
@@ -437,7 +437,7 @@ public class TransactionalAccessorTests {
         int data = 42;
         acc.handle(handle);
         acc.setInt(offset,data);
-        Assert.assertEquals(data,(int)acc.getInt(offset));
+        Assert.assertEquals(acc.getInt(offset), data);
     }
 
     @Test
@@ -449,7 +449,7 @@ public class TransactionalAccessorTests {
         long data = 42;
         acc.handle(handle);
         acc.setLong(offset,data);
-        Assert.assertEquals(data,(long)acc.getLong(offset));
+        Assert.assertEquals(acc.getLong(offset), data);
     }
 
     @Test
@@ -461,7 +461,7 @@ public class TransactionalAccessorTests {
         long data = 42;
         acc.handle(handle);
         acc.setLong(offset,data);
-        Assert.assertEquals(data,(long)acc.getLong(offset));
+        Assert.assertEquals(acc.getLong(offset), data);
     }
 
     @Test

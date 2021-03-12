@@ -38,7 +38,7 @@ public class MemoryAccessorTests {
     public void testMemoryAccessorAddress(){
         heap = TestVars.createHeap();
         MemoryBlock mb = heap.allocateMemoryBlock(1024);
-        long address = mb.uncheckedGetHandle();
+        long address = mb.handle();
         Assert.assertTrue(address != 0L);
     }
 

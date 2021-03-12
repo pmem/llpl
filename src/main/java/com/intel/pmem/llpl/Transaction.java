@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  */
 public final class Transaction {
     static {
-        System.loadLibrary("llpl");
+        Util.loadLibrary();
     }
 
     private State state; 
@@ -135,7 +135,7 @@ public final class Transaction {
         }
         if (transaction.state != State.Active) throw new TransactionException("Transaction not active");
         transaction.depth++;
-        T result = null;
+        T result;
         try {
             if (range != null) range.addToTransactionNoCheck();
             result = body.apply(range);

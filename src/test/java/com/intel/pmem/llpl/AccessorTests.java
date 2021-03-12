@@ -304,18 +304,18 @@ public class AccessorTests {
         CompactAccessor acc2 = heap.createCompactAccessor();
         acc2.handle(mbCompact.handle());
         Transaction t = Transaction.create(heap);
-        Assert.assertEquals(Transaction.State.New, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.New);
         t.run(() -> {
             acc.addToTransaction(10, 150);
             acc2.addToTransaction(190, 210);
-            Assert.assertEquals(Transaction.State.Active, t.state());
+            Assert.assertEquals(t.state(), Transaction.State.Active);
             acc.setInt(100, 100);
             acc2.setLong(200, 200);
             assert (acc.getInt(100) == 100);
             assert (acc2.getLong(200) == 200);
-            Assert.assertEquals(Transaction.State.Active, t.state());
+            Assert.assertEquals(t.state(), Transaction.State.Active);
         });
-        Assert.assertEquals(Transaction.State.Committed, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.Committed);
         assert (acc.getInt(100) == 100);
         assert (acc2.getLong(200) == 200);
     }
@@ -342,7 +342,7 @@ public class AccessorTests {
         Accessor acc = heap.createAccessor();
         acc.handle(mb.handle());
         Transaction t = Transaction.create(heap);
-        Assert.assertEquals(Transaction.State.New, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.New);
         try {
             t.run(() -> {
                 assert (Transaction.State.Active == t.state());
@@ -362,10 +362,10 @@ public class AccessorTests {
         Accessor acc = heap.createAccessor();
         acc.handle(mb.handle());
         Transaction t = Transaction.create(heap);
-        Assert.assertEquals(Transaction.State.New, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.New);
         try {
             t.run(() -> {
-                Assert.assertEquals(Transaction.State.Active, t.state());
+                Assert.assertEquals(t.state(), Transaction.State.Active);
                 acc.addToTransaction(0, -1);
             });
             Assert.fail("IndexOutOfBoundsException not thrown");
@@ -427,15 +427,15 @@ public class AccessorTests {
         Accessor acc = heap.createAccessor();
         acc.handle(mb.handle());
         Transaction t = Transaction.create(heap);
-        Assert.assertEquals(Transaction.State.New, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.New);
         t.run(() -> {
-            Assert.assertEquals(Transaction.State.Active, t.state());
+            Assert.assertEquals(t.state(), Transaction.State.Active);
             acc.addToTransaction();
             acc.setInt(100, 100);
             assert (acc.getInt(100) == 100);
-            Assert.assertEquals(Transaction.State.Active, t.state());
+            Assert.assertEquals(t.state(), Transaction.State.Active);
         });
-        Assert.assertEquals(Transaction.State.Committed, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.Committed);
         assert (acc.getInt(100) == 100);
     }
 
@@ -448,7 +448,7 @@ public class AccessorTests {
         byte data = 42;
         acc.handle(handle);
         acc.setByte(offset,data);
-        Assert.assertEquals(data,(byte)acc.getByte(offset));
+        Assert.assertEquals(acc.getByte(offset), data);
     }
 
     @Test
@@ -460,7 +460,7 @@ public class AccessorTests {
         byte data = 42;
         acc.handle(handle);
         acc.setByte(offset,data);
-        Assert.assertEquals(data,(byte)acc.getByte(offset));
+        Assert.assertEquals(acc.getByte(offset), data);
     }
 
     @Test
@@ -472,7 +472,7 @@ public class AccessorTests {
         short data = 42;
         acc.handle(handle);
         acc.setShort(offset,data);
-        Assert.assertEquals(data,(short)acc.getShort(offset));
+        Assert.assertEquals(acc.getShort(offset), data);
     }
 
     @Test
@@ -484,7 +484,7 @@ public class AccessorTests {
         short data = 42;
         acc.handle(handle);
         acc.setShort(offset,data);
-        Assert.assertEquals(data,(short)acc.getShort(offset));
+        Assert.assertEquals(acc.getShort(offset), data);
     }
 
     @Test
@@ -496,7 +496,7 @@ public class AccessorTests {
         int data = 42;
         acc.handle(handle);
         acc.setInt(offset,data);
-        Assert.assertEquals(data,(int)acc.getInt(offset));
+        Assert.assertEquals(acc.getInt(offset), data);
     }
 
     @Test
@@ -508,7 +508,7 @@ public class AccessorTests {
         int data = 42;
         acc.handle(handle);
         acc.setInt(offset,data);
-        Assert.assertEquals(data,(int)acc.getInt(offset));
+        Assert.assertEquals(acc.getInt(offset), data);
     }
 
     @Test
@@ -520,7 +520,7 @@ public class AccessorTests {
         long data = 42;
         acc.handle(handle);
         acc.setLong(offset,data);
-        Assert.assertEquals(data,(long)acc.getLong(offset));
+        Assert.assertEquals(acc.getLong(offset), data);
     }
 
     @Test
@@ -532,7 +532,7 @@ public class AccessorTests {
         long data = 42;
         acc.handle(handle);
         acc.setLong(offset,data);
-        Assert.assertEquals(data,(long)acc.getLong(offset));
+        Assert.assertEquals(acc.getLong(offset), data);
     }
 
     @Test

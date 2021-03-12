@@ -14,11 +14,11 @@ class TransactionTest {
         String heapName = "/mnt/mem/persistent_pool";
         Heap heap = Heap.exists(heapName) ? Heap.openHeap(heapName) : Heap.createHeap(heapName, 2147483648L);
         MemoryBlock block1 = heap.allocateMemoryBlock(16, true);
-
-        Transaction.create(heap, () -> {
-            Transaction.checkTransactionActive(true);
+        Transaction t = Transaction.create(heap);
+        t.run(() -> {
+            assert(Transaction.State.Active == t.state());
             MemoryBlock b = heap.allocateMemoryBlock(128, true);
-            Transaction.checkTransactionActive(true);
+            assert(Transaction.State.Active == t.state());
         });
         // compatibility test
         Transaction.create(heap, () -> {
@@ -28,9 +28,8 @@ class TransactionTest {
                     Transaction.create(heap, () -> {
                          t1.run(() -> {
                              Transaction.create(heap).run(() -> {
-                                 // block1.transactionalWithRange(0, 10, (Range r) -> {
-                                 //     r.setLong(2, 123456);
-                                 // });
+                                 block1.addToTransaction(0, 10); 
+                                 block1.setLong(2, 123456);
                              });
                          });
                     });
@@ -39,6 +38,7 @@ class TransactionTest {
         });
 
         Transaction.create(heap, () -> {
+            block1.addToTransaction(0, 16);
             block1.setLong(4, 1000);
             block1.setInt(0, 777);
             assert(block1.getLong(4)) == 1000;
@@ -52,6 +52,7 @@ class TransactionTest {
         // parameter passing syntax
         Transaction t1 = Transaction.create(heap);
         t1.run(() -> {
+            block1.addToTransaction(0, 16);
             block1.setLong(4, 1000);
             block1.setInt(0, 777);
             assert(block1.getLong(4)) == 1000;
@@ -65,15 +66,17 @@ class TransactionTest {
         MemoryBlock block2 = heap.allocateMemoryBlock(100, true);
         Transaction t2 = Transaction.create(heap);
         t2.run(() -> {
-            block2.transactionalSetLong(4, 1000);
-            block2.transactionalSetInt(0, 777);
+            block2.addToTransaction(0, 12);
+            block2.setLong(4, 1000);
+            block2.setInt(0, 777);
             assert(block2.getLong(4)) == 1000;
             assert(block2.getInt(0)) == 777;
             method1(t2, block2, 888);
             assert(block2.getLong(10) == 888);
             // this produces a flattened inner transaction
             t2.run(() -> {       
-                block1.transactionalSetLong(8, 2000);
+                block1.addToTransaction(8, 8);
+                block1.setLong(8, 2000);
             });
             assert(block1.getLong(8) == 2000);
         });
@@ -103,12 +106,12 @@ class TransactionTest {
         assert(caught);
 
         String planets = "Mercury Venus Earth Mars Saturn Jupiter Neptune Uranus Pluto";
-        long rmbAddress = Transaction.create(heap).run(() -> {
-            Transaction.checkTransactionActive(true);
+        Transaction tx = Transaction.create(heap);
+        long rmbAddress = tx.run(() -> {
+            assert(Transaction.State.Active == tx.state());
             MemoryBlock rmb = heap.allocateMemoryBlock(1024, true);
-            Transaction.checkTransactionActive(true);
+            assert(Transaction.State.Active == tx.state());
             Transaction.create(heap).run(() -> { 
-                Transaction.checkTransactionActive(true);
                 rmb.addToTransaction(0, 1024);  
                 rmb.copyFromArray(planets.getBytes(), 0, 0, planets.length());
             });
@@ -164,7 +167,8 @@ class TransactionTest {
 
     private static void method1(Transaction tx, MemoryBlock block, long x) {
         tx.run(() -> {
-            block.transactionalSetLong(10, x);
+            block.addToTransaction(10, 8);
+            block.setLong(10, x);
         });
     }
 }

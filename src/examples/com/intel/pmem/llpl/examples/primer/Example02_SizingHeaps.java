@@ -19,19 +19,19 @@ public class Example02_SizingHeaps {
 	public static void main(String[] args) {
 		// 1. heap of fixed size
 		Heap fixedHeap = Heap.createHeap("/pmem/llpl/fixed", 100 * MB);
-		System.out.println("created fixed heap");
+		System.out.println("created fixed heap of size " + fixedHeap.size());
 
 		// 2. growable heap -- starts at minimum size and grows to all available pmem of file system
 		String dir_path1 = "/pmem/llpl/growable/";
 		new File(dir_path1).mkdirs();
 		Heap growableHeap = Heap.createHeap(dir_path1);
-		System.out.println("created growable heap");
+		System.out.println("created growable heap with initial size " + growableHeap.size());
 
 		// 3. growable heap with limit -- starts at minimum size and grows up to specified limit
 		String dir_path2 = "/pmem/llpl/growable_with_limit/";
 		new File(dir_path2).mkdirs();
 		Heap limitedHeap = Heap.createHeap(dir_path2, 1 * GB);
-		System.out.println("created growable-with-limit heap");
+		System.out.println("created growable-with-limit heap with initial size " + limitedHeap.size());
 
 		// 4. DAX device heap -- size is fixed to size of DAX device
 		// Heap daxHeap = Heap.createHeap("/dev/dax1");

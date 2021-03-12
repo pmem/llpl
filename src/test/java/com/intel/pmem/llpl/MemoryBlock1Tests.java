@@ -137,18 +137,18 @@ public class MemoryBlock1Tests {
 		MemoryBlock mb = heap.allocateMemoryBlock(1024, true);
 		CompactMemoryBlock mbCompact = heap.allocateCompactMemoryBlock(1024, true);
 		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
+		Assert.assertEquals(t.state(), Transaction.State.New);
 		t.run(() -> {
             mb.addToTransaction(10, 150);
             mbCompact.addToTransaction(190, 210);
-			Assert.assertEquals(Transaction.State.Active, t.state());
+			Assert.assertEquals(t.state(), Transaction.State.Active);
 			mb.setInt(100, 100);
 			mbCompact.setLong(200, 200);
 			assert (mb.getInt(100) == 100);
 			assert (mbCompact.getLong(200) == 200);
-			Assert.assertEquals(Transaction.State.Active, t.state());
+			Assert.assertEquals(t.state(), Transaction.State.Active);
 		});
-		Assert.assertEquals(Transaction.State.Committed, t.state());
+		Assert.assertEquals(t.state(), Transaction.State.Committed);
 		assert (mb.getInt(100) == 100);
 		assert (mbCompact.getLong(200) == 200);
 	}
@@ -171,7 +171,7 @@ public class MemoryBlock1Tests {
 		heap = TestVars.createHeap();
 		MemoryBlock mb = heap.allocateMemoryBlock(1024, true);
 		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
+		Assert.assertEquals(t.state(), Transaction.State.New);
 		try {
 			t.run(() -> {
 				assert (Transaction.State.Active == t.state());
@@ -189,10 +189,10 @@ public class MemoryBlock1Tests {
 		heap = TestVars.createHeap();
 		MemoryBlock mb = heap.allocateMemoryBlock(1024, true);
 		Transaction t = Transaction.create(heap);
-		Assert.assertEquals(Transaction.State.New, t.state());
+		Assert.assertEquals(t.state(), Transaction.State.New);
 		try {
 			t.run(() -> {
-				Assert.assertEquals(Transaction.State.Active, t.state());
+				Assert.assertEquals(t.state(), Transaction.State.Active);
 				mb.addToTransaction(0, -1);
 			});
 			Assert.fail("IndexOutOfBoundsException not thrown");
@@ -246,15 +246,15 @@ public class MemoryBlock1Tests {
 		heap = TestVars.createHeap();
         MemoryBlock mb = heap.allocateMemoryBlock(1024, true);
         Transaction t = Transaction.create(heap);
-        Assert.assertEquals(Transaction.State.New, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.New);
         t.run(() -> {
-            Assert.assertEquals(Transaction.State.Active, t.state());
+            Assert.assertEquals(t.state(), Transaction.State.Active);
             mb.addToTransaction();
             mb.setInt(100, 100);
             assert (mb.getInt(100) == 100);
-            Assert.assertEquals(Transaction.State.Active, t.state());
+            Assert.assertEquals(t.state(), Transaction.State.Active);
         });
-        Assert.assertEquals(Transaction.State.Committed, t.state());
+        Assert.assertEquals(t.state(), Transaction.State.Committed);
         assert (mb.getInt(100) == 100);
     }
 

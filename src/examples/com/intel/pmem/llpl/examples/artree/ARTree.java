@@ -18,7 +18,7 @@ import java.util.Optional;
 
 public class ARTree {
     final TransactionalHeap heap;
-    private Root root;
+    private final Root root;
     private int maxKeyLen;
 
     public ARTree(TransactionalHeap heap) {
@@ -102,8 +102,8 @@ public class ARTree {
         depth += intNode.getPrefixLength();
         if (depth == key.length) {
             //this insertion will be a blankradix child to this internal node
-            if (intNode.hasBlankRadixChild()) {
-                Leaf child = intNode.findBlankRadixChild();
+            Leaf child;
+            if ((child = intNode.findBlankRadixChild()) != null) {
                 child.setValue(value);
             }
             else {
@@ -175,8 +175,8 @@ public class ARTree {
     }
 
     public void print() {
-        if (root.getChild() != null)
-            root.getChild().print(0);
+        Node child;
+        if ((child = root.getChild()) != null) child.print(0); 
         System.out.println("");
     }
 
