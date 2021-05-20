@@ -8,6 +8,7 @@
 // Note: this code is EXPERIMENTAL 
 
 #include "com_intel_pmem_llpl_MemoryPoolImpl.h"
+#include "util.h"
 #include <libpmem.h>
 
 JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeOpenPool
@@ -21,7 +22,7 @@ JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeOpenPool
     long poolSize = (size_t)size; 
     void *poolAddress = pmem_map_file(path, poolSize, flags , 0666, &mappedSize, &is_pmem);
     if (poolAddress == 0) {
-        printf("pmem_map_file failed, err = %s\n", pmem_errormsg());
+        throw_memorypool_exception(env, pmem_errormsg());
     }
     env->ReleaseStringUTFChars(jpath, path);
     return (jlong)poolAddress;

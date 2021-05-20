@@ -515,7 +515,7 @@ public abstract class AnyHeap {
     private static synchronized native long nativeGetRoot(long poolHandle);
     private static native long nativeUsableSize(long addr);
     private static native long nativeDirectAddress(long poolId, long offset);
-    private static native int nativeHeapExists(String path);
+    static native int nativeHeapExists(String path);
     private static native long nativeHeapSize(String path);
     private static native int nativeRemovePool(String path);
     private static native long nativeProbeHeapSize(long poolId, long currentSize);

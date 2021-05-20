@@ -11,3 +11,4 @@
 
 void throw_heap_exception(JNIEnv *env, const char* arg);
 void throw_transaction_exception(JNIEnv *env, const char* arg);
+void throw_memorypool_exception(JNIEnv *env, const char* arg);

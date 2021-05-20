@@ -6,18 +6,28 @@
  */
 
 package com.intel.pmem.llpl;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileLock;
 
+/**
+ * A collection of utility methods.  
+ * 
+ * @since 1.2
+ */
 public class Util {
-
     private static boolean loaded = false;
     private static String extension = "";
+    private static String tempDirectory;
 
-    public static boolean isLoaded() {
+    private Util() {
+        // no instances
+    }
+
+    static boolean isLoaded() {
         if (loaded) return true;
         try {
             System.loadLibrary("llpl");
@@ -49,12 +59,28 @@ public class Util {
         return System.getProperty("os.arch");
     }
 
-    public static void loadLibrary() {
+    /**
+     * Sets, or resets, the directory LLPL will use to store temporary files.  
+     * Calling this method is optional and can be helpful if use of Java's default temporary-file
+     * directory is not suitable. Java's default temporary-file directory will be used until
+     * this method is called. 
+     * @param path the directory path
+     * @throws IllegalArgumentException if path is not a valid directory
+     */
+    public static void setLLPLTempDirectory(String path) {
+        File file = new File(path);
+        if (file.isDirectory()) {
+            tempDirectory = path;
+        }
+        else throw new IllegalArgumentException("Path is not a valid directory");
+    }
+
+    static void loadLibrary() {
         if (isLoaded()) return;
         String libName = getLibName();
         File nativeLib = null;
         try (InputStream in = Util.class.getResourceAsStream(libName)) {
-            nativeLib = File.createTempFile("libllpl", extension);
+            nativeLib = (tempDirectory == null) ? File.createTempFile("libllpl", extension) : new File(tempDirectory, "libllpl" + extension);
             try (FileOutputStream out = new FileOutputStream(nativeLib)) {
                 byte[] buf = new byte[4096];
                 int bytesRead;

@@ -34,9 +34,14 @@ class MemoryPoolImpl implements MemoryPool {
 
 	MemoryPoolImpl(String path, long byteCount) {
 		if (byteCount < 0) throw new IllegalArgumentException("byteCount must be greater than or equal to zero");
-        if (path.startsWith("/dev/dax") && byteCount != 0) throw new IllegalArgumentException("byteCount must be zero when using Device DAX");
-		this.poolAddress = nativeOpenPool(path, byteCount);
-		if (poolAddress == 0) throw new RuntimeException("Unable to create pool");
+        if (path.startsWith("/dev/dax")) {
+            if (byteCount != 0) throw new IllegalArgumentException("byteCount must be zero when using a DAX device");
+        } else if (byteCount == 0) throw new IllegalArgumentException("byteCount must not be zero when using a DAX filesystem");
+        try {
+		    this.poolAddress = nativeOpenPool(path, byteCount);
+        } catch (MemoryPoolException e) {
+		    throw new MemoryPoolException("Unable to create pool: " + e.getMessage());
+        } 
 		this.poolSize = byteCount == 0 ? nativePoolSize(path) : byteCount;
 	}
 
@@ -45,8 +50,11 @@ class MemoryPoolImpl implements MemoryPool {
         if (path.startsWith("/dev/dax")) this.poolSize = nativePoolSize(path);
         else if (file.exists() && file.isFile()) this.poolSize = file.length();
         else throw new IllegalArgumentException("path supplied must be an existing file");
-		this.poolAddress = nativeOpenPool(path, this.poolSize);
-		if (poolAddress == 0) throw new RuntimeException("Unable to create pool");
+        try {
+		    this.poolAddress = nativeOpenPool(path, this.poolSize);
+        } catch (MemoryPoolException e) {
+		    throw new MemoryPoolException("Unable to open pool: " + e.getMessage());
+        } 
 	}
 
 	private void checkBounds(long offset, long byteCount) {
@@ -59,10 +67,9 @@ class MemoryPoolImpl implements MemoryPool {
 		return poolAddress + offset;
 	} 
 
-	@Override
-	public void close() {
+	void close() {
 		int result = nativeClosePool(poolAddress, poolSize);
-		if (result == -1) throw new RuntimeException("Unable to close pool");
+		if (result == -1) throw new MemoryPoolException("Unable to close pool");
 	}
 
 	@Override
@@ -120,17 +127,17 @@ class MemoryPoolImpl implements MemoryPool {
 	}
 	
 	@Override
-	public void copyMemory(long srcOffset, long dstOffset, long byteCount) {
+	public void copyFromPool(long srcOffset, long dstOffset, long byteCount) {
         checkBounds(srcOffset, byteCount);
         checkBounds(dstOffset, byteCount);
 		UNSAFE.copyMemory(dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyFrom(MemoryPool pool, long srcOffset, long dstOffset, long byteCount) {
-        ((MemoryPoolImpl)pool).checkBounds(srcOffset, byteCount);
+	public void copyFromPool(MemoryPool srcPool, long srcOffset, long dstOffset, long byteCount) {
+        ((MemoryPoolImpl)srcPool).checkBounds(srcOffset, byteCount);
         checkBounds(dstOffset, byteCount);
-		UNSAFE.copyMemory(((MemoryPoolImpl)pool).dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
+		UNSAFE.copyMemory(((MemoryPoolImpl)srcPool).dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
@@ -150,23 +157,23 @@ class MemoryPoolImpl implements MemoryPool {
 	}
 
 	@Override
-	public void setMemory(long offset, long byteCount, byte value) {
+	public void setMemory(byte value, long offset, long byteCount) {
         checkBounds(offset, byteCount);
         UNSAFE.setMemory(dataAddress(offset), byteCount, value); 
 	}
 
 	@Override
-	public void copyMemoryNT(long srcOffset, long dstOffset, long byteCount) {
+	public void copyFromPoolNT(long srcOffset, long dstOffset, long byteCount) {
         checkBounds(srcOffset, byteCount);
         checkBounds(dstOffset, byteCount);
 		nativeCopyMemoryNT(dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
-	public void copyFromNT(MemoryPool pool, long srcOffset, long dstOffset, long byteCount) {
-        ((MemoryPoolImpl)pool).checkBounds(srcOffset, byteCount);
+	public void copyFromPoolNT(MemoryPool srcPool, long srcOffset, long dstOffset, long byteCount) {
+        ((MemoryPoolImpl)srcPool).checkBounds(srcOffset, byteCount);
         checkBounds(dstOffset, byteCount);
-		nativeCopyMemoryNT(((MemoryPoolImpl)pool).dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
+		nativeCopyMemoryNT(((MemoryPoolImpl)srcPool).dataAddress(srcOffset), dataAddress(dstOffset), byteCount);
 	}
 
 	@Override
@@ -177,7 +184,7 @@ class MemoryPoolImpl implements MemoryPool {
 	}
 
 	@Override
-	public void setMemoryNT(long offset, long byteCount, byte value) {
+	public void setMemoryNT(byte value, long offset, long byteCount) {
         checkBounds(offset, byteCount);
         nativeSetMemoryNT(dataAddress(offset), byteCount, value); 
 	}
