@@ -27,6 +27,16 @@
 			<class name="com.intel.pmem.llpl.TransactionsTests" />
 			<class name="com.intel.pmem.llpl.Transactions2Tests" />
 			<class name="com.intel.pmem.llpl.AllocationClassTests" />
+			<class name="com.intel.pmem.llpl.ShortArrayTests" />
+			<class name="com.intel.pmem.llpl.ShortArrayPersistentTests" />
+			<class name="com.intel.pmem.llpl.ShortArrayTransactionalTests" />
+			<class name="com.intel.pmem.llpl.IntArrayTests" />
+			<class name="com.intel.pmem.llpl.IntArrayPersistentTests" />
+			<class name="com.intel.pmem.llpl.IntArrayTransactionalTests" />
+			<class name="com.intel.pmem.llpl.LongArrayTests" />
+			<class name="com.intel.pmem.llpl.LongArrayPersistentTests" />
+			<class name="com.intel.pmem.llpl.LongArrayTransactionalTests" />
+			<class name="com.intel.pmem.llpl.LongARTTests" />
 		</classes>
 	</test>
 </suite>

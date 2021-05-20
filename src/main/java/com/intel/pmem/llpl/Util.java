@@ -16,6 +16,7 @@ public class Util {
 
     private static boolean loaded = false;
     private static String extension = "";
+    private static String tempDirectory;
 
     public static boolean isLoaded() {
         if (loaded) return true;
@@ -49,12 +50,16 @@ public class Util {
         return System.getProperty("os.arch");
     }
 
+    public static void setLLPLTempDirectory(String path) {
+        tempDirectory = path;
+    }
+
     public static void loadLibrary() {
         if (isLoaded()) return;
         String libName = getLibName();
         File nativeLib = null;
         try (InputStream in = Util.class.getResourceAsStream(libName)) {
-            nativeLib = File.createTempFile("libllpl", extension);
+            nativeLib = (tempDirectory == null) ? File.createTempFile("libllpl", extension) : new File(tempDirectory, "libllpl" + extension);
             try (FileOutputStream out = new FileOutputStream(nativeLib)) {
                 byte[] buf = new byte[4096];
                 int bytesRead;

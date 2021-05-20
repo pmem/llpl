@@ -20,6 +20,8 @@ LINK_FLAGS = -fPIC -pie -O3 -DNDEBUG -shared -lpmem -lpmemobj -lpmempool -Wl,-rp
 CPP_SOURCE_DIR = src/main/cpp
 JAVA_SOURCE_DIR = src/main/java
 PACKAGE_NAME = com/intel/pmem/llpl
+UTIL_PACKAGE_NAME = com/intel/pmem/llpl/util
+HM_PACKAGE_NAME = com/intel/pmem/llpl/util/hashmap
 
 TEST_DIR = src/test/java/$(PACKAGE_NAME)
 
@@ -32,7 +34,9 @@ JAR_NATIVE_DIR = $(CLASSES_DIR)/com/intel/pmem/llpl/linux/amd64
 BASE_CLASSPATH = $(CLASSES_DIR):com/intel/pmem/
 
 ALL_CPP_SOURCES = $(wildcard $(CPP_SOURCE_DIR)/*.cpp)
-ALL_JAVA_SOURCES = $(wildcard $(JAVA_SOURCE_DIR)/$(PACKAGE_NAME)/*.java)
+ALL_JAVA_SOURCES := $(wildcard $(JAVA_SOURCE_DIR)/$(PACKAGE_NAME)/*.java)
+ALL_JAVA_SOURCES := $(ALL_JAVA_SOURCES) $(wildcard $(JAVA_SOURCE_DIR)/$(UTIL_PACKAGE_NAME)/*.java)
+ALL_JAVA_SOURCES := $(ALL_JAVA_SOURCES) $(wildcard $(JAVA_SOURCE_DIR)/$(HM_PACKAGE_NAME)/*.java)
 ALL_OBJ = $(addprefix $(CPP_BUILD_DIR)/, $(notdir $(ALL_CPP_SOURCES:.cpp=.o)))
 
 ALL_TEST_SOURCES = $(addprefix $(TEST_DIR)/, \
