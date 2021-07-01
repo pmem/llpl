@@ -32,3 +32,9 @@ void throw_transaction_exception(JNIEnv *env, const char* arg)
     jclass cls = env->FindClass("com/intel/pmem/llpl/TransactionException");
     throw_exception(env, cls, arg);
 }
+
+void throw_memorypool_exception(JNIEnv *env, const char* arg)
+{
+    jclass cls = env->FindClass("com/intel/pmem/llpl/MemoryPoolException");
+    throw_exception(env, cls, arg);
+}

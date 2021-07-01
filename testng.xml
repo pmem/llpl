@@ -16,6 +16,7 @@
 			<class name="com.intel.pmem.llpl.MemoryAccessorTests" />
 			<class name="com.intel.pmem.llpl.MemoryBlock1Tests" />
 			<class name="com.intel.pmem.llpl.MemoryBlock2Tests" />
+			<class name="com.intel.pmem.llpl.MemoryPoolTests" />
 			<class name="com.intel.pmem.llpl.PersistentAccessorTests" />
 			<class name="com.intel.pmem.llpl.PersistentHeapAllocationTests" />
 			<class name="com.intel.pmem.llpl.PersistentMemoryBlock1Tests" />

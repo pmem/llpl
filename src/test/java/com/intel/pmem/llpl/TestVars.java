@@ -15,8 +15,10 @@ import java.io.IOException;
 import java.lang.ProcessBuilder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import org.testng.Assert;
+import static java.nio.file.StandardCopyOption.*;
 
 public class TestVars {
     public static String HEAP_USER_PATH;
@@ -76,9 +78,24 @@ public class TestVars {
 		}
 		ret = file.mkdir();
 		if (!ret)
-			System.out.println("COULDNT NOT CREATE DIRECTORY");
+			System.out.println("could not create directory");
 		return ret;
 	}
+
+    public static boolean copyFile(String srcPath, String destPath){
+        boolean ret = false;
+        Path newPath = null;
+        try {
+            newPath = Files.copy(Paths.get(srcPath), Paths.get(destPath), REPLACE_EXISTING);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        ret = Files.exists(newPath);
+        if (!ret)
+            System.out.println("could not copy file");
+        return ret;
+    }
 
 	public static boolean createFile(String path) {
 		boolean ret = false;
@@ -93,7 +110,7 @@ public class TestVars {
 			e.printStackTrace();
 		}
 		if (!ret)
-			System.out.println("COULDNT NOT CREATE FILE");
+			System.out.println("could not create file");
 		return ret;
 	}
 
