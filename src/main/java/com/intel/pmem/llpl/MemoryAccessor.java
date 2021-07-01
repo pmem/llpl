@@ -90,7 +90,6 @@ public abstract class MemoryAccessor {
     void reset() {
         address = 0;
         directAddress = 0;
-        size = 0;
     }
 
     void handle(long offset, boolean bounded) {
@@ -545,9 +544,8 @@ public abstract class MemoryAccessor {
         return ans;
     }
 
-    public long size() {
-        if (size == -1) throw new UnsupportedOperationException("Size method is not supported for compact allocations");
-        else return size;
+    long size() {
+        return this.size;
     }
 
     Range range(long startOffset, long length) {

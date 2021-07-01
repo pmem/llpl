@@ -16,26 +16,26 @@ import java.util.Arrays;
 
 @Test(singleThreaded = true)
 public class MemoryPoolTests {
-	MemoryPool pool = null;
+    MemoryPool pool = null;
 
-	@BeforeMethod
-	public void initialize() {
-		pool = null;
-        if (TestVars.ISDAX) pool = MemoryPool.createPool(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, 0L);
+    @BeforeMethod
+    public void initialize() {
+        pool = null;
+        if (TestVars.ISDAX) pool = MemoryPool.mapDevice(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
         else pool = MemoryPool.createPool(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, TestVars.HEAP_SIZE);
         Assert.assertTrue(pool != null);
         if (TestVars.ISDAX) Assert.assertTrue(pool.size() > 0);
         else Assert.assertEquals(TestVars.HEAP_SIZE, pool.size());
-	}
+    }
 
-	@SuppressWarnings("deprecation")
-	@AfterMethod
-	public void testCleanup() {
-		if (TestVars.ISDAX) {
-			TestVars.daxCleanUp();
-		}
-		else TestVars.cleanUp(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
-	}
+    @SuppressWarnings("deprecation")
+    @AfterMethod
+    public void testCleanup() {
+        if (TestVars.ISDAX) {
+            TestVars.daxCleanUp();
+        }
+        else TestVars.cleanUp(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
+    }
 
     @Test
     public void testCloseAndReopenPool(){
@@ -178,9 +178,8 @@ public class MemoryPoolTests {
     @Test
     public void testInterPoolCopy() {
         if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
-        String srcPoolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "2";
+        String srcPoolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "new";
         MemoryPool srcPool = MemoryPool.createPool(srcPoolName, TestVars.HEAP_SIZE);
-        Assert.assertEquals(TestVars.HEAP_SIZE, srcPool.size());
         // populate srcPool
         long numBytes = 128;
         byte value = 42;
@@ -192,14 +191,14 @@ public class MemoryPoolTests {
             Assert.assertEquals(value, pool.getByte(i));
         }
         Assert.assertTrue(TestVars.cleanUp(srcPoolName));
+        TestVars.cleanUp(srcPoolName);
     }
 
     @Test
     public void testInterPoolCopyNT() {
         if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
-        String srcPoolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "2";
+        String srcPoolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "new";
         MemoryPool srcPool = MemoryPool.createPool(srcPoolName, TestVars.HEAP_SIZE);
-        Assert.assertEquals(TestVars.HEAP_SIZE, srcPool.size());
         // populate srcPool
         long numBytes = 128;
         byte value = 42;
@@ -211,6 +210,7 @@ public class MemoryPoolTests {
             Assert.assertEquals(value, pool.getByte(i));
         }
         Assert.assertTrue(TestVars.cleanUp(srcPoolName));
+        TestVars.cleanUp(srcPoolName);
     }
 
     @Test
@@ -346,7 +346,6 @@ public class MemoryPoolTests {
         byte[] bArray = new byte[numBytes];
         for (long i = 0; i < numLongs; i++){
             pool.setLong(i, i);
-            Assert.assertEquals(i, pool.getLong(i));
         }
         // Negative offset
         try {
@@ -364,7 +363,6 @@ public class MemoryPoolTests {
         byte[] bArray = new byte[numBytes];
         for (long i = 0; i < numLongs; i++){
             pool.setLong(i, i);
-            Assert.assertEquals(i, pool.getLong(i));
         }
         // Negative byteCount
         try {
@@ -382,7 +380,6 @@ public class MemoryPoolTests {
         byte[] bArray = new byte[numBytes];
         for (long i = 0; i < numLongs; i++){
             pool.setLong(i, i);
-            Assert.assertEquals(i, pool.getLong(i));
         }
         // Negative Index
         try {
@@ -400,7 +397,6 @@ public class MemoryPoolTests {
         byte[] bArray = new byte[numBytes];
         for (long i = 0; i < numLongs; i++){
             pool.setLong(i, i);
-            Assert.assertEquals(i, pool.getLong(i));
         }
         // Index too large
         try {
@@ -415,7 +411,7 @@ public class MemoryPoolTests {
     public void testPoolCreationExceptionsNegativePoolSize() {
         // negative pool size
         try {
-            pool = new MemoryPoolImpl(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, -1);
+            pool = MemoryPool.createPool(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, -1);
             Assert.fail("IllegalArgumentException wasn't thrown");
         } catch(IllegalArgumentException e) {
             Assert.assertTrue(true);
@@ -427,7 +423,7 @@ public class MemoryPoolTests {
         // nonzero size with /dev/dax path
         if (!TestVars.ISDAX) throw new SkipException("Test not valid in FSDAX mode");
         try {
-            pool = new MemoryPoolImpl("/dev/dax", 1024);
+            pool = MemoryPool.createPool("/dev/dax", 1024);
             Assert.fail("IllegalArgumentException wasn't thrown");
         } catch(IllegalArgumentException e) {
             Assert.assertTrue(true);
@@ -439,7 +435,7 @@ public class MemoryPoolTests {
         // zero pool size
         if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
         try {
-            pool = new MemoryPoolImpl(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, 0);
+            pool = MemoryPool.createPool(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, 0);
             Assert.fail("IllegalArgumentException wasn't thrown");
         } catch(IllegalArgumentException e) {
             Assert.assertTrue(true);
@@ -463,12 +459,12 @@ public class MemoryPoolTests {
         // functional validation of minimal pool size
         if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
         long poolSize = 1;
-        pool = new MemoryPoolImpl(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME, poolSize);
+        String minimalPoolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME + "new";
+        pool = MemoryPool.createPool(minimalPoolName, poolSize);
         Assert.assertEquals(poolSize, pool.size());
+        TestVars.cleanUp(minimalPoolName);
     }
 
-    // TODO: compare to test with flush.  Does the file copying cause a flush?
-    // TODO: what are the durability promises of file-level operations?
     @Test
     public void testFileDataPersistenceNoFlush() {
         if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
@@ -485,10 +481,9 @@ public class MemoryPoolTests {
         MemoryPool newPool = MemoryPool.openPool(newPoolName);
         Assert.assertEquals(value, newPool.getLong(offset));
         Assert.assertTrue(TestVars.cleanUp(newPoolName));
+        TestVars.cleanUp(newPoolName);
     }
 
-    // TODO: compare to test without flush.  Does the file copying cause a flush?
-    // TODO: what are the durability promises of file-level operations?
     @Test
     public void testFileDataPersistence() {
         if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
@@ -505,6 +500,7 @@ public class MemoryPoolTests {
         MemoryPool newPool = MemoryPool.openPool(newPoolName);
         Assert.assertEquals(value, newPool.getLong(offset));
         Assert.assertTrue(TestVars.cleanUp(newPoolName));
+        TestVars.cleanUp(newPoolName);
     }
 
     // MemoryPool.exists() method
@@ -553,5 +549,43 @@ public class MemoryPoolTests {
         if (!TestVars.ISDAX) throw new SkipException("Test not valid in FSDAX mode");
         String path = "/dev/dax9.9";
         Assert.assertFalse(MemoryPool.exists(path));
+    }
+
+    // hashCode
+    @Test
+    public void testHashCode() {
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        String poolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME;
+        int hash1 = pool.hashCode();
+        MemoryPool pool2 = MemoryPool.openPool(poolName);
+        int hash2 = pool2.hashCode();
+        Assert.assertEquals(hash1, hash2);
+    }
+
+    // equals
+    @Test
+    public void testEquality() {
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        String poolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME;
+        MemoryPool pool2 = MemoryPool.openPool(poolName);
+        Assert.assertEquals(pool, pool2);
+    }
+
+    @Test
+    public void testEqualityNegative() {
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        String poolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME;
+        String newPoolName = poolName + "new";
+        MemoryPool pool2 = MemoryPool.createPool(newPoolName, 10_000_000);
+        Assert.assertFalse(pool.equals(pool2));
+        TestVars.cleanUp(newPoolName);
+    }
+
+    @Test
+    public void testEqualityDifferentObject() {
+        if (TestVars.ISDAX) throw new SkipException("Test not valid in DAX mode");
+        String poolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME;
+        Object pool2 = new Object();
+        Assert.assertFalse(pool.equals(pool2));
     }
 }

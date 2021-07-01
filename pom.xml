@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.intel.pmem</groupId>
     <artifactId>llpl</artifactId>
-    <version>1.1.0-pool-experiment</version>
+    <version>1.1.0-poolexperiment</version>
     <packaging>jar</packaging>
     <name>LLPL</name>
     <description>This project will provide APIs to interface with persistent memory</description>
