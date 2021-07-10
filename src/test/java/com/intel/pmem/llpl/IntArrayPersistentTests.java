@@ -7,9 +7,7 @@
 
 package com.intel.pmem.llpl;
 
-import com.intel.pmem.llpl.*;
 import com.intel.pmem.llpl.util.IntArray;
-
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -21,7 +19,6 @@ public class IntArrayPersistentTests {
 
     @BeforeMethod
     public void initialize() {
-        heap = null;
         heap = TestVars.createPersistentHeap();
     }
 
@@ -45,7 +42,6 @@ public class IntArrayPersistentTests {
             Assert.assertTrue(array != null);
         }
         else {
-            //TODO: Is this correct? It's essentially an assert(arrayHandle == 0)
             Assert.fail("Handle should be zero for new heaps");
         }
     }
@@ -53,10 +49,7 @@ public class IntArrayPersistentTests {
     @Test
     public void testCreateAndReopenArray() {
         long arrayHandle = heap.getRoot();
-        // TODO: Can we assert arrayHandle == 0 here?
-        Assert.assertEquals(arrayHandle, 0);
         IntArray array = new IntArray(heap, 7);
-        Assert.assertTrue(array != null);
         heap.setRoot(array.handle());
         arrayHandle = heap.getRoot();
         array = IntArray.fromHandle(heap, arrayHandle);
@@ -66,7 +59,6 @@ public class IntArrayPersistentTests {
     @Test
     public void testArrayAccessorMethods() {
         IntArray array = new IntArray(heap, 7);
-        Assert.assertTrue(array != null);
         long numValues = 7;
         for (long i = 0; i < numValues; i++) {
             int data = 1 << i;
@@ -136,4 +128,19 @@ public class IntArrayPersistentTests {
         }
     }
 
+    @Test
+    public void testHashCode() {
+        IntArray array1 = new IntArray(heap, 10);
+        int hash1 = array1.hashCode();
+        IntArray array2 = IntArray.fromHandle(heap, array1.handle());
+        int hash2 = array2.hashCode();
+        Assert.assertEquals(hash1, hash2);
+    }
+
+    @Test
+    public void testEquality() {
+        IntArray array1 = new IntArray(heap, 10);
+        IntArray array2 = IntArray.fromHandle(heap, array1.handle());
+        Assert.assertEquals(array1, array2);
+    }
 }

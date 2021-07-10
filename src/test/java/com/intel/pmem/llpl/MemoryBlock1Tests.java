@@ -33,6 +33,18 @@ public class MemoryBlock1Tests {
 		else TestVars.cleanUp(TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME);
 	}
 
+    @Test
+    public void testSizeCompactMemoryBlock() {
+        heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        try {
+            mb.size();
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
 	@Test
 	public void testCopyFromCompactMemBlkToCompactLargeLength() {
 		heap = TestVars.createHeap();

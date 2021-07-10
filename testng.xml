@@ -37,6 +37,14 @@
 			<class name="com.intel.pmem.llpl.LongArrayPersistentTests" />
 			<class name="com.intel.pmem.llpl.LongArrayTransactionalTests" />
 			<class name="com.intel.pmem.llpl.LongARTTests" />
+			<class name="com.intel.pmem.llpl.PersistentLongARTTests" />
+			<class name="com.intel.pmem.llpl.TransactionalLongARTTests" />
+			<class name="com.intel.pmem.llpl.ConcurrentLongARTTests" />
+			<class name="com.intel.pmem.llpl.PersistentConcurrentLongARTTests" />
+			<class name="com.intel.pmem.llpl.TransactionalConcurrentLongARTTests" />
+			<class name="com.intel.pmem.llpl.LongLinkedListTests" />
+			<class name="com.intel.pmem.llpl.LongLinkedListPersistentTests" />
+			<class name="com.intel.pmem.llpl.LongLinkedListTransactionalTests" />
 		</classes>
 	</test>
 </suite>

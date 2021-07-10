@@ -23,8 +23,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 @Test(singleThreaded = true)
-public class LongARTTests {
-    Heap heap = null;
+public class TransactionalLongARTTests {
+    TransactionalHeap heap = null;
     static byte[] firstKey;
     static byte[] lastKey;
     static byte[] prefixKey;
@@ -37,7 +37,7 @@ public class LongARTTests {
 
     @BeforeMethod
     public void initialize() {
-        heap = TestVars.createHeap();
+        heap = TestVars.createTransactionalHeap();
         firstKey = new byte[8]; Arrays.fill(firstKey, (byte)0);
         lastKey = new byte[20]; Arrays.fill(lastKey, (byte)0xff);
         prefixKey = Arrays.copyOfRange(lastKey, 0, 12);

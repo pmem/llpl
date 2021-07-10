@@ -7,95 +7,97 @@
 
 package com.intel.pmem.llpl.util;
 
-import static java.util.Map.Entry;
-import java.util.Arrays;
-import java.util.Map;
-import com.intel.pmem.llpl.*;
-import com.intel.pmem.llpl.util.LongArray;
-import java.util.concurrent.locks.ReentrantLock;
+import com.intel.pmem.llpl.AnyHeap;
+import com.intel.pmem.llpl.AnyMemoryBlock;
+import com.intel.pmem.llpl.HeapException;
+import java.util.Comparator;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.Comparator;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
-public class ConcurrentLongART implements DynamicSharded<byte[]> {
+/**
+ * This is a Concurrent implementation of an Adaptive Radix Tree that uses {@code byte[]} for keys and {@code long} for values.
+ * The radix tree can be created using different heap types.
+ * Given a persistent heap, the radix tree will store values durably, and given
+ * a transactional heap, it will store values transactionally.
+ * @since 1.2
+ */
+
+public class ConcurrentLongART extends AbstractSharded<byte[]> {
     private final AnyHeap heap;
     private final Sharder<byte[]> sharder;
-    private final long handle;
     private AnyMemoryBlock rootBlock;
     private final long ROOT_BLOCK_SIZE = 18;
     private final long ROOT_BLOCK_SHARD_OFFSET = 0;
     private final long ROOT_BLOCK_RANGE_OFFSET = 8;
     private final long ROOT_BLOCK_POLICY_OFFSET = 16;
-    final Comparator<byte[]> comparator;// = ConcurrentLongART::compare;
+    final Comparator<byte[]> comparator = ConcurrentLongART::compare;
 
-    public enum Mode {
+    enum Mode {
         Static, 
         Dynamic
     }
 
-    public ConcurrentLongART(AnyHeap heap) {
+    /**
+     * Creates a new radix tree.
+     * The semantics of this method depend on the heap supplied.
+     * Given a persistent heap, the radix tree will store values durably, and given
+     * a transactional heap will store values transactionally. To reaccess this radix tree, for
+     * example after a restart, call {@link LongART#fromHandle(AnyHeap, long)}
+     * @param heap the heap on which to allocate the radix tree
+     * @param concurrencyLevel the estimated number of concurrently accessing threads. This value may
+     * be used as a sizing hint
+     * @throws HeapException if the radix tree could not be created
+     */
+    public ConcurrentLongART(AnyHeap heap, int concurrencyLevel) {
         this.heap = heap;
-        comparator = ConcurrentLongART::compare;
-        this.sharder = new StaticSharder<byte[]>(heap, 16, this);
-        this.handle = this.sharder.handle(); //encodeRootBlock(heap, this.policy, shardArray);
-        LongART.registerAllocationClasses(heap);
-        // System.out.println("New Tree. policy is static. handle is "+this.handle);
+        this.sharder = new DynamicSharder<byte[]>(heap, concurrencyLevel, this);
     }
 
-    public ConcurrentLongART(AnyHeap heap, Mode mode, int maxShards) {
+    private ConcurrentLongART(AnyHeap heap, long handle) {
         this.heap = heap;
-        comparator = ConcurrentLongART::compare;
-        if (mode == Mode.Static) this.sharder = new StaticSharder<byte[]>(heap, maxShards, this);
-        else this.sharder = new DynamicSharder<byte[]>(heap, maxShards, this);
-        this.handle = this.sharder.handle(); //encodeRootBlock(heap, this.policy, shardArray);
-        LongART.registerAllocationClasses(heap);
-        // System.out.println("New Tree. policy is " + type + " handle is "+this.handle);
-    }
-
-    public ConcurrentLongART(AnyHeap heap, long handle) {
-        this.heap = heap;
-        this.handle = handle;
-        this.comparator = ConcurrentLongART::compare;
         this.sharder = Sharder.rebuild(heap, handle, this);
         if (this.sharder == null) throw new RuntimeException();
-        LongART.registerAllocationClasses(heap);
     }
 
-    public Comparator<byte[]> getComparator(){
+    /**
+     * Returns a previously created radix tree that is associated with the supplied handle.
+     * The {@code handle} must be that of a radix tree created on the supplied heap.
+     * @param handle the handle of a previously-created radix tree
+     * @param heap the heap from which to retrieve the radix tree 
+     * @return the radix tree
+     * @throws HeapException if the radix tree could not be reaccessed
+     */
+    public static ConcurrentLongART fromHandle(AnyHeap heap, long handle) {
+        return new ConcurrentLongART(heap, handle);
+    }
+
+    Comparator<byte[]> getComparator(){
         return comparator;
     }
 
-    public Function<Object, byte[]> getKeyWriter() {
-        return (Object o) -> { return (byte[])o; };
-    }
-
-    public Function<byte[], Object> getKeyReader() {
-        return (byte[] b) -> { return b; };
-    }
-
     @Override
-    public DynamicShardable<byte[]> createDynamicShard() {
+    LongART createDynamicShard() {
         return new LongART(heap);
     }
 
     @Override
-    public DynamicShardable<byte[]> recreateDynamicShard(long handle) {
-        return new LongART(heap, handle);
+    LongART recreateDynamicShard(long handle) {
+        return LongART.fromHandle(heap, handle);
     }
     
     @Override
-    public Shardable<byte[]> createShard() {
+    LongART createShard() {
         return new LongART(heap);
     }
 
     @Override
-    public Shardable<byte[]> recreateShard(long handle) {
-        return new LongART(heap, handle);
+    LongART recreateShard(long handle) {
+        return LongART.fromHandle(heap, handle);
     }
     
-    public static int compare(byte[] a, byte[] b) {
+    static int compare(byte[] a, byte[] b) {
 	    byte[] shorter = a.length < b.length ? a : b;
 	    int compare = 0;
 	    for (int i = 0; i < shorter.length; i++) {
@@ -106,81 +108,265 @@ public class ConcurrentLongART implements DynamicSharded<byte[]> {
 	    return compare;
     }
 
-    public void put(byte[] radixKey, long value) {
-        sharder.shardAndExecute(radixKey, (Shardable<byte[]> s) -> {
-            ((LongART)s).put(radixKey, value, (Object v, Long old) -> {return (Long)v;});
+    /**
+     * Retrieves the lowest key in this radix tree.
+     * @return the lowest key 
+     * @throws NoSuchElementException if the radix tree is empty 
+     */
+    public byte[] firstKey() {
+        return sharder.lowestKey((Shardable<byte[]> s) -> {
+            return ((LongART)s).firstKey();
         });
     }
 
-    public void put(byte[] radixKey, Object value, BiFunction<Object, Long, Long> biFunc) {
-        sharder.shardAndExecute(radixKey, (Shardable<byte[]> s) -> {
-            ((LongART)s).put(radixKey, value, biFunc);
+    /**
+     * Retrieves the highest key in this radix tree.
+     * @return the highest key 
+     * @throws NoSuchElementException if the radix tree is empty 
+     */
+    public byte[] lastKey() {
+        return sharder.highestKey((Shardable<byte[]> s) -> {
+            return ((LongART)s).lastKey();
         });
     }
 
+    /**
+     * Maps the specified key to the specified value.
+     * If a mapping already exists for the specified key, the value is replaced.
+     * @param key the key to which the specified value is to be mapped
+     * @param value the value to be mapped to the specified key
+     * @return the previous {@code long} value mapped to the specified key, or zero
+     * if there is no previous mapping
+     * @throws IllegalArgumentException if the supplied key has zero length
+     */    
+    public long put(byte[] key, long value) {
+        if (key == null || key.length == 0) throw new IllegalArgumentException("Invalid key");
+        return (long)sharder.shardAndPut(key, (Shardable<byte[]> s) -> {
+            return ((LongART)s).put(key, value, (Object v, Long old) -> {return (Long)v;});
+        });
+    }
+    
+    /**
+     * Maps the specified key to the specified value.
+     * If a mapping already exists for the specified key, the value is replaced.
+     * The supplied merge function will be called with the {@code newValue} and current 
+     * value. The value returned by the merge function will be stored.
+     * @param key the key to which the specified value is to be mapped
+     * @param newValue the new value to be passed to the merge function
+     * @param mergeFunction the merge function
+     * @return the previous {@code long} value mapped to the specified key, or zero 
+     * if there is no previous mapping
+     * @throws IllegalArgumentException if the supplied value is null or the supplied key 
+     * has zero length 
+     */
+    public long put(byte[] key, Object newValue, BiFunction<Object, Long, Long> mergeFunction) {
+        if (key == null || key.length == 0) throw new IllegalArgumentException("Invalid key");
+        if (newValue == null) throw new IllegalArgumentException("newValue cannot be null");
+        return (long)sharder.shardAndPut(key, (Shardable<byte[]> s) -> {
+            return ((LongART)s).put(key, newValue, mergeFunction);
+        });
+    }
+
+    /**
+     * Retrieves the {@code long} value mapped to the supplied key.
+     * @param key the key whose mapped value is to be returned 
+     * @return the {@code long} value mapped to the supplied key
+     * @throws IllegalStateException if {@link ConcurrentLongART#free} has been called on this object
+     */
     public long get(byte[] key) {
-        long ret = (long)sharder.shardAndExecute(key, (Shardable<byte[]> s) -> {
+        if (key == null || key.length == 0) throw new IllegalArgumentException("Invalid key");
+        return (long)sharder.shardAndGet(key, (Shardable<byte[]> s) -> {
             return ((LongART)s).get(key);
         });
-        return ret;
     }
 
-    public Object get(byte[] key, Function<Long, Object> operation) {
-        Object ret = sharder.shardAndExecute(key, (Shardable<byte[]> s) -> {
-            Long value = ((LongART)s).get(key);
-            return operation.apply(value);
-        });
-        return ret;
-    }
-
+    /**
+     * Returns the number of entries in this radix tree.
+     * @return the number of entries
+     * @throws IllegalStateException if {@link ConcurrentLongART#free} has been called on this object
+     */
     public long size() {
         return sharder.totalEntries();
     }
 
+    /**
+     * Returns an ascending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys range from {@code firstKey} to {@code lastKey}.
+     * The returned iterator is designed to be used solely by the thread that calls this method. This 
+     * iterator implementation acquires resources which must be released, either by iterating through 
+     * all entries, or by calling {@link AutoCloseable#close} on the iterator. 
+     * @param firstKey low endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the lowest key is to be included in the returned iterator
+     * @param lastKey high endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if firstKey or lastKey has zero length
+     */
     public AutoCloseableIterator<LongART.Entry> getEntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive) {
+        if (firstKey == null || firstKey.length == 0 || lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
         return sharder.shardsAndExecute(firstKey, lastKey, (Shardable<byte[]> s) -> {
             return ((LongART)s).getEntryIterator(firstKey, firstInclusive, lastKey, lastInclusive);
-        });
+        }, false);
     }
 
+    /**
+     * Returns an ascending-order iterator over the entries in this radix tree.
+     * The returned iterator is designed to be used solely by the thread that calls this method. This 
+     * iterator implementation acquires resources which must be released, either by iterating through 
+     * all entries, or by calling {@link AutoCloseable#close} on the iterator. 
+     * @return the iterator
+     */
     public AutoCloseableIterator<LongART.Entry> getEntryIterator() {
         return sharder.shardsAndExecute(null, null, (Shardable<byte[]> s) -> {
             return ((LongART)s).getEntryIterator();
-        });
+        }, false);
     }
 
+    /**
+     * Returns a descending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys range from {@code firstKey} to {@code lastKey}.
+     * The returned iterator is designed to be used solely by the thread that calls this method. This 
+     * iterator implementation acquires resources which must be released, either by iterating through 
+     * all entries, or by calling {@link AutoCloseable#close} on the iterator. 
+     * @param firstKey low endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the lowest key is to be included in the returned iterator
+     * @param lastKey high endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if firstKey or lastKey has zero length
+     */
+    public AutoCloseableIterator<LongART.Entry> getReverseEntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive) {
+        if (firstKey == null || firstKey.length == 0 || lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
+        return sharder.shardsAndExecute(firstKey, lastKey, (Shardable<byte[]> s) -> {
+            return ((LongART)s).getReverseEntryIterator(firstKey, firstInclusive, lastKey, lastInclusive);
+        }, true);
+    }
+
+    /**
+     * Returns a descending-order iterator over the entries in this radix tree.
+     * The returned iterator is designed to be used solely by the thread that calls this method. This 
+     * iterator implementation acquires resources which must be released, either by iterating through 
+     * all entries, or by calling {@link AutoCloseable#close} on the iterator. 
+     * @return the iterator
+     */
+    public AutoCloseableIterator<LongART.Entry> getReverseEntryIterator() {
+        return sharder.shardsAndExecute(null, null, (Shardable<byte[]> s) -> {
+            return ((LongART)s).getReverseEntryIterator();
+        }, true);
+    }
+
+    /**
+     * Returns an ascending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys are lower than (or equal to, 
+     * if {@code lastInclusive} is true) {@code lastKey}.
+     * The returned iterator is designed to be used solely by the thread that calls this method. This 
+     * iterator implementation acquires resources which must be released, either by iterating through 
+     * all entries, or by calling {@link AutoCloseable#close} on the iterator. 
+     * @param lastKey high endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if lastKey has zero length
+     */
     public AutoCloseableIterator<LongART.Entry> getHeadEntryIterator(byte[] lastKey, boolean lastInclusive) {
+        if (lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
         return sharder.shardsAndExecute(null, lastKey, (Shardable<byte[]> s) -> {
             return ((LongART)s).getHeadEntryIterator(lastKey, lastInclusive);
-        });
+        }, false);
     }
 
+    /**
+     * Returns an ascending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys are higher than (or equal to, 
+     * if {@code firstInclusive} is true) {@code firstKey}.
+     * The returned iterator is designed to be used solely by the thread that calls this method. This 
+     * iterator implementation acquires resources which must be released, either by iterating through 
+     * all entries, or by calling {@link AutoCloseable#close} on the iterator. 
+     * @param firstKey low endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the lowest key is to be included in the returned iterator
+     * @return the iterator
+     * @throws IllegalArgumentException if lastKey has zero length
+     */
     public AutoCloseableIterator<LongART.Entry> getTailEntryIterator(byte[] firstKey, boolean firstInclusive) {
+        if (firstKey == null || firstKey.length == 0) throw new IllegalArgumentException();
         return sharder.shardsAndExecute(firstKey, null, (Shardable<byte[]> s) -> {
             return ((LongART)s).getTailEntryIterator(firstKey, firstInclusive);
+        }, false);
+    }
+
+    /**
+     * Removes the mapping for the specified key from this radix tree if present.
+     * The semantics of this method depend on the heap supplied when constructed.
+     * @param key the key whose mapping is to be removed.
+     * @param cleanerFunction this function will be called once for each entry, passing the value of the 
+     * entry being removed. This may be particularly useful for performing additional cleanup, in 
+     * the case where the values stored in this radix tree are handles
+     * @return the removed value or zero if not found
+     * @throws IllegalArgumentException if the supplied key has zero length
+     */
+    public long remove(byte[] key, Consumer<Long> cleanerFunction) {
+        if (cleanerFunction == null) throw new NullPointerException("cleaner function cannot be null");
+        if (key.length == 0) throw new IllegalArgumentException("Invalid key");
+        return (long)sharder.shardAndGet(key, (Shardable<byte[]> s) -> {
+            return ((LongART)s).remove(key, cleanerFunction);
         });
     }
 
-    public void delete(byte[] radixKey, Consumer<Long> cleaner) {
-        sharder.shardAndExecute(radixKey, (Shardable<byte[]> s) -> {
-            ((LongART)s).delete(radixKey, cleaner);
-        });
+    /**
+     * Removes all of the entries in this radix tree.
+     * The semantics of this method depend on the heap supplied when constructed.
+     * @param cleanerFunction this function will be called once for each entry, passing the value of the 
+     * entry being removed. This may be particularly useful for performing additional cleanup, in 
+     * the case where the values stored in this radix tree are handles
+     * @throws IllegalStateException if {@link ConcurrentLongART#free} has been called on this object
+     */
+    public void clear(Consumer<Long> cleanerFunction) {
+        if (cleanerFunction == null) throw new IllegalArgumentException("cleaner function cannot be null");
+        sharder.forEach((Shardable<byte[]> s) -> { ((LongART)s).clear(cleanerFunction); });
     }
 
-    public void clear(Consumer<Long> cleaner) {
-        sharder.forEach((Shardable<byte[]> s) -> { ((LongART)s).clear(cleaner); });
-    }
-
+    /**
+     * Deallocates the memory used by this radix tree.
+     * The semantics of this method depend on the heap supplied when the radix tree was constructed.
+     * @throws HeapException if the radix tree could not be freed
+     * @throws IllegalStateException if {@link ConcurrentLongART#free} has been called on this object
+     */
     public void free() {
         sharder.free();
     }
 
-    public void print() {
-        // ((DynamicSharder)sharder).printRangeMap();
-        ((DynamicSharder)sharder).debug();
-    }
-    
+    /**
+     * Returns a handle to this radix tree. This stable value can be stored and used later to regain
+     * access to the radix tree.
+     * @return a handle to this radix tree
+     * @throws IllegalStateException if {@link ConcurrentLongART#free} has been called on this object
+     */
     public long handle() {
-        return handle; 
+        long ret = sharder.handle();
+        if (ret == 0) throw new IllegalStateException();
+        return ret;
+    }
+
+    /**
+     * Returns a hash code for this radix tree.  Note that this hash code is not computed based on the 
+     * entries in this radix tree and is only stable for the lifetime of the Java process.   
+     * @return a hash code for this radix tree 
+     */
+    @Override
+    public int hashCode() {
+        AnyMemoryBlock rootBlock = heap.memoryBlockFromHandle(handle());
+        return rootBlock.hashCode();
+    }
+
+    /**
+     * Compares this radix tree to the specified object.  The result is true if and only if the argument is not 
+     * null and is a radix tree whose handle is equal to the handle of this radix tree. 
+     * @return true if the given object is equal 
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof ConcurrentLongART)) return false;
+        AnyMemoryBlock thisRootBlock = heap.memoryBlockFromHandle(handle());
+        AnyMemoryBlock otherRootBlock = heap.memoryBlockFromHandle(((ConcurrentLongART)obj).handle());
+        return otherRootBlock.equals(thisRootBlock);
     }
 }

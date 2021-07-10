@@ -489,6 +489,7 @@ public abstract class AnyHeap {
     }
 
     boolean outOfBounds(long offset) {
+        if (offset < 0) return true;
         if (offset >= size) {
             size = nativeProbeHeapSize(poolHandle, size);
             if (offset >= size) return true;

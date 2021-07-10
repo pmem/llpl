@@ -40,6 +40,18 @@ public class TransactionalMemoryBlock1Tests {
 		mbNew.copyFromMemoryBlock(mb, 0, 0, 1030);
 	}
 
+    @Test
+    public void testSizeCompactMemoryBlock() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        try {
+            mb.size();
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
 	@Test
 	public void testCopyFromCompactMemBlkToCompactVeryLargeLength() {
 		heap = TestVars.createTransactionalHeap();

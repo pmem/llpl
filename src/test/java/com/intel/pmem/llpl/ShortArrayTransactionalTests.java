@@ -7,9 +7,7 @@
 
 package com.intel.pmem.llpl;
 
-import com.intel.pmem.llpl.*;
 import com.intel.pmem.llpl.util.ShortArray;
-
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -44,7 +42,6 @@ public class ShortArrayTransactionalTests {
             Assert.assertTrue(array != null);
         }
         else {
-            //TODO: Is this correct? It's essentially an assert(arrayHandle == 0)
             Assert.fail("Handle should be zero for new heaps");
         }
     }
@@ -52,10 +49,7 @@ public class ShortArrayTransactionalTests {
     @Test
     public void testCreateAndReopenArray() {
         long arrayHandle = heap.getRoot();
-        // TODO: Can we assert arrayHandle == 0 here?
-        Assert.assertEquals(arrayHandle, 0);
         ShortArray array = new ShortArray(heap, 7);
-        Assert.assertTrue(array != null);
         heap.setRoot(array.handle());
         arrayHandle = heap.getRoot();
         array = ShortArray.fromHandle(heap, arrayHandle);
@@ -65,7 +59,6 @@ public class ShortArrayTransactionalTests {
     @Test
     public void testArrayAccessorMethods() {
         ShortArray array = new ShortArray(heap, 7);
-        Assert.assertTrue(array != null);
         long numValues = 7;
         for (long i = 0; i < numValues; i++) {
             short data = (short)(1 << i);
@@ -135,4 +128,19 @@ public class ShortArrayTransactionalTests {
         }
     }
 
+    @Test
+    public void testHashCode() {
+        ShortArray array1 = new ShortArray(heap, 10);
+        int hash1 = array1.hashCode();
+        ShortArray array2 = ShortArray.fromHandle(heap, array1.handle());
+        int hash2 = array2.hashCode();
+        Assert.assertEquals(hash1, hash2);
+    }
+
+    @Test
+    public void testEquality() {
+        ShortArray array1 = new ShortArray(heap, 10);
+        ShortArray array2 = ShortArray.fromHandle(heap, array1.handle());
+        Assert.assertEquals(array1, array2);
+    }
 }

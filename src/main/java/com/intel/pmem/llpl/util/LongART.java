@@ -7,78 +7,131 @@
 
 package com.intel.pmem.llpl.util;
 
-import com.intel.pmem.llpl.*;
+import com.intel.pmem.llpl.AnyHeap;
+import com.intel.pmem.llpl.AnyMemoryBlock;
+import com.intel.pmem.llpl.HeapException;
+import com.intel.pmem.llpl.Range;
 import java.nio.ByteBuffer;
-import java.util.function.*;
-import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.ArrayList;
+import java.util.function.*;
 import java.util.Optional;
 import java.util.Iterator;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.NoSuchElementException;
+
+/**
+ * This is an implementation of an Adaptive Radix Tree that uses {@code byte[]} for keys and {@code long} for values. 
+ * The radix tree can be created using different heap types. Given a persistent heap, the radix tree will store values durably,
+ * and given a transactional heap, it will store values transactionally.<br><br>
+ * <b>This implementation is not thread-safe.</b> If multiple threads access a tree, and one or more of them modifies
+ * the tree, then it must be synchronized externally. 
+ * @since 1.2
+ */
 
 public class LongART implements DynamicShardable<byte[]> {
     final AnyHeap heap;
     private Root root;
     private int maxKeyLen;
-    //private int maxDepth;
     private long count = 0;
-    static final long LONG_MASK = 1L << 63;
-    static final int INT_MASK = 1 << 31;
     private byte[] lastKey;
 
-    ReentrantLock lock = new ReentrantLock(false);
-    
-    public void lock() { this.lock.lock(); }
-
-    public void unlock() { this.lock.unlock(); }
-
-    public boolean isLocked() { return lock.isLocked(); }
-
+    /**
+     * Creates a new radix tree.
+     * The semantics of this method depend on the heap supplied.
+     * Given a persistent heap, the radix tree will store values durably, and given
+     * a transactional heap will store values transactionally. To reaccess this radix tree, for
+     * example after a restart, call {@link LongART#fromHandle(AnyHeap, long)}
+     * @param heap the heap on which to allocate the radix tree
+     * @throws HeapException if the radix tree could not be created
+     */
     public LongART(AnyHeap heap) {
-        this.heap = heap;   // maybe from TreeManager?
+        registerAllocationClasses(heap);
+        this.heap = heap;   
         this.root = new Root(heap);
     }
     
-    public static void registerAllocationClasses(AnyHeap heap) {
+    static void registerAllocationClasses(AnyHeap heap) {
         heap.registerAllocationSize(SimpleLeaf.SIZE, true);
         heap.registerAllocationSize(Node4.SIZE, true);
         heap.registerAllocationSize(Node16.SIZE, true);
         heap.registerAllocationSize(Node48.SIZE, true);
         heap.registerAllocationSize(Node256.SIZE, true);
     }
-
+    
     @SuppressWarnings("unchecked")
-    public LongART(AnyHeap heap, long handle) {
-        if (handle < 0) throw new IllegalArgumentException("Invalid artree handle: "+handle);
+    private LongART(AnyHeap heap, long handle) {
+        if (handle <= 0) throw new IllegalArgumentException("Invalid artree handle: "+handle);
+        registerAllocationClasses(heap);
         this.heap = heap;
-        this.root = (Root)Node.rebuild(heap, handle);
-        count = this.root.getCount();
+        root = (Root)Node.rebuild(heap, handle);
+        count = root.getCount();
         maxKeyLen = this.root.getMaxKeyLength(); 
     }
      
+    /**
+     * Returns a previously created radix tree that is associated with the supplied handle.
+     * The {@code handle} must be that of a radix tree created on the supplied heap.
+     * @param handle the handle of a previously-created radix tree
+     * @param heap the heap from which to retrieve the radix tree 
+     * @return the radix tree
+     * @throws HeapException if the radix tree could not be reaccessed
+     * @throws IllegalArgumentException if ${@code handle} is not valid
+     */
+    public static LongART fromHandle(AnyHeap heap, long handle) {
+        return new LongART(heap, handle);
+    }
+
+    /**
+     * Returns a handle to this radix tree. This stable value can be stored and used later to regain
+     * access to the radix tree.
+     * @return a handle to this radix tree
+     * @throws IllegalStateException if {@link LongART#free} has been called on this object
+     */
     public long handle() {
         return root.handle();
     }
 
+    /**
+     * Deallocates the memory used by this radix tree.
+     * The semantics of this method depend on the heap supplied when the radix tree was constructed.
+     * @throws HeapException if the radix tree could not be freed
+     * @throws IllegalStateException if {@link LongART#free} has been called on this object
+     */
     public void free() {
         root.free();
     }
 
-    protected static int compareUnsigned(byte b1, byte b2) {
+    static int compareUnsigned(byte b1, byte b2) {
         return Integer.compareUnsigned(Byte.toUnsignedInt(b1), Byte.toUnsignedInt(b2));
     }
 
-    enum Operation {
-        DELETE_NODE,
-        END,
-        NO_OP;
-    }
-
+    /**
+     * Returns the number of entries in this radix tree.
+     * @return the number of entries
+     * @throws IllegalStateException if {@link LongART#free} has been called on this object
+     */
     public long size() {
         return root.getCount();
+    }
+
+    /**
+     * Returns a hash code for this radix tree.  Note that this hash code is not computed based on the 
+     * entries in this radix tree and is only stable for the lifetime of the Java process.   
+     * @return a hash code for this radix tree 
+     */
+    @Override
+    public int hashCode() {
+        return root.mb.hashCode();
+    }
+
+    /**
+     * Compares this radix tree to the specified object.  The result is true if and only if the argument is not 
+     * null and is a radix tree whose handle is equal to the handle of this radix tree. 
+     * @return true if the given object is equal 
+     */
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof LongART && ((LongART)obj).root.mb.equals(this.root.mb);
     }
 
     private void incrementCount() {
@@ -95,90 +148,81 @@ public class LongART implements DynamicShardable<byte[]> {
         root.setMaxKeyLength(maxKeyLen = length); 
     }
 
-    synchronized void debug() {
-        int numEntries = 0;
-        Entry en = null;
-        Iterator<Entry> e = getEntryIterator();
-        System.out.println("================================================================");
-        while (e.hasNext()) {
-            en = e.next();
-            System.out.println(format(en.getKey())+" => "+en.getValue());
-            numEntries+=1;
-        }
-        if (numEntries != count) throw new RuntimeException("count is "+count+", numEntries is "+numEntries+" lastKey found is "+format(en.getKey()));
-        // if (numEntries != count) System.err.println("count is "+count+", numEntries is "+numEntries+" lastKey found is "+format(en.getKey()));
-    }
-
+    /**
+     * Retrieves the lowest key in this radix tree.
+     * @return the lowest key 
+     * @throws NoSuchElementException if the radix tree is empty 
+     */
     public byte[] firstKey() {
         Node n = root.getChild();
         if (n == null) throw new NoSuchElementException();
-        ByteBuffer lastKey = ByteBuffer.allocate(maxKeyLen);
-        int depth = 0;
-        while (true) {
-            byte[] tmp = n.getPrefix();
-            if (tmp.length > 0) lastKey.put(tmp); depth += tmp.length;
-            if (n.isLeaf()) break;
-            if (((InternalNode)n).hasBlankRadixChild()) break;
-            byte b = ((InternalNode)n).findLowestRadix();
-            lastKey.put(b); depth++;
-            n = ((InternalNode)n).findChild(b);
-        }
-        return Arrays.copyOf(lastKey.array(), lastKey.position());
+        ByteBuffer firstKey = ByteBuffer.allocate(maxKeyLen);
+        SearchHelper h = (Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) -> {
+            byte[] ba = parent.getPrefix();
+            if (ba.length > 0) firstKey.put(ba);
+            if (radix != null ) firstKey.put(radix);
+            if (child != null && child.isLeaf()) firstKey.put(child.getPrefix());
+        };
+        search2(n, new byte[]{}, 0, h, null, false);
+        return Arrays.copyOf(firstKey.array(), firstKey.position());
     }
 
+    /**
+     * Retrieves the highest key in this radix tree.
+     * @return the highest key 
+     * @throws NoSuchElementException if the radix tree is empty 
+     */
     public byte[] lastKey() {
         Node n = root.getChild();
-        //if (n == null) return new byte[]{};
         if (n == null) throw new NoSuchElementException();
         ByteBuffer lastKey = ByteBuffer.allocate(maxKeyLen);
-        int depth = 0;
-        while (true) {
-            byte[] tmp = n.getPrefix();
-            if (tmp.length > 0) lastKey.put(tmp); depth += tmp.length;
-            if (n.isLeaf()) break;
-            byte b = ((InternalNode)n).findHighestRadix();
-            lastKey.put(b); depth++;
-            InternalNode n1 = (InternalNode)n;
-            n = ((InternalNode)n).findChild(b);
-            if (n == null){
-                System.out.println("n is a node "+n1.capacity());
-            } 
-        }
+        SearchHelper h = (Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) -> {
+            byte[] ba = parent.getPrefix();
+            if (ba.length > 0) lastKey.put(ba);
+            if (radix != null ) lastKey.put(radix);
+            if (child != null && child.isLeaf()) lastKey.put(child.getPrefix());
+        };
+        search2(n, new byte[]{}, 0, h, null, true);
         return Arrays.copyOf(lastKey.array(), lastKey.position());
     }
 
     /**
-     * inserts a byte[] key into this tree 
-     * @param radixKey the key 
-     * @param value the value 
+     * Maps the specified key to the specified value.
+     * If a mapping already exists for the specified key, the value is replaced.
+     * @param key the key to which the specified value is to be mapped
+     * @param value the value to be mapped to the specified key
+     * @return the previous {@code long} value mapped to the specified key, or zero
+     * if there is no previous mapping
+     * @throws IllegalArgumentException if the supplied key has zero length
      */    
-    public void put(byte[] radixKey, Long value) {
-        /*if (radixKey == null) throw new IllegalArgumentException("radixKey cannot be null");
-        if (value == null) throw new IllegalArgumentException("value cannot be null");
-        if (radixKey.length > maxKeyLen) maxKeyLen = radixKey.length;
-        heap.execute(() -> {
-            insert(root, root.getChild(), radixKey, value, 0, 0, (a, b) -> {return value;});
-        });*/
-        put(radixKey, value, (a, b) -> { return value; });
+    public long put(byte[] key, long value) {
+        return put(key, value, (a, b) -> { return value; });
     }
 
     /**
-     * inserts a byte[] key into this tree 
-     * @param radixKey the key 
-     * @param value the value 
-     * @param merge Bifunction that returns a long value to be stored in this tree 
+     * Maps the specified key to the specified value.
+     * If a mapping already exists for the specified key, the value is replaced.
+     * The supplied merge function will be called with the {@code newValue} and current 
+     * value. The value returned by the merge function will be stored.
+     * @param key the key to which the specified value is to be mapped
+     * @param newValue the new value to be passed to the merge function
+     * @param mergeFunction the merge function
+     * @return the previous {@code long} value mapped to the specified key, or zero 
+     * if there is no previous mapping
+     * @throws IllegalArgumentException if the supplied value is null or the supplied key 
+     * has zero length 
      */    
-    public void put(byte[] radixKey, Object value, BiFunction<Object, Long, Long> merge) {
-        if (radixKey == null || radixKey.length == 0) throw new IllegalArgumentException("Invalid radixKey");
-        if (value == null) throw new IllegalArgumentException("value cannot be null");
-        if (radixKey.length > maxKeyLen) setMaxKeyLength(radixKey.length);
-        heap.execute(() -> {
-            insert(root, root.getChild(), radixKey, value, 0, 0, merge);
+    public long put(byte[] key, Object newValue, BiFunction<Object, Long, Long> mergeFunction) {
+        if (key == null || key.length == 0) throw new IllegalArgumentException("Invalid key");
+        if (newValue == null) throw new IllegalArgumentException("value cannot be null");
+        if (key.length > maxKeyLen) setMaxKeyLength(key.length);
+        return heap.execute(() -> {
+            return insert(root, root.getChild(), key, newValue, 0, 0, mergeFunction);
         });
     }
 
     @SuppressWarnings("unchecked")
-    private void insert(Node parent, Node node, byte[] key, Object value, int depth, int replaceIndex, BiFunction<Object, Long, Long> merge) {
+    private long insert(Node parent, Node node, byte[] key, Object value, int depth, int replaceIndex, BiFunction<Object, Long, Long> merge) {
         if (node == null) {    // empty tree
             long leafValue = merge.apply(value, 0L);
 
@@ -186,7 +230,7 @@ public class LongART implements DynamicShardable<byte[]> {
             Node leaf = SimpleLeaf.create(this.heap, key, 0, key.length, leafValue);
             rt.addChild(leaf);
             incrementCount();
-            return;
+            return 0L;
         }
 
         byte[] newPrefix = new byte[8];
@@ -199,7 +243,7 @@ public class LongART implements DynamicShardable<byte[]> {
                 long old = ((Leaf)node).getValue();
                 long newVal = merge.apply(value,old);
                 if (newVal != old) ((Leaf)node).setValue(newVal);
-                return;
+                return old;
             }
             long newVal = merge.apply(value, 0L);
             InternalNode newNode;
@@ -225,12 +269,7 @@ public class LongART implements DynamicShardable<byte[]> {
             if (parent == root) { ((Root)parent).addChild(newNode); }
             else ((InternalNode)parent).putChildAtIndex(replaceIndex, newNode);
             incrementCount();
-            /*int newDepth = depth - 1 + (prefixLength / 9);
-            if (newDepth > maxDepth) { 
-                System.out.println("keylength is "+key.length+" current depth is "+depth+" prefixLen is "+prefixLength +" current maxDepth is "+maxDepth);
-                setMaxDepth(newDepth);
-            }*/
-            return;
+            return 0L;
         }
 
         // current node is an internal node
@@ -256,46 +295,43 @@ public class LongART implements DynamicShardable<byte[]> {
             if (parent == root) { ((Root)parent).addChild(newNode); }
             else ((InternalNode)parent).putChildAtIndex(replaceIndex, newNode);
             incrementCount();
-            /*int newDepth = depth - 1 + (prefixLength / 9);
-            if (newDepth > maxDepth) { 
-                System.out.println("keylength is "+key.length+" current depth is "+depth+" prefixLen is "+prefixLength +" current maxDepth is "+maxDepth);
-                setMaxDepth(newDepth);
-            }*/
-            return;
+            return 0L;
         }
 
         // prefix is a subset of the key
         depth += intNode.getPrefixLength(); // or just += matchedLength;
         if (depth == key.length) {
             //this insertion will be a blankradix child to this internal node
-            if (intNode.hasBlankRadixChild()) {
-                Leaf child = intNode.findBlankRadixChild();
-                long old = child.getValue();
+            Leaf child;
+            long old = 0L;
+            if ((child = intNode.findBlankRadixChild()) != null) {
+                old = child.getValue();
                 long newVal = merge.apply(value, old);
                 if (old != newVal) child.setValue(newVal);
             }
             else{
                 long newVal = merge.apply(value, 0L);
-                SimpleLeaf leaf = new SimpleLeaf(this.heap, newVal);
-                if (!intNode.addBlankRadixChild(leaf)) {
-                    InternalNode newNode = intNode.grow(leaf, Optional.empty());
+                child = new SimpleLeaf(this.heap, newVal);
+                if (!intNode.addBlankRadixChild(child)) {
+                    InternalNode newNode = intNode.grow(child, Optional.empty());
                     ((InternalNode)parent).putChildAtIndex(replaceIndex, newNode);
                     intNode.free();
                 }
                 incrementCount();
             }
             // no need to update prefix for a blank radix child - it has no prefix
-            return;
+            return old;
         }
         //descending find next node with matching radix
         int childIndex = intNode.findChildIndex(key[depth]);
-        //if (childIndex != -1 && childIndex == intNode.getBlankRadixIndex()) throw new RuntimeException("Child index is "+childIndex +" nodetype is "+intNode.getType()+" key[depth] = "+key[depth]);
         Node next = intNode.getChildAtIndex(childIndex);
+        long oldValue;
         if (next != null) {
-            insert(node, next, key, value, depth + 1, childIndex, merge);
+            oldValue = insert(node, next, key, value, depth + 1, childIndex, merge);
         } else {
             // found insertion point. insert leaf
             int prefixLength = key.length - depth - 1;
+            oldValue = 0L;
             long leafVal = merge.apply(value, 0L);
             Node newChild = SimpleLeaf.create(this.heap, key, depth + 1, prefixLength, leafVal);
             if (!intNode.addChild(key[depth], newChild)) {
@@ -307,24 +343,26 @@ public class LongART implements DynamicShardable<byte[]> {
                 intNode.free();
             }
         incrementCount();
-        /*int newDepth = depth - 1 + (prefixLength / 9);
-            if (newDepth > maxDepth) { 
-                System.out.println("keylength is "+key.length+" current depth is "+depth+" prefixLen is "+prefixLength +" current maxDepth is "+maxDepth);
-                setMaxDepth(newDepth);
-            }*/
         }
+        return oldValue;
     }
 
-    public long get(byte[] radixKey) {
-        if (radixKey == null || radixKey.length == 0) throw new IllegalArgumentException("Invalid radixKey");
+    /**
+     * Retrieves the {@code long} value mapped to the supplied key.
+     * @param key the key whose mapped value is to be returned 
+     * @return the {@code long} value mapped to the supplied key
+     * @throws IllegalStateException if the specified key is null or the radix tree has been freed
+     */
+    public long get(byte[] key) {
+        if (key == null || key.length == 0) throw new IllegalArgumentException("Invalid key");
         Node node;
         if ((node = root.getChild()) != null) {
-                return search(root.getChild(), radixKey, 0, null, null);
+                return search(root.getChild(), key, 0, null, null);
         }
         return 0;
     }
 
-    public byte[] splitKey() {
+    byte[] splitKey() {
         EntryIterator it = new EntryIterator();
         long midPos = count / 2;
         int i = 0;
@@ -340,59 +378,41 @@ public class LongART implements DynamicShardable<byte[]> {
             return splitKey;
     }
 
+    /**
+     * [EXPERIMENTAL: This method may change or be removed in future versions] Splits this radix tree into two radix trees of approximately equal size.  
+     * After the split, this radix tree will contain entries with the lower range of keys and 
+     * the returned radix tree will contain entries with the higher range of keys.
+     * @return the radix tree with the higher range of keys
+     * @throws IllegalStateException if {@link LongART#free} has been called on this object
+     */
+    @Override
     public LongART split() {
         EntryIterator it = new EntryIterator();
-        // long pre = count;
         long midPos = count / 2;
         int i = 0;
         byte[] splitKey = null;
-        // byte[] newFirstKey = null;
         while(it.hasNext()) {
             if(i++ < midPos)
                 it.next();
             else {
                 splitKey = it.next().getKey();
-                //if (it.hasNext()) newFirstKey = it.next().getKey();
                 break;
             }
         } 
-        // LongART ret = split(splitKey);
-        // System.out.println("precount is "+pre+" midPos is "+midPos+" oldCount is "+count+" newCount is "+ret.count);
-        // debug();
-        // ret.debug();
-        // if (keyCompare(lastKey(), splitKey) != 0) throw new RuntimeException("lastkey: "+format(lastKey())+" splitkey is "+format(splitKey));
-        // if (keyCompare(ret.firstKey(), newFirstKey) != 0) throw new RuntimeException("new first key expected "+format(newFirstKey)+ " but found "+format(ret.firstKey()));
-        // if (keyCompare(lastKey(), ret.firstKey()) > 0) throw new RuntimeException();
-        //System.out.println("Done splitting.");
-        // return ret;
+        if (splitKey == null) return null;
         return split(splitKey);
     }
 
-    private String format(byte[] ba) {
-        StringBuffer sb = new StringBuffer("[ ");
-        for (int i = 0; i< ba.length; i++) {
-            sb.append(Byte.toUnsignedInt(ba[i])+ " ");
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    int keyCompare(byte[] firstKey, byte[] nextKey){
-            int ret = 0;
-            int i = 0;
-            while (i < firstKey.length && i < nextKey.length && (ret = compareUnsigned(firstKey[i], nextKey[i])) == 0) i++;
-            return (ret == 0) ? Integer.compare(firstKey.length, nextKey.length) : ret;
-    }
-
-    public LongART split(byte[] splitKey) {
+    LongART split(byte[] splitKey) {
         // navigate to splitkey
         // build a cache of copied nodes as you iterate
         // navigate backup and remove radices less than key[depth]
         // return new tree. yikes.
+        if (splitKey == null || splitKey.length == 0) throw new IllegalArgumentException("Invalid splitKey");
         LongART newTree = new LongART(heap);
         Root newRoot = newTree.root;
         SearchHelper splitFunc = (Node parent, Node child, Byte radix, Consumer<Long> c) -> {
-            if (radix == null) System.out.println("Uh oh! radix is null");
+            //if (radix == null) System.out.println("Uh oh! radix is null");
             if (child.isLeaf()) {
                 if(radix == (byte)-1) return; 
                 InternalNode s = ((InternalNode)parent).split(++radix, true);
@@ -415,23 +435,26 @@ public class LongART implements DynamicShardable<byte[]> {
             }
         };
         search(root.getChild(), splitKey, 0, splitFunc, null);  
-        /*Node n = root.getChild();
-        if (!n.isLeaf() && ((InternalNode)n).getChildrenCount() == 0) {
-            root.deleteChild();    
-        }*/
         long newcount = 1 + (root.getCount() / 2);
         count = newcount;
         root.setCount(newcount);
         newRoot.setCount(newcount - 2);
         newTree.count = newcount - 2;
+        newTree.setMaxKeyLength(maxKeyLen);
         return newTree;
     }
 
     void mergeTree(LongART tree) {
     // add each child entry in tree top node to this trees top node
-        if (!tree.root.getChild().isLeaf()) {
-            InternalNode from = (InternalNode)tree.root.getChild();
+    // data from tree is moved to this tree
+        Node node;
+        if ((node = tree.root.getChild()) != null && !node.isLeaf()) {
+            InternalNode from = (InternalNode)node;
             InternalNode to = (InternalNode)this.root.getChild();
+            if (to == null) {
+                this.root.addChild(from);
+                return;
+            }
             NodeEntry[] children = from.getEntries();
             for (int i=0; i<children.length; i++) {
                 if(!to.addChild(children[i].radix, children[i].child)) {
@@ -443,6 +466,52 @@ public class LongART implements DynamicShardable<byte[]> {
             }
         }
         
+    }
+
+    @SuppressWarnings("unchecked")
+    private long search2(Node node, byte[] key, int depth, SearchHelper helper, Consumer<Long> c, boolean reversed) {
+        if (node == null) {
+            return 0;
+        }
+        Node next;
+        int matchedLength = (key.length == 0) ? node.getPrefixLength() : node.checkPrefix(key, depth);
+        if (matchedLength != node.getPrefixLength()) {
+            return -1;
+        }
+        if (node.isLeaf())
+            return ((depth + matchedLength) == key.length) ? ((SimpleLeaf)node).getValue() : 0;
+        else {
+            depth += matchedLength;
+            boolean blank;
+            long l;
+            if (key.length == 0) {
+                InternalNode n = (InternalNode)node;
+                byte b = 0;  
+                if (reversed) {
+                    blank = n.hasBlankRadixChild() && n.getChildrenCount() == 1; 
+                    next = blank ? n.findBlankRadixChild() : n.findChild(b = n.findHighestRadix());
+                }
+                else {
+                blank = n.hasBlankRadixChild();
+                next = blank ? n.findBlankRadixChild() : n.findChild(b = n.findLowestRadix());
+                } 
+
+                if (helper != null) {
+                    helper.apply(node, next, (blank ? null : b), c);
+                }
+                l = search2(next, key, blank ? depth : depth + 1, helper, c, reversed);
+            }
+            else {
+                blank = (depth == key.length);
+                next = blank ? ((InternalNode)node).findBlankRadixChild() : ((InternalNode)node).findChild(key[depth]);
+
+                if (helper != null) {
+                    helper.apply(node, next, (blank ? null : key[Math.min(depth,key.length-1)]), c);
+                }
+                l = search2(next, key, blank ? depth : depth + 1, helper, c, reversed);
+            }
+            return l;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -470,83 +539,155 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 
-    public void statsPrint() {
+    void statsPrint() {
         System.out.println("Printing Stats .Printing Stats ...");
-        if (root.getChild() != null)
-            root.getChild().statsPrint(0);
+        Node node;
+        if ((node = root.getChild()) != null)
+            node.statsPrint(0);
         System.out.println("");
     }
 
-    public void print() {
-        if (root.getChild() != null)
-            root.getChild().print(0);
+    void print() {
+        Node node;
+        if ((node = root.getChild()) != null)
+            node.print(0);
         System.out.println("");
     }
 
-    public void clear(Consumer<Long> cleaner) {
-        if (cleaner == null) throw new IllegalArgumentException("cleaner function cannot be null");
+    
+    /**
+     * Removes all of the entries in this radix tree.
+     * The semantics of this method depend on the heap supplied when constructed.
+     * @param cleanerFunction this function will be called once for each entry, passing the value of the 
+     * entry being removed. This may be particularly useful for performing additional cleanup, in 
+     * the case where the values stored in this radix tree are handles
+     * @throws IllegalStateException if {@link LongART#free} has been called on this object
+     */
+    public void clear(Consumer<Long> cleanerFunction) {
+        if (cleanerFunction == null) throw new IllegalArgumentException("cleaner function cannot be null");
         heap.execute(() -> {
-            root.destroy(cleaner);
+            root.destroy(cleanerFunction);
             count = 0;
         });
     }
 
     @FunctionalInterface
-    public interface SearchHelper {
-        void apply(Node parent, Node child, Byte radix, Consumer<Long> cleaner);
+    interface SearchHelper {
+        void apply(Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction);
     }
 
-    void deleteNodes(Node parent, Node child, Byte radix, Consumer<Long> cleaner) {
+    void deleteNodes(Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) {
         heap.execute(()->{
+            if (child == null) return;
             if (child.isLeaf()) {
-            //    System.out.println("Ascending: deleting node at radix "+new String(new byte[]{radix}));
-                if (cleaner != null) cleaner.accept(((SimpleLeaf)child).getValue());
+                if (cleanerFunction != null) cleanerFunction.accept(((SimpleLeaf)child).getValue());
                 child.free();
                 ((InternalNode)parent).deleteChild(radix);
                 decrementCount();
             }
             else if (((InternalNode)child).getChildrenCount() == 0) {
-            //    System.out.println("Ascending: deleting node at radix "+new String(new byte[]{radix}));
                 child.free();
                 ((InternalNode)parent).deleteChild(radix);
             }
         });
     }
 
-    public void delete(byte[] key, Consumer<Long> cleaner) {
-        search(root.getChild(), key, 0, this::deleteNodes , cleaner);
+    /**
+     * Removes the mapping for the specified key from this radix tree if present.
+     * The semantics of this method depend on the heap supplied when constructed.
+     * @param key the key whose mapping is to be removed.
+     * @param cleanerFunction this function will be called once for each entry, passing the value of the 
+     * entry being removed. This may be particularly useful for performing additional cleanup, in 
+     * the case where the values stored in this radix tree are handles
+     * @return the removed value or zero if not found
+     * @throws IllegalArgumentException if the supplied key has zero length
+     */
+    public long remove(byte[] key, Consumer<Long> cleanerFunction) {
+        if (cleanerFunction == null) throw new NullPointerException("cleaner function cannot be null");
+        if (key.length == 0) throw new IllegalArgumentException("Invalid key");
+        return search(root.getChild(), key, 0, this::deleteNodes , cleanerFunction);
     }
 
-    void forEach(BiFunction<byte[], Long, Operation> fcn) {
-        new InternalIterator(fcn, new byte[0]);
-    }
-
-    void forEach(BiFunction<byte[], Long, Operation> fcn, byte[] firstKey) {
-        new InternalIterator(fcn, firstKey);
-    }
-
-    //public ValueIterator getValueIterator() {
+    /**
+     * Returns an ascending-order iterator over the values in this radix tree.
+     * @return the iterator 
+     */
     public Iterator<Long> getValueIterator() {
         return new ValueIterator();
     }
 
+    /**
+     * Returns an ascending-order iterator over the entries in this radix tree.
+     * @return the iterator 
+     */
     public Iterator<LongART.Entry> getEntryIterator() {
         return new EntryIterator();
     }
 
+    /**
+     * Returns a descending-order iterator over the entries in this radix tree.
+     * @return the iterator 
+     */
+    public Iterator<LongART.Entry> getReverseEntryIterator() {
+        return new EntryIterator(true);
+    }
+
+    /**
+     * Returns a descending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys range from {@code firstKey} to {@code lastKey}.
+     * @param firstKey low endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the lowest key is to be included in the returned iterator
+     * @param lastKey high endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if firstKey or lastKey has zero length
+     */
+    public Iterator<LongART.Entry> getReverseEntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive) {
+        if (firstKey == null || firstKey.length == 0 || lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
+        return new EntryIterator(firstKey, firstInclusive, lastKey, lastInclusive, true);
+    }
+
+    /**
+     * Returns an ascending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys are lower than (or equal to, 
+     * if {@code lastInclusive} is true) {@code lastKey}.
+     * @param lastKey high endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if lastKey has zero length
+     */
     public Iterator<Entry> getHeadEntryIterator(byte[] lastKey, boolean lastInclusive) {
         if (lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
         return new EntryIterator(lastKey, lastInclusive);
     }
 
+    /**
+     * Returns an ascending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys are higher than (or equal to, 
+     * if {@code firstInclusive} is true) {@code firstKey}.
+     * @param firstKey low endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the lowest key is to be included in the returned iterator
+     * @return the iterator
+     * @throws IllegalArgumentException if lastKey has zero length
+     */
     public Iterator<Entry> getTailEntryIterator(byte[] firstKey, boolean firstInclusive) {
         if (firstKey == null || firstKey.length == 0) throw new IllegalArgumentException();
-        return new EntryIterator(firstKey, firstInclusive, null, false);
+        return new EntryIterator(firstKey, firstInclusive, null, false, false);
     }
 
+    /**
+     * Returns an ascending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys range from {@code firstKey} to {@code lastKey}.
+     * @param firstKey low endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the lowest key is to be included in the returned iterator
+     * @param lastKey high endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if firstKey or lastKey has zero length
+     */
     public Iterator<Entry> getEntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive) {
         if (firstKey == null || firstKey.length == 0 || lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
-        return new EntryIterator(firstKey, firstInclusive, lastKey, lastInclusive);
+        return new EntryIterator(firstKey, firstInclusive, lastKey, lastInclusive, false);
     }
 
     class StackItem {
@@ -554,18 +695,23 @@ public class LongART implements DynamicShardable<byte[]> {
         int index = 0;
         int prefixLen = 0;
         private final boolean hasBlank;
+        final boolean reversed;
 
-        public StackItem(NodeEntry[] entries, int prefixLen, boolean hasBlank) {
+        public StackItem(NodeEntry[] entries, int prefixLen, boolean reversed) {
             this.entries = entries;
             this.prefixLen = prefixLen;
-            this.hasBlank = hasBlank;
+            this.hasBlank = true;
+            this.reversed = reversed;
+            if (reversed) index = entries.length - 1;
         }
 
-        public StackItem(NodeEntry[] entries, int prefixLen, Byte radix) {
+        public StackItem(NodeEntry[] entries, int prefixLen, Byte radix, boolean hasBlank, boolean reversed) {
             this.entries=entries;
             this.prefixLen=prefixLen;
-            this.hasBlank=false;
+            this.hasBlank=hasBlank;
+            this.reversed = reversed;
             if (radix != entries[0].radix) this.index = calcIndex(radix);
+            if (reversed && index == entries.length) index = entries.length - 1;
         }
 
         int calcIndex(byte radix) {
@@ -577,7 +723,8 @@ public class LongART implements DynamicShardable<byte[]> {
         }
 
         public boolean isDone() {
-            return index >= entries.length;
+            if (!reversed) return index >= entries.length;
+            else return index < 0; 
         }
 
         public boolean currentIsBlank() {
@@ -588,30 +735,9 @@ public class LongART implements DynamicShardable<byte[]> {
             return prefixLen;
         }
 
-        public NodeEntry[] entries() {
-            return entries;
-        }
-
-        public void saveIndex(int idx) {
-            index = idx;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        public void incrementIndex() { index+=1; }
-
-        public boolean hasBlank() {
-            return hasBlank;
-        }
-
-        public int length() {
-            return entries.length;
-        }
-
-        public NodeEntry entryAt(int index) {
-            return entries[index];
+        public void next() {
+            if (!reversed) index++;
+            else index--;
         }
 
         public NodeEntry entryAtIndex() {
@@ -619,135 +745,33 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 
+    /**
+     * A radix tree entry ({@code byte[]} - {@code long} pair).
+     * @since 1.2
+     */
     public static class Entry {
         byte[] key;
         long value;
 
-        public Entry(byte[] key, long value) {
+        Entry(byte[] key, long value) {
             this.key = key;
             this.value = value;
         }
 
+        /**
+         * Returns the {@code byte[]} key that corresponds to this entry.
+         * @return the key 
+         */
         public byte[] getKey() {
             return key;
         }
 
+        /**
+         * Returns the {@code long} value that corresponds to this entry.
+         * @return the value
+         */
         public long getValue() {
             return value;
-        }
-    }
-
-    private class InternalIterator {
-        byte[] key;
-        byte[] firstKey;
-        boolean visited = false;
-        boolean found = true;
-
-        BiFunction<byte[], Long, Operation> fcn;
-
-        public InternalIterator(BiFunction<byte[], Long, Operation> fcn, byte[] firstKey) {
-            this.fcn = fcn;
-            this.key = new byte[50];
-            this.firstKey = firstKey;
-            if (firstKey.length > 0) {
-                 System.arraycopy(firstKey, 0, key, 0, firstKey.length);
-                 found = false;
-            }
-            Node node = root.getChild();
-            findLowestKey(node, 0);
-            if (!node.isLeaf() && ((InternalNode)node).getChildrenCount() == 0) {
-                root.deleteChild();
-            }
-        }
-
-        void findLowestKey(Node node, int depth) {
-            // System.out.println("FLK: depth is "+depth);
-            boolean blank = false;
-            visited = false;
-            if (node == null) return;
-            if (node.isLeaf()) {
-                 // System.out.println("node is leaf! value->"+((SimpleLeaf)node).getValue());
-                 // System.out.println("next Key is "+ (new String(key, 0, depth))+" depth is "+depth);
-                //if (!found) found = true;
-                return;
-            }
-            while(true) {
-                Node next = null;
-                // copy node prefix into key
-                byte[] prefix = node.getPrefix();
-                if (!found) {
-                    int matchedLength = node.checkPrefix(key, depth);
-                    if (matchedLength != node.getPrefixLength()) {
-                        found = true;
-                        // System.out.println("not a match!");
-                        break;
-                    }
-                    else {
-                        depth += matchedLength;
-                        next = (depth == firstKey.length) ? ((InternalNode)node).findBlankRadixChild() : ((InternalNode)node).findChild(key[depth++]);
-                    }
-                } else {
-                if (prefix.length != 0) {
-                    System.arraycopy(prefix, 0, key, depth, prefix.length);
-                    depth+=prefix.length;
-                }
-                Byte b;
-                // blankRadix check
-                if (!blank && !visited && ((InternalNode)node).hasBlankRadixChild()) {
-                    blank = true;
-                } else {
-                    blank = false;
-                    b = ((InternalNode)node).findLowestRadix(key[depth], visited);
-                    if (b == null) break;
-                    key[depth] = b;
-                }
-                // System.out.println("blank is "+blank);
-                next = blank ? ((InternalNode)node).findBlankRadixChild() : ((InternalNode)node).findChild(key[depth++]);
-                }
-                if (depth == 0 || next == null) break;
-                findLowestKey(next, depth);
-                // Ascending
-                if (!blank) visited = true;
-                if (next.isLeaf()) {
-                    byte[] leafPrefix = next.getPrefix();
-                    if (!found) {
-                        found = true;
-                        for (int i=0; i<leafPrefix.length; i++) {
-                            System.out.println(Long.toHexString(leafPrefix[i]));
-                        }
-                        int matchedLength = next.checkPrefix(key, depth);
-                        if (matchedLength != leafPrefix.length) {
-                            depth-=prefix.length; if (!blank) depth--;
-                            continue;
-                        }
-                    }
-                    if (leafPrefix.length != 0) {
-                        System.arraycopy(leafPrefix, 0, key, depth, leafPrefix.length);
-                    }
-                    final int d = depth + leafPrefix.length;
-                    Operation op = fcn.apply(Arrays.copyOf(key, d), ((SimpleLeaf)next).getValue());
-                    if (op == Operation.DELETE_NODE) {
-                        final Node fnext = next;
-                        final boolean fblank = blank;
-                        Transaction.create(heap, ()-> {
-                             fnext.free();
-                            if (fblank) ((InternalNode)node).deleteChild(null);
-                            else {((InternalNode)node).deleteChild(key[d - leafPrefix.length - 1]);}
-                        });
-                    }
-                    else if (op == Operation.END) break;
-                } else if (((InternalNode)next).getChildrenCount() == 0) {
-                    final int d = depth;
-                    final Node fnext = next;
-                    Transaction.create(heap, ()-> {
-                        fnext.free();
-                        ((InternalNode)node).deleteChild(key[d - 1]);
-                    });
-                }
-                // remove prefix from node
-                depth-=prefix.length;
-                if (!blank)  depth--;
-            }
         }
     }
 
@@ -755,12 +779,18 @@ public class LongART implements DynamicShardable<byte[]> {
         StackItem cursor;
         byte[] lastKey = null;
         boolean lastInclusive = false;
+        boolean reversed;
         ByteBuffer keyBuf;
-        Deque<StackItem> cache;
+        ArrayDeque<StackItem> cache;
         Entry prev;
         Entry next;
 
         public EntryIterator() {
+            this(false);
+        }
+
+        public EntryIterator(boolean reversed) {
+            this.reversed = reversed;
             cache = new ArrayDeque<>();
             Node first = root.getChild();
             if (first != null)
@@ -771,22 +801,28 @@ public class LongART implements DynamicShardable<byte[]> {
                 }
                 else {
                     keyBuf = ByteBuffer.allocate(maxKeyLen);
-                    iterate(first);
+                    search2(first, new byte[]{}, 0, this::buildCache, null, reversed);
                     cursor = cache.getFirst();
-                    advance(); //next();
+                    advance(); 
                 }
             }
         }
 
-        void buildCache(Node parent, Node child, Byte radix, Consumer<Long> cleaner) {
+        void buildCache(Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) {
             StackItem item;
-            if (radix == null) item = new StackItem(((InternalNode)parent).getEntries(), parent.getPrefixLength(), true);
-            else item = new StackItem(((InternalNode)parent).getEntries(), parent.getPrefixLength(), radix);
-            cache.addLast(item);
+            if (reversed && child == null) return;
+            NodeEntry[] entries = ((InternalNode)parent).getEntries();
+            if (radix == null && child != null) item = new StackItem(entries, parent.getPrefixLength(), reversed);
+            else if (child == null) {
+                item = new StackItem(entries, parent.getPrefixLength(), (radix == null) ? entries[0].radix : radix, ((InternalNode)parent).hasBlankRadixChild(), reversed);
+            }
+            else {
+                item = new StackItem(((InternalNode)parent).getEntries(), parent.getPrefixLength(), radix, ((InternalNode)parent).hasBlankRadixChild(), reversed);
+            }
+            cache.push(item);
             byte[] ba = parent.getPrefix();
             if (ba.length > 0) keyBuf.put(ba);
-            if (radix != null) keyBuf.put(radix);
-            else keyBuf.position(keyBuf.position() + 1);
+            if (radix != null && child != null && !child.isLeaf()) keyBuf.put(radix);
         }
 
         public EntryIterator(byte[] lastKey, boolean lastInclusive) {
@@ -795,20 +831,30 @@ public class LongART implements DynamicShardable<byte[]> {
             this.lastInclusive = lastInclusive;
         }
 
-        public EntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive) {
+        public EntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive, boolean reversed) {
             cache = new ArrayDeque<>();
+            this.reversed = reversed;
             Node first = root.getChild();
             // lastKey can be null, firstkey is never null as it is checked before calling this
-            this.lastKey = lastKey;
-            this.lastInclusive = lastInclusive;
-            if (/*firstKey != null && */lastKey != null) {
+            if (lastKey != null) {
                 int comp = keyCompare(firstKey, lastKey);
                 if (comp == 0) {
                     long val = get(firstKey);
                     next = (val == 0) ? null : new Entry(firstKey, val);
                     return;
                 }
-                if (comp > 0) throw new IllegalArgumentException();
+                if (!reversed && comp > 0) throw new IllegalArgumentException();
+                if (reversed && comp < 0) throw new IllegalArgumentException();
+            }
+            if (reversed) {
+                this.lastKey = firstKey;
+                firstKey = lastKey;
+                this.lastInclusive = firstInclusive;
+                firstInclusive = lastInclusive;
+            }
+            else {
+                this.lastKey = lastKey;
+                this.lastInclusive = lastInclusive;
             }
             if (first != null) {
                 if (first.isLeaf()) {
@@ -818,23 +864,17 @@ public class LongART implements DynamicShardable<byte[]> {
                 }
                 else {
                     keyBuf = ByteBuffer.allocate(maxKeyLen);
-                    search(first, firstKey, 0, this::buildCache, null);
+                    long l = search2(first, firstKey, 0, this::buildCache, null, reversed);
                     cursor = cache.peekFirst();
                     if (cursor != null) {
-                        int pos = keyBuf.position(); keyBuf.position(0); keyBuf.mark();
-                        if (pos > 0) keyBuf.put(firstKey, 0, pos - 1);
-                        advance(); //next();
-                        if (next != null) {
-                            int x = keyCompare(firstKey, next.getKey());
-                            if ((!firstInclusive || x != 0) && x >= 0) {
-                                next();
-                                while (next != null && keyCompare(firstKey, next.getKey()) > 0) {pop(); next();}
-                            }
+                        if (l == -1 && keyBuf.position() > 0) {
+                            keyBuf.position(keyBuf.position() - 1);
                         }
+                        advanceTo(firstKey, firstInclusive);
                     } else {
-                        iterate(first);
+                        search2(first, new byte[]{}, 0, this::buildCache, null, reversed);
                         cursor = cache.getFirst();
-                        advance(); //next();
+                        advanceTo(firstKey, firstInclusive); 
                     }
                 }
                 prev = next;
@@ -842,10 +882,14 @@ public class LongART implements DynamicShardable<byte[]> {
         }
 
         int keyCompare(byte[] firstKey, byte[] nextKey){
+            byte[] first;
+            byte[] next;
+            if (reversed) { first = nextKey; next = firstKey; }
+            else { first = firstKey; next = nextKey; }
             int ret = 0;
             int i = 0;
-            while (i < firstKey.length && i < nextKey.length && (ret = compareUnsigned(firstKey[i], nextKey[i])) == 0) i++;
-            return (ret == 0) ? Integer.compare(firstKey.length, nextKey.length) : ret;
+            while (i < first.length && i < next.length && (ret = compareUnsigned(first[i], next[i])) == 0) i++;
+            return (ret == 0) ? Integer.compare(first.length, next.length) : ret;
         }
 
         public boolean hasNext() {
@@ -861,7 +905,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 next = null;
                 return prev;
             }
-            // if (index != cursor.getIndex()) throw new RuntimeException("index is "+index+", cursor index is "+cursor.getIndex());
             while (cursor.isDone()) {
                 if (cache.size() == 0) {
                     next = null;
@@ -881,53 +924,44 @@ public class LongART implements DynamicShardable<byte[]> {
             NodeEntry ne = cursor.entryAtIndex();
             if (!ne.child.isLeaf()) {
                 if (!cursor.currentIsBlank()) keyBuf.put(ne.radix);
-                iterate(ne.child);
+                search2(ne.child, new byte[]{}, 0, this::buildCache, null, reversed);
                 cursor = cache.getFirst();
                 ne = cursor.entryAtIndex();
             }
             SimpleLeaf leaf = (SimpleLeaf)ne.child;
             keyBuf.mark();
-            if (!cursor.currentIsBlank()) keyBuf.put(ne.radix);
-            cursor.incrementIndex();
+            if (!cursor.currentIsBlank()) keyBuf.put(ne.radix); 
+            cursor.next();
             byte[] leafPrefix = leaf.getPrefix();
             if (leafPrefix.length > 0) keyBuf.put(leafPrefix);
             next = new Entry(Arrays.copyOf(keyBuf.array(),keyBuf.position()),leaf.getValue());
             keyBuf.reset();
-            //return prev;
+        }
+
+        void advanceTo(byte[] firstKey, boolean inclusive) {
+            while (cursor != null && !cursor.isDone()) {
+                advance();
+                int x = keyCompare(firstKey, next.getKey());
+                if ((inclusive && x == 0) || x < 0) break;
+                while (cursor.isDone() && cache.size() > 0) {
+                    pop(); 
+                    if (cursor == null) break;
+                }
+            }
         }
 
         void pop() {
             keyBuf.reset().position(Math.max(0, keyBuf.position() - (1 + cursor.prefixLen()))).mark();
             cache.pop();
             cursor = cache.peekFirst();
-            if (cursor != null) cursor.incrementIndex(); 
+            if (cursor != null) cursor.next(); 
             keyBuf.reset();
-        }
-
-        void iterateChildren(InternalNode current) {
-            NodeEntry[] entries = current.getEntries();
-            byte[] nodePrefix = current.getPrefix();
-            boolean blank;
-            cache.push(new StackItem(entries, nodePrefix.length, blank = current.hasBlankRadixChild()));
-            if (nodePrefix.length > 0) keyBuf.put(nodePrefix);
-            if (!blank && !entries[0].child.isLeaf()) keyBuf.put(entries[0].radix);
-            //System.out.println("partial key: "+new String(Arrays.copyOf(keyBuf.array(),keyBuf.position()))+" "+keyBuf);
-            iterate(entries[0].child);
-        }
-
-        void iterate(Node current) {
-            if (!current.isLeaf()) {
-                iterateChildren((InternalNode)current);
-            } else {
-                return;
-            }
         }
     }
 
-    /*public */class ValueIterator implements Iterator<Long> {
+    class ValueIterator implements Iterator<Long> {
         StackItem cursor;
-        int index;
-        Deque<StackItem> cache;
+        ArrayDeque<StackItem> cache;
         long next;
         long prev;
 
@@ -941,10 +975,9 @@ public class LongART implements DynamicShardable<byte[]> {
                     next = leaf.getValue();
                 }
                 else {
-                    iterate(first);
+                    search2(first, new byte[]{}, 0, this::buildCache, null, false);
                     cursor = cache.getFirst();
-                    next();
-                    //System.out.println("Cache Size is "+cache.size()+"; cursor size is "+cursor.length+" index is "+index);
+                    advance();
                 }
             }
         }
@@ -955,52 +988,46 @@ public class LongART implements DynamicShardable<byte[]> {
 
         public Long next() {
             prev = next;
+            if (prev == 0) throw new NoSuchElementException();
             if (cursor == null) {
                 next = 0;
                 return prev;
             }
-            while (index >= cursor.length()) {
+            while (cursor.isDone()) {
                 if (cache.size() == 0) {
                     next = 0;
                     return prev;
                 }
-                //System.out.println("PreCurrentFull: Cache Size is "+cache.size()+"; cursor size is "+cursor.length+" index is "+index);
                 cache.pop();
                 cursor = cache.peekFirst();
-                if (cursor == null) {
+                if (cursor != null) cursor.next();
+                else {
                     next = 0;
                     return prev;
                 }
-                index = cursor.getIndex()+1;
             }
-            if (!cursor.entryAt(index).child.isLeaf()) {
-                cursor.saveIndex(index);
-                iterate(cursor.entryAt(index).child);
-                cursor = cache.getFirst();
-                index=0;
-            }
-            next = ((SimpleLeaf)cursor.entryAt(index++).child).getValue();
+            advance(); 
             return prev;
         }
 
-        void iterateChildren(InternalNode current) {
-            NodeEntry[] entries = current.getEntries();
-            cache.push(new StackItem(entries, current.getPrefixLength(),current.hasBlankRadixChild()));
-            if (entries != null) {
-                iterate(entries[0].child);
-                }
+        void advance() {
+            if (!cursor.entryAtIndex().child.isLeaf()) {
+                search2(cursor.entryAtIndex().child, new byte[]{}, 0, this::buildCache, null, false);
+                cursor = cache.getFirst();
+            }
+            next = ((SimpleLeaf)cursor.entryAtIndex().child).getValue();
+            cursor.next();
         }
 
-        void iterate(Node current) {
-            if (!current.isLeaf()) {
-                iterateChildren((InternalNode)current);
-            } else {
-                return;
-            }
+        void buildCache(Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) {
+            StackItem item;
+            if (radix == null) item = new StackItem(((InternalNode)parent).getEntries(), parent.getPrefixLength(), false);
+            else item = new StackItem(((InternalNode)parent).getEntries(), parent.getPrefixLength(), radix, ((InternalNode)parent).hasBlankRadixChild(), false);
+            cache.push(item);
         }
     }
 
-    public static abstract class Node {
+    static abstract class Node {
         static final byte NODE4_TYPE = 7;
         static final byte NODE16_TYPE = 1;
         static final byte NODE48_TYPE = 2;
@@ -1008,7 +1035,7 @@ public class LongART implements DynamicShardable<byte[]> {
         static final byte SIMPLE_LEAF_TYPE = 4;
         static final byte COMPLEX_LEAF_TYPE = 5;
         static final byte ROOT_TYPE = 6;
-        static final byte FREED = (byte)0xff;
+        //static final byte FREED = (byte)0xff;
 
         protected static final long HEADER_SIZE = 16L;
         protected static final long NODE_TYPE_OFFSET = 0L;
@@ -1034,7 +1061,7 @@ public class LongART implements DynamicShardable<byte[]> {
         static Node rebuild(AnyHeap heap, long handle) {
             if (handle == 0) return null;
             AnyMemoryBlock mb = heap.compactMemoryBlockFromHandle(handle);
-            Node ret = null;
+            Node ret;
             byte rawType = mb.getByte(NODE_TYPE_OFFSET);
             switch (rawType) {
                 case NODE4_TYPE: ret = new Node4(heap, mb); break;
@@ -1042,12 +1069,9 @@ public class LongART implements DynamicShardable<byte[]> {
                 case NODE48_TYPE: ret = new Node48(heap, mb); break;
                 case NODE256_TYPE: ret = new Node256(heap, mb); break;
                 case SIMPLE_LEAF_TYPE: ret = new SimpleLeaf(heap, mb); break;
-                //case COMPLEX_LEAF_TYPE: ret = new ComplexLeaf(heap, mb); break;
                 case ROOT_TYPE: ret = new Root(heap, mb); break;
-                case FREED: throw new RuntimeException("Node was freed");
-                default: throw new RuntimeException("Could not detect Node type" + ". found "+rawType);
+                default: throw new HeapException("Failed to reaccess tree with supplied handle");
             }
-            if (ret == null) throw new RuntimeException();
             return ret;
         }
 
@@ -1066,10 +1090,6 @@ public class LongART implements DynamicShardable<byte[]> {
         void initType(byte type) {
             mb.setByte(NODE_TYPE_OFFSET, type);
         }
-
-        /*private void setType(byte type) {
-            mb.setByte(NODE_TYPE_OFFSET, type);
-        }*/
 
         int getPrefixLength() {
             return mb.getInt(PREFIX_LENGTH_OFFSET);
@@ -1138,7 +1158,7 @@ public class LongART implements DynamicShardable<byte[]> {
             return sb.toString();
         }
 
-        abstract void destroy(Consumer<Long> cleaner); 
+        abstract void destroy(Consumer<Long> cleanerFunction); 
 
         public void statsPrint(int depth) {
             StringBuilder start = new StringBuilder();
@@ -1177,7 +1197,7 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 
-    public static class NodeEntry{
+    static class NodeEntry{
         byte radix;
         Node child;
 
@@ -1236,10 +1256,10 @@ public class LongART implements DynamicShardable<byte[]> {
         boolean isLeaf() { return false; }
 
         @Override
-        void destroy(Consumer<Long> cleaner) {
+        void destroy(Consumer<Long> cleanerFunction) {
             Node child = getChild();
             if (child != null) {
-                child.destroy(cleaner);
+                child.destroy(cleanerFunction);
                 child.free();
                 mb.setLong(CHILD_OFFSET, 0L);
             }
@@ -1252,7 +1272,8 @@ public class LongART implements DynamicShardable<byte[]> {
 
         @Override
         void free() {
-            mb.setMemory((byte)0xff, 0, SIZE);
+            destroy(c -> {});  
+            //mb.setMemory((byte)0xff, 0, SIZE);
             mb.freeMemory();
         }
     }
@@ -1303,8 +1324,12 @@ public class LongART implements DynamicShardable<byte[]> {
         Leaf findBlankRadixChild() {
             return (Leaf)getChildAtIndex(getBlankRadixIndex());
         }
-
-        // Node256 needs to override to avoid overflowing
+        
+        /*
+         * Node256 needs to override to avoid overflowing
+         * returns false if node is at capacity
+         * adds or replaces? blank radix child
+         */
         boolean addBlankRadixChild(Leaf child) {
             short childrenCount = getChildrenCount();
             if (childrenCount == capacity()) {
@@ -1312,7 +1337,6 @@ public class LongART implements DynamicShardable<byte[]> {
             }
             else {
                 incChildrenCount();
-                if (hasBlankRadixChild()) throw new RuntimeException();
                 setBlankRadixIndex((byte)childrenCount);
                 putChildAtIndex(childrenCount, child);
             }
@@ -1329,11 +1353,11 @@ public class LongART implements DynamicShardable<byte[]> {
         }
         
         @Override
-        void destroy(Consumer<Long> cleaner) {
+        void destroy(Consumer<Long> cleanerFunction) {
             Node child;
             for (int i=0; i<capacity(); i++) {
                 if ((child = getChildAtIndex(i)) != null) {
-                    child.destroy(cleaner); 
+                    child.destroy(cleanerFunction); 
                     child.free();
                 }
             }
@@ -1343,21 +1367,6 @@ public class LongART implements DynamicShardable<byte[]> {
             int index = (int)getBlankRadixIndex();
             if (index != -1) mb.setByte(BLANK_RADIX_INDEX_OFFSET, (byte)0xff);
             return index;
-        }
-
-        Byte findLowestRadix(byte radix, boolean visited) {
-            //integer version
-            int cmp;
-            int lowest;
-            cmp = visited ? radix : Byte.MIN_VALUE - 1;
-            lowest = Byte.MAX_VALUE + 1;
-            byte[] radices = getRadices();
-
-            for (int i = 0; i < radices.length; i++) {
-                if (radices[i] > cmp && radices[i] != (byte)0 && radices[i] < lowest) lowest = radices[i];
-            }
-            if (lowest == Byte.MAX_VALUE + 1) {/*System.out.println("Returning null");*/ return null;} 
-            return (byte)lowest;
         }
 
         byte findLowestRadix() {
@@ -1382,6 +1391,9 @@ public class LongART implements DynamicShardable<byte[]> {
 
         protected abstract short capacity();
         protected abstract byte[] getRadices();
+        /* returns false if node is at capacity 
+         * adds or replaces child with given radix
+         */
         abstract boolean addChild(byte radix, Node node);
         abstract int findChildIndex(byte radix);
         protected abstract long findValueAtIndex(int index);
@@ -1404,8 +1416,7 @@ public class LongART implements DynamicShardable<byte[]> {
                 addBlankRadixChild((Leaf)newChild);
             }
             else {
-                int index = findChildIndex(b);    
-                putChildAtIndex(index, newChild);
+                addChild(b, newChild);
             }
         }
 
@@ -1438,7 +1449,7 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 
-    public static abstract class Leaf extends Node {
+    static abstract class Leaf extends Node {
         Leaf(AnyHeap heap, AnyMemoryBlock mb) {
             super(heap, mb);
         }
@@ -1479,7 +1490,7 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 
-    public static class SimpleLeaf extends Leaf {
+    static class SimpleLeaf extends Leaf {
         protected static final long SIZE = Node.HEADER_SIZE + 8L;
         private static final long VALUE_OFFSET = Node.HEADER_SIZE;
 
@@ -1528,12 +1539,12 @@ public class LongART implements DynamicShardable<byte[]> {
         }
 
         @Override
-        void destroy(Consumer<Long> cleaner) {
-            cleaner.accept(getValue());
+        void destroy(Consumer<Long> cleanerFunction) {
+            cleanerFunction.accept(getValue());
         }
     }
 
-    public static class Node4 extends InternalNode {
+    static class Node4 extends InternalNode {
         protected static final long SIZE = Node.HEADER_SIZE + 4L * (1L + 8L);
         static final long RADIX_OFFSET = Node.HEADER_SIZE + (4L * 8L);
         static final long CHILDREN_OFFSET = Node.HEADER_SIZE;
@@ -1617,9 +1628,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 if (i != blankIndex) entries[index++] = new NodeEntry(radices[i], getChildAtIndex(i));
             }
             Arrays.sort(entries, (blankIndex != -1) ? 1 : 0, entries.length, (x, y)-> LongART.compareUnsigned(x.radix, y.radix));
-            /* for (int i = 0; i < entries.length; i++) {
-                if (entries[i] == null) throw new RuntimeException("entry[ "+i+" ] = null! getChildrenCount returned "+entries.length+" .hasBlank is "+ (blankIndex != -1)+" count is "+(index-1));
-            }*/
             return entries;
         }
 
@@ -1632,7 +1640,7 @@ public class LongART implements DynamicShardable<byte[]> {
             int index = findChildIndex(radix);
             if (index == -1) {
                 if (getChildrenCount() >= MAX_CAPACITY) {
-                    return false;   // need to grow, out of capacity
+                    return false;   // need to grow, out of capacity returns fals
                 } else {
                     index = getChildrenCount();
                     incChildrenCount();
@@ -1688,7 +1696,6 @@ public class LongART implements DynamicShardable<byte[]> {
 
         @Override
         void putChildAtIndex(int index, Node child) {
-            //if (index == -1) return;
             mb.setLong(CHILDREN_OFFSET + index * Long.BYTES, child.handle());
         }
 
@@ -1708,7 +1715,6 @@ public class LongART implements DynamicShardable<byte[]> {
             //TODO : handle blank radix specially
             int blankIndex = getBlankRadixIndex();
             for (int i = 0; i < radices.length; i++) {
-                //if (radices[i] >= radix) {
                 if (radix != null && i == blankIndex) continue;
                 if (radix == null || LongART.compareUnsigned(radices[i], radix) >= 0) {
                     newNode.addChild(radices[i], getChildAtIndex(i));
@@ -1723,33 +1729,11 @@ public class LongART implements DynamicShardable<byte[]> {
                 newNode.setPrefixLength(getPrefixLength());
                 newNode.setPrefix(getPrefix());
             }
-            /*if (first) {
-                byte high = findHighestRadix();
-                if(LongART.compareUnsigned(high, radix) > 0){
-                    throw new RuntimeException("first is "+first+" radix: "+Byte.toUnsignedInt(radix)+" highest: "+Byte.toUnsignedInt(high));
-                }
-                if (newNode.getChildrenCount() > 0) {
-                byte low = newNode.findLowestRadix();
-                    if (first) {
-                        if(LongART.compareUnsigned(low, radix) <= 0){
-                            throw new RuntimeException("radix: "+radix+" highest: "+high);
-                        }
-                    }
-                    else {
-                        if(LongART.compareUnsigned(low, radix) != 0){
-                            throw new RuntimeException("radix: "+radix+" highest: "+high);
-                        }
-                    }
-                }
-                if ((getChildrenCount() + newNode.getChildrenCount()) != pre) throw new RuntimeException("preCount: "+pre+" oldCount: "+getChildrenCount()+" newcount: "+newNode.getChildrenCount());
-                getEntries();
-                newNode.getEntries(); 
-            }*/
             return newNode;
         }
     }
 
-    public static class Node16 extends InternalNode {
+    static class Node16 extends InternalNode {
         protected static final long SIZE = Node.HEADER_SIZE + 16L * (1L + 8L);
         private static final long RADIX_OFFSET = Node.HEADER_SIZE;
         static final long CHILDREN_OFFSET = Node.HEADER_SIZE + 16L;
@@ -1810,9 +1794,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 if (i != blankIndex) entries[index++] = new NodeEntry(radices[i], getChildAtIndex(i));
             }
             Arrays.sort(entries, (blankIndex != -1) ? 1 : 0, entries.length, (x, y)-> LongART.compareUnsigned(x.radix, y.radix));
-            /* for (int i = 0; i < entries.length; i++) {
-                if (entries[i] == null) throw new RuntimeException("entry[ "+i+" ] = null! getChildrenCount returned "+entries.length+" .hasBlank is "+ (blankIndex != -1)+" count is "+(index-1));
-            }*/
             return entries;
         }
 
@@ -1823,9 +1804,7 @@ public class LongART implements DynamicShardable<byte[]> {
         @Override
         boolean addChild(byte radix, Node node) {
             int index = findChildIndex(radix);
-            //boolean found = true;
             if (index == -1) {
-                //found = false;
                 if (getChildrenCount() >= MAX_CAPACITY) {
                     return false;   // need to grow, out of capacity
                 } else {
@@ -1835,12 +1814,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 }
             }
             putChildAtIndex(index, node);
-            /*byte[] radices = getRadices();
-            Arrays.sort(radices);
-            int start = hasBlankRadixChild() ? 2 : 1;
-            for (int i = start; i < radices.length; i++) {
-                if (Byte.compare(radices[i-1], radices[i]) == 0) throw new RuntimeException("found is "+found+" radix is "+radix+", duplicate radix is "+radices[i]);
-            }*/
             return true;
         }
 
@@ -1905,7 +1878,6 @@ public class LongART implements DynamicShardable<byte[]> {
         InternalNode split(Byte radix, boolean first) {
             byte[] radices = getRadices();
             Node16 newNode = new Node16(heap);
-            // int pre = getChildrenCount();
             int blankIndex = getBlankRadixIndex();
             for (int i = 0; i < radices.length; i++) {
                 if (radix != null && i == blankIndex) continue;
@@ -1922,34 +1894,11 @@ public class LongART implements DynamicShardable<byte[]> {
                 newNode.setPrefixLength(getPrefixLength());
                 newNode.setPrefix(getPrefix());
             }
-            /* if (first) {
-                byte high = findHighestRadix();
-                if(LongART.compareUnsigned(high, radix) > 0){
-                    throw new RuntimeException("first is "+first+" radix: "+Byte.toUnsignedInt(radix)+" highest: "+Byte.toUnsignedInt(high));
-                }
-                if (newNode.getChildrenCount() > 0) {
-                byte low = newNode.findLowestRadix();
-                    if (first) {
-                        if(LongART.compareUnsigned(low, radix) < 0){
-                            throw new RuntimeException("radix: "+Byte.toUnsignedInt(radix)+" highest: "+Byte.toUnsignedInt(high));
-                        }
-                    }
-                    else {
-                        if(LongART.compareUnsigned(low, radix) != 0){
-                            throw new RuntimeException("radix: "+radix+" highest: "+high);
-                        }
-                    }
-                }
-                if (!first) pre++;
-                if ((getChildrenCount() + newNode.getChildrenCount()) != pre) throw new RuntimeException("preCount: "+pre+" oldCount: "+getChildrenCount()+" newcount: "+newNode.getChildrenCount());
-                getEntries();
-                newNode.getEntries(); 
-            }*/
             return newNode;
         }
     }
 
-    public static class Node48 extends InternalNode {
+    static class Node48 extends InternalNode {
         private static final int  MAX_CAPACITY = 48;
         private static final int  MAX_RADICES = 256;
 
@@ -1978,7 +1927,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 range.copyFromMemoryBlock(oldNode.mb, 1, 1, Node.HEADER_SIZE - 1);
                 int blankRadixIndex = oldNode.getBlankRadixIndex();
                 byte[] oldRadices = oldNode.getRadices();
-                // int count =0;
                 StringBuffer radices = new StringBuffer("radics: ");
                 for (int index = 0; index < oldRadices.length; index++) {
                     // Skip the blank child radix, otherwise it will map the 0th
@@ -1986,18 +1934,10 @@ public class LongART implements DynamicShardable<byte[]> {
                     if (index != blankRadixIndex) {
                         range.setByte(RADIX_OFFSET + Byte.toUnsignedInt(oldRadices[index]), (byte)(index + 1));
                         radices.append(" "+oldRadices[index]);
-                        // count++;
                     }
-                        //range.setByte(RADIX_OFFSET + (int)oldRadices[index] + 128, (byte)(index + 1));
                 }
-                    // System.out.println("found "+count+ " radices");
-                    // System.out.println(radices);
                 range.copyFromMemoryBlock(oldNode.mb, Node16.CHILDREN_OFFSET, Node48.CHILDREN_OFFSET, oldNode.capacity() * Long.BYTES);
-                /*for (int i =0; i<16; i++) {
-                    if (oldNode.mb.getLong(Node16.CHILDREN_OFFSET + (i * Long.BYTES)) == 0L) throw new RuntimeException("found null at index" +i);
-                }*/
                 //set radix
-                //if (radix.isPresent()) range.setByte(RADIX_OFFSET + (int)radix.get() + 128, (byte)(16 + 1));
                 if (radix.isPresent()) range.setByte(RADIX_OFFSET + Byte.toUnsignedInt(radix.get()), (byte)(16 + 1));
                 else range.setByte(Node.BLANK_RADIX_INDEX_OFFSET, (byte)16);
                 //set value
@@ -2025,7 +1965,6 @@ public class LongART implements DynamicShardable<byte[]> {
         }
 
         void addRadix(byte radix, int index) {
-            //mb.setByte(RADIX_OFFSET + index + 128, radix);
             mb.setByte(RADIX_OFFSET + index, radix);
         }
 
@@ -2038,21 +1977,11 @@ public class LongART implements DynamicShardable<byte[]> {
             if (blankIndex != -1) {
                 entries[index++] = new NodeEntry((byte)0, getChildAtIndex(blankIndex));
             }
-            // StringBuffer sb = new StringBuffer("entries: ");
-            // StringBuffer reject = new StringBuffer("rejected entries: ");
             for (int i=0; i < MAX_RADICES; i++) {
                 if (radices[(int)i] != (1 + blankIndex) && radices[(int)i] !=0) {
                     entries[index++] = new NodeEntry((byte)(i), getChildAtIndex(radices[i]-1));
-                    // sb.append("("+i+", "+radices[(int)i]+"); ");
                 }
-                //else reject.append("("+i+", "+radices[(int)i]+"); ");
             }
-            /*for (int i = 0; i < entries.length; i++) {
-                if (entries[i] == null) {
-                    //System.out.println(sb); 
-                    //System.out.println(reject); 
-                    throw new RuntimeException("entry[ "+i+" ] = null! getChildrenCount returned "+entries.length+" .hasBlank is "+ hasBlank +" blankIndex is "+blankIndex+" count is "+(index-1));}
-            }*/
             return entries;
         }
 
@@ -2067,7 +1996,6 @@ public class LongART implements DynamicShardable<byte[]> {
                     incChildrenCount();
                     // For Node48, the radix field is an index to the child,
                     // and the radix itself is used a the index into the radix field
-                    //addRadix((byte)(index + 1), (int)radix);   // +1 for 1-based indices
                     addRadix((byte)(index + 1), Byte.toUnsignedInt(radix));   // +1 for 1-based indices
                 }
             }
@@ -2086,7 +2014,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 mb.withRange(0, this.SIZE, (Range range) ->{
                     if (radix != null) {
                         //delete radix
-                        //range.setByte(RADIX_OFFSET + (int)radix + 128, (byte)0);
                         range.setByte(RADIX_OFFSET + Byte.toUnsignedInt(radix), (byte)0);
                     }
                     //overwrite child value with the most recent child
@@ -2138,18 +2065,6 @@ public class LongART implements DynamicShardable<byte[]> {
             return highest;
         }
         
-        @Override
-        Byte findLowestRadix(byte radix, boolean visited) {
-            int cmp = visited ? radix : Byte.MIN_VALUE;
-            int lowest = Byte.MAX_VALUE;
-            for (int i=cmp + 1; i<=lowest; i++) { // TODO check for blank
-                if (findChildIndex((byte)i) != -1) {
-                    return (byte)i;
-                }
-            }
-            return null;   
-        }
-
         // returns -1 if no valid child found at given index
         @Override
         int findChildIndex(byte radix) { // ignores blankRadixIndex
@@ -2181,16 +2096,6 @@ public class LongART implements DynamicShardable<byte[]> {
 
         InternalNode split(Byte radix, boolean first) {
             byte[] radices = getRadices();
-            // int pre = getChildrenCount();
-            /*StringBuffer buf = new StringBuffer("Pre : children count is "+getChildrenCount()+"\n");
-            for (int i=0; i<radices.length; i++) {
-                if (radices[i] != 0) buf.append("radices["+i+"] = "+((int)radices[i] - 1)+ "\n");
-            }
-            StringBuffer buf2 = new StringBuffer("Pre Children, count is "+getChildrenCount()+": \n");
-            for (int i = 0; i<MAX_CAPACITY; i++) {
-                long l = findValueAtIndex(i);
-                if (l != 0) buf2.append("index "+i+" = "+findValueAtIndex(i)+"\n");
-            }*/
             Node48 newNode = new Node48(heap);
             // copy prefix
             if (getPrefixLength() > 0) {
@@ -2207,49 +2112,8 @@ public class LongART implements DynamicShardable<byte[]> {
             for (int i = first ? startIndex : startIndex + 1; i < radices.length; i++) {
                 if (radices[i] != 0) deleteChild((byte)i);
             }
-            /*this.radices = null;
-            radices = getRadices();
-            buf.append("Post : \n");
-            for (int i=0; i<radices.length; i++) {
-                if (radices[i] != 0) buf.append("radices["+i+"] = "+((int)radices[i] - 1)+ "\n");
-            }
-            newNode.radices = null;
-            radices = newNode.getRadices();
-            buf.append("New : \n");
-            for (int i=0; i<radices.length; i++) {
-                if (radices[i] != 0) buf.append("radices["+i+"] = "+((int)radices[i] - 1)+ "\n");
-            }*/
             newNode.radices = null;
             this.radices = null;
-            /* if (first) {
-                byte high = findHighestRadix();
-                if(LongART.compareUnsigned(high, radix) > 0){
-                    throw new RuntimeException("first is "+first+" radix: "+Byte.toUnsignedInt(radix)+" highest: "+Byte.toUnsignedInt(high));
-                }
-                if (newNode.getChildrenCount() > 0) {
-                byte low = newNode.findLowestRadix();
-                    if (first) {
-                        if(LongART.compareUnsigned(low, radix) < 0){
-                            throw new RuntimeException("radix: "+radix+"old.highest: "+high+" new.lowest: "+low);
-                        }
-                        if(LongART.compareUnsigned(high, radix) > 0){
-                            throw new RuntimeException("radix: "+radix+"old.highest: "+high+" new.lowest: "+low);
-                        }
-                        if ((getChildrenCount() + newNode.getChildrenCount()) != pre) throw new RuntimeException("preCount: "+pre+" oldCount: "+getChildrenCount()+" newcount: "+newNode.getChildrenCount() + " highest: "+high+" lowest: "+low);
-                    }
-                    else {
-                        if(LongART.compareUnsigned(low, radix) != 0){
-                            throw new RuntimeException("radix: "+radix+"old.highest: "+high+" new.lowest: "+low);
-                        }
-                        if(LongART.compareUnsigned(high, radix) != 0){
-                            throw new RuntimeException("radix: "+radix+" old.highest: "+high+" new.lowest: "+low);
-                        }
-                        if ((getChildrenCount() + newNode.getChildrenCount()) != (1 + pre)) throw new RuntimeException("preCount: "+pre+" oldCount: "+getChildrenCount()+" newcount: "+newNode.getChildrenCount()+" highest: "+high+" lowest: "+low);
-                    }
-                }
-                getEntries();
-                newNode.getEntries();
-             }*/
             return newNode;
         }
 
@@ -2270,7 +2134,7 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 
-    public static class Node256 extends InternalNode {
+    static class Node256 extends InternalNode {
         // 257 for Node256: 1 more slot for the blank radix child
         protected static final long SIZE = Node.HEADER_SIZE + 257L * 8L;
         private static final long CHILDREN_OFFSET = Node.HEADER_SIZE;
@@ -2305,7 +2169,6 @@ public class LongART implements DynamicShardable<byte[]> {
                     }
                 }
                 //set value
-                //if (radix.isPresent()) range.setLong(CHILDREN_OFFSET + ((int)radix.get() + 128) * Long.BYTES, newNode.handle());
                 if (radix.isPresent()) range.setLong(CHILDREN_OFFSET + Byte.toUnsignedInt(radix.get()) * Long.BYTES, newNode.handle());
                 else range.setLong(CHILDREN_OFFSET + BLANK_RADIX_CHILD_INDEX * Long.BYTES, newNode.handle());
                 //set childrencount
@@ -2325,11 +2188,6 @@ public class LongART implements DynamicShardable<byte[]> {
             return (findValueAtIndex(BLANK_RADIX_CHILD_INDEX) != 0);
         }
     
-        /*@Override
-        int clearBlankRadixFlag() {
-            throw new RuntimeException();
-        }*/
-
         @Override
         Leaf findBlankRadixChild() {
             long val = findValueAtIndex(BLANK_RADIX_CHILD_INDEX);
@@ -2339,8 +2197,7 @@ public class LongART implements DynamicShardable<byte[]> {
         @Override
         boolean addBlankRadixChild(Leaf child) {
             if (hasBlankRadixChild()) {
-                findBlankRadixChild().setValue(child.getValue());
-                // TODO: free incoming child
+                //findBlankRadixChild().setValue(child.getValue());
             } else {
                 putChildAtIndex(BLANK_RADIX_CHILD_INDEX, child);
                 incChildrenCount();
@@ -2362,18 +2219,9 @@ public class LongART implements DynamicShardable<byte[]> {
                 entries[index++] = new NodeEntry((byte)0, blankChild);
             }
             long val;
-            /*for (int i = 128; i < 256; i++) {
-                if ((val = findValueAtIndex(i)) != 0) entries[index++] = new NodeEntry((byte)(i - 128), Node.rebuild(heap, val)); 
-            }
-            for (int i = 0; i < 128; i++) {
-                if ((val = findValueAtIndex(i)) != 0) entries[index++] = new NodeEntry((byte)(i - 128), Node.rebuild(heap, val)); 
-            }*/
             for (int i = 0; i < 256; i++) {
                 if ((val = findValueAtIndex(i)) != 0) entries[index++] = new NodeEntry((byte)i, Node.rebuild(heap, val)); 
             }
-            /*for (int i = 0; i < entries.length; i++) {
-                if (entries[i] == null) throw new RuntimeException("entry[ "+i+" ] = null! getChildrenCount returned "+entries.length+" .hasBlank is "+ !(blankChild == null)+" count is "+(index-1));
-            }*/
             return entries;
         }
 
@@ -2423,18 +2271,6 @@ public class LongART implements DynamicShardable<byte[]> {
             return highest;
         }
 
-        @Override
-        Byte findLowestRadix(byte radix, boolean visited) {
-            int cmp = visited ? radix : Byte.MIN_VALUE;
-            int lowest = Byte.MAX_VALUE;
-            for (int i=cmp + 1; i<=lowest; i++) {
-                if (findValueAtIndex(i + 128) != 0L) {
-                    return (byte)i;
-                }
-            }
-            return null;   
-        }
-
         // returns null if no valid child found at given index
         @Override
         Node findChild(byte radix) {
@@ -2457,7 +2293,6 @@ public class LongART implements DynamicShardable<byte[]> {
 
         @Override
         void putChildAtIndex(int index, Node child) {
-            //if (child.handle() == 0) throw new RuntimeException();;
             mb.setLong(CHILDREN_OFFSET + index * Long.BYTES, child.handle());
         }
 
@@ -2469,17 +2304,15 @@ public class LongART implements DynamicShardable<byte[]> {
 
         InternalNode split(Byte radix, boolean first) {
             Node256 newNode = new Node256(heap);
-            //int pre = getChildrenCount();
-            // boolean oldblank = hasBlankRadixChild();
             if (radix == null) {
-                /*newNode.mb.withRange(0, this.SIZE, (Range rng) -> {
+                newNode.mb.withRange(0, this.SIZE, (Range rng) -> {
                     rng.copyFromMemoryBlock(mb, CHILDREN_OFFSET, CHILDREN_OFFSET, (MAX_CAPACITY - 1) * Long.BYTES);
                     rng.setShort(CHILDREN_COUNT_OFFSET, (short)(getChildrenCount() - 1)); 
                 });                
                 mb.withRange(0, this.SIZE, (Range rng) -> {
                     rng.setMemory((byte)0, CHILDREN_OFFSET, (MAX_CAPACITY - 1) * Long.SIZE);
                     rng.setShort(CHILDREN_COUNT_OFFSET, (short)1);
-                });*/
+                });
             }
             else {
                 for (int i = Byte.toUnsignedInt(radix); i < 256; i++) {
@@ -2496,29 +2329,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 newNode.setPrefixLength(getPrefixLength());
                 newNode.setPrefix(getPrefix());
             }
-            /* if (first) {
-                byte high = findHighestRadix();
-                if(LongART.compareUnsigned(high, radix) > 0){
-                    throw new RuntimeException("first is "+first+" radix: "+Byte.toUnsignedInt(radix)+" highest: "+Byte.toUnsignedInt(high));
-                }
-                if (newNode.getChildrenCount() > 0) {
-                byte low = newNode.findLowestRadix();
-                    if (first) {
-                        if(LongART.compareUnsigned(low, radix) < 0){
-                            throw new RuntimeException("first is true, radix: "+Byte.toUnsignedInt(radix)+" lowest: "+Byte.toUnsignedInt(high)+" highest is "+Byte.toUnsignedInt(high));
-                        }
-                    }
-                    else {
-                        if(LongART.compareUnsigned(low, radix) != 0){
-                            throw new RuntimeException("first if false, radix: "+Byte.toUnsignedInt(radix)+" lowest: "+Byte.toUnsignedInt(high));
-                        }
-                    }
-                }
-                if (!first) pre++;
-                if ((getChildrenCount() + newNode.getChildrenCount()) != pre) throw new RuntimeException("preCount: "+pre+" oldCount: "+getChildrenCount()+" newcount: "+newNode.getChildrenCount());
-                getEntries();
-                newNode.getEntries();
-             }*/
             return newNode;
         }
 
@@ -2546,4 +2356,3 @@ public class LongART implements DynamicShardable<byte[]> {
         }
     }
 }
-

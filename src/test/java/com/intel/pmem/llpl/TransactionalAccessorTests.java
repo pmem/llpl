@@ -49,6 +49,19 @@ public class TransactionalAccessorTests {
     }
 
     @Test
+    public void testSizeCompactAccessor() {
+        heap = TestVars.createTransactionalHeap();
+        TransactionalCompactAccessor acc = heap.createCompactAccessor();
+        acc.handle(heap.allocateMemory(100));
+        try {
+            acc.size();
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
+    @Test
     public void testSetCompactMemoryBlockHandle() {
         heap = TestVars.createTransactionalHeap();
         TransactionalCompactMemoryBlock[] blocks = new TransactionalCompactMemoryBlock[100];

@@ -13,11 +13,5 @@ interface Shardable<K> {
 
     public long size(); 
 
-    public void lock(); 
-
-    public void unlock();
-
-    public boolean isLocked();
-
     public void free();
 }
