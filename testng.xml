@@ -28,6 +28,24 @@
 			<class name="com.intel.pmem.llpl.TransactionsTests" />
 			<class name="com.intel.pmem.llpl.Transactions2Tests" />
 			<class name="com.intel.pmem.llpl.AllocationClassTests" />
+			<class name="com.intel.pmem.llpl.ShortArrayTests" />
+			<class name="com.intel.pmem.llpl.ShortArrayPersistentTests" />
+			<class name="com.intel.pmem.llpl.ShortArrayTransactionalTests" />
+			<class name="com.intel.pmem.llpl.IntArrayTests" />
+			<class name="com.intel.pmem.llpl.IntArrayPersistentTests" />
+			<class name="com.intel.pmem.llpl.IntArrayTransactionalTests" />
+			<class name="com.intel.pmem.llpl.LongArrayTests" />
+			<class name="com.intel.pmem.llpl.LongArrayPersistentTests" />
+			<class name="com.intel.pmem.llpl.LongArrayTransactionalTests" />
+			<class name="com.intel.pmem.llpl.LongARTTests" />
+			<class name="com.intel.pmem.llpl.PersistentLongARTTests" />
+			<class name="com.intel.pmem.llpl.TransactionalLongARTTests" />
+			<class name="com.intel.pmem.llpl.ConcurrentLongARTTests" />
+			<class name="com.intel.pmem.llpl.PersistentConcurrentLongARTTests" />
+			<class name="com.intel.pmem.llpl.TransactionalConcurrentLongARTTests" />
+			<class name="com.intel.pmem.llpl.LongLinkedListTests" />
+			<class name="com.intel.pmem.llpl.LongLinkedListPersistentTests" />
+			<class name="com.intel.pmem.llpl.LongLinkedListTransactionalTests" />
 		</classes>
 	</test>
 </suite>

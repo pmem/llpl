@@ -249,4 +249,120 @@ public class MemoryAccessorTests {
         Assert.assertFalse(mb1.equals(someInt));
     }
 
+    // size() tests
+    static long memoryAccessorSize(MemoryAccessor memAx) {
+        return memAx.size();
+    }
+
+    static long anyAccessorSize(AnyAccessor ax) {
+        return ax.size();
+    }
+
+    static long anyMemoryBlockSize(AnyMemoryBlock mb) {
+        return mb.size();
+    }
+
+    @Test
+    public void testMemoryAccessorWithMemoryBlock(){
+        heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024L);
+        Assert.assertEquals(memoryAccessorSize(mb), 1024L);
+    }
+
+    @Test
+    public void testMemoryAccessorWithCompactMemoryBlock(){
+        heap = TestVars.createHeap();
+        CompactMemoryBlock cmb = heap.allocateCompactMemoryBlock(1024L);
+        try {
+            memoryAccessorSize(cmb);
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testMemoryAccessorWithAccessor(){
+        heap = TestVars.createHeap();
+        Accessor ax = heap.createAccessor();
+        ax.handle(heap.allocateMemory(1024L));
+        Assert.assertEquals(memoryAccessorSize(ax), 1024L);
+    }
+
+    @Test
+    public void testMemoryAccessorWithCompactAccessor(){
+        heap = TestVars.createHeap();
+        CompactAccessor cax = heap.createCompactAccessor();
+        cax.handle(heap.allocateMemory(1024L));
+        try {
+            memoryAccessorSize(cax);
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testMemoryAccessorWithAccessorReset(){
+        heap = TestVars.createHeap();
+        Accessor ax = heap.createAccessor();
+        ax.handle(heap.allocateMemory(1024L));
+        ax.resetHandle();
+        Assert.assertEquals(memoryAccessorSize(ax), 0L);
+    }
+
+    @Test
+    public void testMemoryAccessorWithCompactAccessorReset(){
+        heap = TestVars.createHeap();
+        CompactAccessor cax = heap.createCompactAccessor();
+        cax.handle(heap.allocateMemory(1024L));
+        cax.resetHandle();
+        try {
+            memoryAccessorSize(cax);
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testAnyMemoryBlockWithMemoryBlock() {
+        heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024L);
+        Assert.assertEquals(anyMemoryBlockSize(mb), 1024L);
+    }
+
+    @Test
+    public void testAnyMemoryBlockWithCompactMemoryBlock(){
+        heap = TestVars.createHeap();
+        CompactMemoryBlock cmb = heap.allocateCompactMemoryBlock(1024L);
+        try {
+            anyMemoryBlockSize(cmb);
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true);
+        }
+    }
+    
+    @Test
+    public void testAnyAccessorWithAccessor() {
+        heap = TestVars.createHeap();
+        Accessor ax = heap.createAccessor();
+        ax.handle(heap.allocateMemory(1024L));
+        Assert.assertEquals(anyAccessorSize(ax), 1024L);
+    }
+
+    @Test
+    public void testAnyAccessorWithCompactAccessorReset(){
+        heap = TestVars.createHeap();
+        CompactAccessor cax = heap.createCompactAccessor();
+        cax.handle(heap.allocateMemory(1024L));
+        cax.resetHandle();
+        try {
+            anyAccessorSize(cax);
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true);
+        }
+    }
 }

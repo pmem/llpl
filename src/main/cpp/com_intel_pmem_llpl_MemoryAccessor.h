@@ -27,6 +27,8 @@ JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddRangeToT
 
 JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeHasAutoFlush
   (JNIEnv *env, jobject obj);
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeCopyFromByteArrayNT
+  (JNIEnv *env, jobject obj, jbyteArray srcArray, jint srcIndex, jlong dst, jint byteCount);
 #ifdef __cplusplus
 }
 #endif

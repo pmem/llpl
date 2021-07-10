@@ -56,7 +56,7 @@ public abstract class AnyMemoryBlock extends MemoryAccessor {
     
     /**
     * Returns a hash code for this memory block.  Note that memory block hash codes are not computed based on the 
-    * presistent memory they reference and are only stable for the life of the memory block object itself.   
+    * presistent memory they reference and are only stable for the lifetime of the Java process.   
     * @return a hash code for this memory block
     */
     @Override

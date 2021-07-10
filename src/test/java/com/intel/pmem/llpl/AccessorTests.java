@@ -49,6 +49,19 @@ public class AccessorTests {
     }
 
     @Test
+    public void testSizeCompactAccessor() {
+        heap = TestVars.createHeap();
+        CompactAccessor acc = heap.createCompactAccessor();
+        acc.handle(heap.allocateMemory(100));
+        try {
+            acc.size();
+            Assert.fail("UnsupportedOperationException was not thrown");
+        } catch (UnsupportedOperationException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
+    @Test
     public void testSetCompactMemoryBlockHandle() {
         heap = TestVars.createHeap();
         CompactMemoryBlock[] blocks = new CompactMemoryBlock[100];
