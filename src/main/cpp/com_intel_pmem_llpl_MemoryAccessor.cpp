@@ -67,11 +67,3 @@ JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeHasAutoFlus
 {
     return pmem_has_auto_flush();
 }
-
-JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeCopyFromByteArrayNT
-  (JNIEnv *env, jobject obj, jbyteArray srcArray, jint srcIndex, jlong dst, jint byteCount)
-{
-    jbyte* src = env->GetByteArrayElements(srcArray, (jboolean *)0);
-    void *addr = pmem_memcpy((void *)dst, src + srcIndex, byteCount, PMEM_F_MEM_NONTEMPORAL);
-    env->ReleaseByteArrayElements(srcArray, src, 0);
-}
