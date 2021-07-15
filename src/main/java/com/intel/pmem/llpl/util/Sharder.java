@@ -41,8 +41,8 @@ interface Sharder<K> {
     @SuppressWarnings("unchecked")
     public static <K> Sharder<K> rebuild(AnyHeap heap, long handle, AbstractSharded<K> sharded) {
         AnyMemoryBlock block = heap.memoryBlockFromHandle(handle);
-        byte[] arr = new byte[block.getInt(0)];
-        block.copyToArray(4, arr, 0, arr.length);
+        byte[] arr = new byte[block.getInt(16)];
+        block.copyToArray(20, arr, 0, arr.length);
         String className = new String(arr);
         Constructor ctor;
         Sharder<K> ret = null;

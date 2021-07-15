@@ -5,8 +5,6 @@
  *
  */
 
-// Note: this code is EXPERIMENTAL 
-
 #include <jni.h>
 
 #ifndef _Included_com_intel_pmem_llpl_MemoryPoolImpl

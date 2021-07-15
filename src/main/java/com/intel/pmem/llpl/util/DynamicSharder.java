@@ -32,10 +32,13 @@ class DynamicSharder<K> implements Sharder<K> {
     private long  handle;
     private LongArray shardArray;
     final String CLASSNAME = "com.intel.pmem.llpl.util.DynamicSharder"; 
-    private final int CLASSNAME_LENGTH_OFFSET = 0;
-    private final int CLASSNAME_OFFSET = 4;
-    private final long ROOT_SHARD_OFFSET = CLASSNAME_OFFSET + CLASSNAME.length();
-    private final long ROOT_BLOCK_SIZE = ROOT_SHARD_OFFSET + 8;
+    private final short VERSION = 100;
+    private final long VERSION_OFFSET = 0;
+    private final long ROOT_SHARD_OFFSET = VERSION_OFFSET + 8;
+    private final long CLASSNAME_LENGTH_OFFSET = ROOT_SHARD_OFFSET + 8; //16
+    private final long CLASSNAME_OFFSET = CLASSNAME_LENGTH_OFFSET + 4; //20
+    private final long ROOT_BLOCK_SIZE = CLASSNAME_OFFSET + CLASSNAME.length();
+
     private final Comparator<K> comparator;
 
     long encodeRootBlock(AnyHeap heap, LongArray shardArray) {
@@ -43,6 +46,7 @@ class DynamicSharder<K> implements Sharder<K> {
         rootBlock.setInt(CLASSNAME_LENGTH_OFFSET, CLASSNAME.length());
         rootBlock.copyFromArray(CLASSNAME.getBytes(), 0, CLASSNAME_OFFSET, CLASSNAME.length());
         rootBlock.setLong(ROOT_SHARD_OFFSET, shardArray.handle());
+        rootBlock.setShort(VERSION_OFFSET, VERSION);
         return rootBlock.handle();
     }
 

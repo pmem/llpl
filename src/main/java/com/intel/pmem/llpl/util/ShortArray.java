@@ -12,7 +12,7 @@ import com.intel.pmem.llpl.AnyMemoryBlock;
 import com.intel.pmem.llpl.HeapException;
 
 /**
- * This class contains a sequence of {@code short} values.
+ * A sequence of {@code short} values.
  * The array can be created using different heap types.
  * Given a persistent heap, the array will store values durably, and given
  * a transactional heap, it will store values transactionally.
@@ -22,6 +22,9 @@ import com.intel.pmem.llpl.HeapException;
 public class ShortArray {
     private static final int SHIFT_BITS = 1;
     private final AnyMemoryBlock arrayBlock;
+    private static final long VERSION_OFFSET = 0;
+    private static final long DATA_OFFSET = 8;
+    private static final short VERSION = 100;
 
     /**
      * Returns a previously created array that is associated with the given handle.
@@ -46,11 +49,16 @@ public class ShortArray {
      * @throws HeapException if the array could not be created
      */
     public ShortArray(AnyHeap heap, long size) {
-        this.arrayBlock = heap.allocateMemoryBlock(Short.BYTES * size);
+        this.arrayBlock = heap.allocateMemoryBlock(Short.BYTES * size + DATA_OFFSET);
+        arrayBlock.setShort(VERSION_OFFSET, VERSION);
     }
 
     private ShortArray(AnyHeap heap, AnyMemoryBlock arrayBlock) {
         this.arrayBlock = arrayBlock;
+    }
+
+    private long elementOffset(long index){
+        return DATA_OFFSET + Short.BYTES * index;
     }
 
     /**
@@ -66,7 +74,7 @@ public class ShortArray {
         if (index < 0 || index >= size()) {
             throw new ArrayIndexOutOfBoundsException();
         }
-        arrayBlock.setShort(Short.BYTES * index, value);
+        arrayBlock.setShort(elementOffset(index), value);
     }
 
     /**
@@ -81,7 +89,7 @@ public class ShortArray {
         if (index < 0 || index >= size()) {
             throw new ArrayIndexOutOfBoundsException();
         }
-        return arrayBlock.getShort(Short.BYTES * index);
+        return arrayBlock.getShort(elementOffset(index));
     }
 
     /**
@@ -90,7 +98,7 @@ public class ShortArray {
      * @throws IllegalStateException if the array has been freed
      */
     public long size() {
-        return arrayBlock.size() >> SHIFT_BITS;
+        return (arrayBlock.size() - DATA_OFFSET) >> SHIFT_BITS;
     }
 
     /**

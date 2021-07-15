@@ -17,7 +17,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * This is a Concurrent implementation of an Adaptive Radix Tree that uses {@code byte[]} for keys and {@code long} for values.
+ * A concurrent implementation of an Adaptive Radix Tree that uses {@code byte[]} for keys and {@code long} for values.
  * The radix tree can be created using different heap types.
  * Given a persistent heap, the radix tree will store values durably, and given
  * a transactional heap, it will store values transactionally.
@@ -27,11 +27,6 @@ import java.util.NoSuchElementException;
 public class ConcurrentLongART extends AbstractSharded<byte[]> {
     private final AnyHeap heap;
     private final Sharder<byte[]> sharder;
-    private AnyMemoryBlock rootBlock;
-    private final long ROOT_BLOCK_SIZE = 18;
-    private final long ROOT_BLOCK_SHARD_OFFSET = 0;
-    private final long ROOT_BLOCK_RANGE_OFFSET = 8;
-    private final long ROOT_BLOCK_POLICY_OFFSET = 16;
     final Comparator<byte[]> comparator = ConcurrentLongART::compare;
 
     enum Mode {

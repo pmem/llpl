@@ -64,7 +64,7 @@ public abstract class AnyHeap {
     private static final int MAX_USER_CLASSES = (TOTAL_ALLOCATION_CLASSES - USER_CLASS_INDEX) / 2;
     static Unsafe UNSAFE;
     private static final Map<String, AnyHeap> heaps = new ConcurrentHashMap<>();
-    private static final long HEAP_VERSION = 1100;
+    private static final long HEAP_VERSION = 1200;
     private static final long MIN_HEAP_VERSION = 900;
 
     /**
@@ -116,7 +116,8 @@ public abstract class AnyHeap {
         valid = true;
         this.size = nativeProbeHeapSize(poolHandle, this.size);
         metadata = Metadata.open(this);
-        if (MIN_HEAP_VERSION > metadata.getVersion()) throw new HeapException("Failed to open heap. Incompatible heap version."); 
+        long currentVersion = metadata.getVersion();
+        if (currentVersion < MIN_HEAP_VERSION || currentVersion > HEAP_VERSION ) throw new HeapException("Failed to open heap. Incompatible heap version."); 
         open = true;
     }
 
@@ -192,6 +193,7 @@ public abstract class AnyHeap {
      */
     public synchronized boolean registerAllocationSize(long size, boolean compact) {
         if (userSizes.size() == MAX_USER_CLASSES) throw new HeapException("Max number of allocation sizes reached.");
+        if (size <= 0) throw new IllegalArgumentException();
         long effectiveSize;
         if (!userSizes.containsKey(effectiveSize = (size + (compact ? 0L : Long.BYTES)))) {
             int id = nativeRegisterAllocationClass(poolHandle, effectiveSize);
@@ -432,7 +434,6 @@ public abstract class AnyHeap {
         int custom_id = 0;
         for (Map.Entry<Long, Integer> e : userSizes.entrySet()) {
             custom_unit_size = e.getKey(); 
-            if (custom_unit_size == 0) break;
             custom_id = e.getValue(); 
             if (custom_unit_size == size) {
                 return custom_id;
@@ -451,9 +452,8 @@ public abstract class AnyHeap {
         //  starting from the largest less than 128
         int closest_builtin_size = 128, builtin_id = 0;
         for (int j = USER_CLASS_INDEX - 1; j >= 0; j--) {
+            if ((8 * (j + 1)) < size) break;
             if (allocationClasses[j] == 0) continue;
-            if ((8 * (j + 1)) < size)
-                break;
             closest_builtin_size = (8 * (j + 1));
             builtin_id = (int)allocationClasses[j];
             if (closest_builtin_size == size) {
@@ -461,7 +461,7 @@ public abstract class AnyHeap {
             }
         }
 
-        if (closest_builtin_size > custom_unit_size) {
+        if (custom_unit_size > 0 && closest_builtin_size > custom_unit_size) {
             return custom_id;
         }
         else {

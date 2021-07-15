@@ -12,7 +12,7 @@ import com.intel.pmem.llpl.AnyMemoryBlock;
 import com.intel.pmem.llpl.HeapException;
 
 /**
- * This class contains a sequence of {@code long} values.
+ * A sequence of {@code long} values.
  * The array can be created using different heap types.
  * Given a persistent heap, the array will store values durably, and given
  * a transactional heap, it will store values transactionally.
@@ -22,6 +22,9 @@ import com.intel.pmem.llpl.HeapException;
 public class LongArray {
     private static final int SHIFT_BITS = 3;
     private final AnyMemoryBlock arrayBlock;
+    private static final long VERSION_OFFSET = 0;
+    private static final long DATA_OFFSET = 8;
+    private static final short VERSION = 100;
 
     /**
      * Returns a previously created array that is associated with the given handle.
@@ -46,11 +49,16 @@ public class LongArray {
      * @throws HeapException if the array could not be created
      */
     public LongArray(AnyHeap heap, long size) {
-        this.arrayBlock = heap.allocateMemoryBlock(Long.BYTES * size);
+        this.arrayBlock = heap.allocateMemoryBlock(Long.BYTES * size + DATA_OFFSET);
+        arrayBlock.setShort(VERSION_OFFSET, VERSION);
     }
 
     private LongArray(AnyHeap heap, AnyMemoryBlock arrayBlock) {
         this.arrayBlock = arrayBlock;
+    }
+
+    private long elementOffset(long index){
+        return DATA_OFFSET + Long.BYTES * index;
     }
 
     /**
@@ -66,7 +74,7 @@ public class LongArray {
         if (index < 0 || index >= size()) {
             throw new ArrayIndexOutOfBoundsException();
         }
-        arrayBlock.setLong(Long.BYTES * index, value);
+        arrayBlock.setLong(elementOffset(index), value);
     }
 
     /**
@@ -81,7 +89,7 @@ public class LongArray {
         if (index < 0 || index >= size()) {
             throw new ArrayIndexOutOfBoundsException();
         }
-        return arrayBlock.getLong(Long.BYTES * index);
+        return arrayBlock.getLong(elementOffset(index));
     }
 
     /**
@@ -90,7 +98,7 @@ public class LongArray {
      * @throws IllegalStateException if the array has been freed
      */
     public long size() {
-        return arrayBlock.size() >> SHIFT_BITS;
+        return (arrayBlock.size() - DATA_OFFSET) >> SHIFT_BITS;
     }
 
     /**

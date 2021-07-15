@@ -20,7 +20,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * This is an implementation of an Adaptive Radix Tree that uses {@code byte[]} for keys and {@code long} for values. 
+ * An implementation of an Adaptive Radix Tree that uses {@code byte[]} for keys and {@code long} for values. 
  * The radix tree can be created using different heap types. Given a persistent heap, the radix tree will store values durably,
  * and given a transactional heap, it will store values transactionally.<br><br>
  * <b>This implementation is not thread-safe.</b> If multiple threads access a tree, and one or more of them modifies
@@ -34,6 +34,7 @@ public class LongART implements DynamicShardable<byte[]> {
     private int maxKeyLen;
     private long count = 0;
     private byte[] lastKey;
+    private static final short VERSION = 100;
 
     /**
      * Creates a new radix tree.
@@ -48,6 +49,7 @@ public class LongART implements DynamicShardable<byte[]> {
         registerAllocationClasses(heap);
         this.heap = heap;   
         this.root = new Root(heap);
+        root.setVersion(VERSION);
     }
     
     static void registerAllocationClasses(AnyHeap heap) {
@@ -1230,27 +1232,35 @@ public class LongART implements DynamicShardable<byte[]> {
         }
 
         long getCount() {
-            return mb.getLong(Node.COMPRESSED_PATH_OFFSET);
+            return mb.getLong(COMPRESSED_PATH_OFFSET);
         }
 
         void setCount(long count) {
-            mb.setLong(Node.COMPRESSED_PATH_OFFSET, count);
+            mb.setLong(COMPRESSED_PATH_OFFSET, count);
         }
 
         void incrementCount() {
-            mb.setLong(Node.COMPRESSED_PATH_OFFSET, mb.getLong(Node.COMPRESSED_PATH_OFFSET) + 1);
+            mb.setLong(COMPRESSED_PATH_OFFSET, mb.getLong(COMPRESSED_PATH_OFFSET) + 1);
         }
 
         void decrementCount() {
-            mb.setLong(Node.COMPRESSED_PATH_OFFSET, mb.getLong(Node.COMPRESSED_PATH_OFFSET) - 1);
+            mb.setLong(COMPRESSED_PATH_OFFSET, mb.getLong(COMPRESSED_PATH_OFFSET) - 1);
         }
 
         int getMaxKeyLength() {
-            return mb.getInt(Node.PREFIX_LENGTH_OFFSET);
+            return mb.getInt(PREFIX_LENGTH_OFFSET);
         }
 
         void setMaxKeyLength(int length) {
-            mb.setInt(Node.PREFIX_LENGTH_OFFSET, length);
+            mb.setInt(PREFIX_LENGTH_OFFSET, length);
+        }
+
+        void setVersion(short version) {
+            mb.setShort(CHILDREN_COUNT_OFFSET, version);
+        }
+
+        short getVersion() {
+            return mb.getShort(CHILDREN_COUNT_OFFSET);
         }
 
         boolean isLeaf() { return false; }

@@ -5,8 +5,6 @@
  *
  */
 
-// Note: this code is EXPERIMENTAL 
-
 #include "com_intel_pmem_llpl_MemoryPoolImpl.h"
 #include "util.h"
 #include <libpmem.h>

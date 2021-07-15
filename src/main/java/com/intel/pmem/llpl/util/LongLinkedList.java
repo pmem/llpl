@@ -17,7 +17,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * This class implements a singly-linked list containing {@code long} values.
+ * A singly-linked list of {@code long} values.
  * The list can be created using different heap types.
  * Given a persistent heap, the list will store values durably, and given
  * a transactional heap, it will store values transactionally.<br><br>
@@ -32,9 +32,11 @@ public class LongLinkedList {
     private AnyHeap heap;
     private AnyAccessor sentinel;
     private long handle;
-    private static final long FIRST_OFFSET = 0;
-    private static final long COUNT_OFFSET = 8;
-    private static final long SIZE = 16;
+    private static final long VERSION_OFFSET = 0;
+    private static final long FIRST_OFFSET = 8;
+    private static final long COUNT_OFFSET = 16;
+    private static final long SIZE = 24;
+    private static final short VERSION = 100;
 
     /**
      * Creates a list on the specified heap.
@@ -49,6 +51,7 @@ public class LongLinkedList {
         this.handle = heap.allocateCompactMemory(SIZE);
         this.sentinel = heap.createCompactAccessor();
         this.sentinel.handle(handle);
+        sentinel.setShort(VERSION_OFFSET, VERSION);
     }
 
     private LongLinkedList(AnyHeap heap, long handle) {

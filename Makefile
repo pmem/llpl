@@ -60,7 +60,9 @@ ALL_PERF_TEST_CLASSES = $(addprefix $(TEST_CLASSES_DIR)/, $(notdir $(ALL_PERF_TE
 LIBRARIES = $(addprefix $(CPP_BUILD_DIR)/, libllpl.so)
 
 EXAMPLES_DIR = src/examples/com/intel/pmem/llpl/examples
+OLD_EXAMPLES_DIR = src/old_examples/com/intel/pmem/llpl/examples
 ALL_EXAMPLE_DIRS = $(wildcard $(EXAMPLES_DIR)/*)
+ALL_OLD_EXAMPLE_DIRS = $(wildcard $(OLD_EXAMPLES_DIR)/*)
 #$(addprefix $(EXAMPLES_DIR)/, reservations employees)
 
 all: sources examples testsources
@@ -74,6 +76,7 @@ jar: sources
 
 examples: sources
 	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src/examples $(example_dir)/*.java;)
+	$(foreach old_example_dir,$(ALL_OLD_EXAMPLE_DIRS), $(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src/old_examples $(old_example_dir)/*.java;)
 
 testsources: sources
 	#$(JAVAC) $(JAVAFLAGS) -cp $(BASE_CLASSPATH):src -d $(TEST_CLASSES_DIR) $(TEST_DIR)/*.java;
@@ -84,6 +87,7 @@ clean: cleanex
 
 cleanex:
 	$(foreach example_dir,$(ALL_EXAMPLE_DIRS), rm -rf $(example_dir)/*.class;)
+	$(foreach old_example_dir,$(ALL_OLD_EXAMPLE_DIRS), rm -rf $(old_example_dir)/*.class;)
 
 tests: $(ALL_TEST_CLASSES)
 	$(foreach test,$^, $(JAVA) -ea -cp $(BASE_CLASSPATH):$(TEST_CLASSES_DIR) -Djava.library.path=$(CPP_BUILD_DIR) $(PACKAGE_NAME)/$(notdir $(test:.class=));)

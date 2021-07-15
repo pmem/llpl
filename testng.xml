@@ -4,6 +4,7 @@
 	<test name="LLPL-basic">
 		<classes>
 			<class name="com.intel.pmem.llpl.AccessorTests" />
+			<class name="com.intel.pmem.llpl.AllocationClassTests" />
 			<class name="com.intel.pmem.llpl.LLPLTestConfig" />
 			<class name="com.intel.pmem.llpl.Heap1Tests" />
 			<class name="com.intel.pmem.llpl.Heap2Tests" />
