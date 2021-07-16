@@ -94,7 +94,7 @@ public class Util {
             loaded = true;
         } 
         catch (IOException e) {
-            throw new ExceptionInInitializerError("Failed to native load llpl library");
+            throw new ExceptionInInitializerError("Failed to load native llpl library");
         }
         finally {
             if (nativeLib != null) nativeLib.deleteOnExit();
