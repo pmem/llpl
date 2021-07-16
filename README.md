@@ -1,11 +1,19 @@
-
-# Low Level Persistence Library #
+# Low-Level Persistence Library #
 
 ## OVERVIEW ##
-The Low Level Persistence Library offers access to blocks of persistent memory allocated on
-a persistent heap.  
+The Low-Level Persistence Library (LLPL) is a Java library that provides access to off-heap persistent memory.
+LLPL includes several kinds of components that can be allocated and used alone or together in building applications:
+* <b>heaps</b>: a pool of memory and an allocator for it
+* <b>memory blocks</b>: unstructured bytes that can be laid out for any purpose and linked to build data structures
+* <b>pre-built data structures</b>: arrays, linked list, and radix trees
+* <b>memory pools</b>: a process-shareable pool of memory
 
-This Java library uses the Persistent Memory Development Kit (PMDK).
+Data stored in the components above can persist beyond the life of a JVM instance, i.e. across application or system restarts.
+LLPL provides APIs that help developers ensure consistency of stored data.
+
+Memory allocated using LLPL is not garbage-collected and must be explicitly deallocated using LLPL APIs.
+
+LLPL uses the Persistent Memory Development Kit (PMDK).
 For more information on PMDK, please visit http://pmem.io and https://github.com/pmem/pmdk.
 
 ## HOW TO BUILD & RUN ##
@@ -14,12 +22,13 @@ For more information on PMDK, please visit http://pmem.io and https://github.com
 The following are the prerequisites for building this Java library:
 
 1. Linux operating system
-2. Persistent Memory Development Kit (PMDK)
-3. Java 8 or above
+2. Persistent Memory Development Kit (PMDK) v1.5 or newer
+3. Java 8 or newer
 4. Build tools - `g++` compiler, `CMake` and `Maven`
 
 ### PREREQUISITES TO RUN ###
-This library assumes the availability of hardware persistent memory or emulated persistent memory.  Instructions for creating emulated persistent memory are shown below.
+This library assumes the availability of hardware persistent memory or emulated persistent memory.
+Instructions for creating emulated persistent memory are shown below.
 
 ### EMULATING PERSISTENT MEMORY ###
 The preferred way is to create an in-memory DAX file system. This requires Linux kernel 4.2 or 
@@ -37,7 +46,6 @@ Once all the prerequisites have been satisfied:
    ```
    $ git clone https://github.com/pmem/llpl.git
    $ cd llpl
-   $ mvn compile
    $ mvn test -Dtest.heap.path=<path to persistent memory mount point>
    ```
 Available Maven commands include:
@@ -58,11 +66,20 @@ LLPL is available from the Maven central repository. Add the following dependenc
     <type>jar</type>
 </dependency>
 ```
+
 #### WITH CLASSPATH ####  
-To import this library into an existing Java application, include the project's target/classes 
-directory in your Java classpath and the project's ```target/cppbuild``` directory in your 
-```java.library.path```.  For example: 
+To use this library in your Java application, build the LLPL jar and include 
+its location in your Java classpath.  For example:
    ```
+   $ mvn package
+   $ javac -cp .:<path>/llpl/target/llpl-<version>.jar <source>
+   $ java -cp .:<path>/llpl/target/llpl-<version>.jar <class>
+   ```
+
+Alternatively, include LLPL's `target/classes` directory in your Java classpath and the
+`target/cppbuild` directory in your `java.library.path`.  For example:
+   ```
+   $ mvn compile
    $ javac -cp .:<path>/llpl/target/classes <source>
    $ java -cp .:<path>/llpl/target/classes -Djava.library.path=<path>/llpl/target/cppbuild <class>
    ```
@@ -73,5 +90,4 @@ Thanks for your interest! Please see the CONTRIBUTING.md document for informatio
 We would love to hear your comments and suggestions via https://github.com/pmem/llpl/issues.
 
 ## Contacts ##
-For more information on this library, contact Olasoji Denloye (olasoji.denloye@intel.com) or Steve Dohrmann
-(steve.dohrmann@intel.com).
+For more information on this library, contact Olasoji Denloye (olasoji.denloye@intel.com), Matt Welch (matt.welch@intel.com), or Steve Dohrmann (steve.dohrmann@intel.com).
