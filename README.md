@@ -62,7 +62,7 @@ LLPL is available from the Maven central repository. Add the following dependenc
 <dependency>
     <groupId>com.intel.pmem</groupId>
     <artifactId>llpl</artifactId>
-    <version>1.1.0-release</version>
+    <version>1.2.0-release</version>
     <type>jar</type>
 </dependency>
 ```
