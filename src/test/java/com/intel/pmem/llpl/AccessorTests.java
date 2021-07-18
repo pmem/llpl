@@ -605,7 +605,7 @@ public class AccessorTests {
         byte[] arr = new byte[size];
         int offset = size;
         int len = -1;
-        for(int i = 0; i < len; i++)
+        for(int i = 0; i < size; i++)
             arr[i] = (byte)-1;
         try {
             acc.copyFromArray(arr, offset, 0, len);
