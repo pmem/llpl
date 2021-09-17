@@ -7,6 +7,8 @@
 
 package com.intel.pmem.llpl;
 
+import java.nio.ByteBuffer;
+
 /**
  * Implements methods suitable for writing within a contiguous range of locations in an associated block of memory. An instance of this class
  * is provided as an argument to user-supplied functions associated with ranged operations, such as 
@@ -188,6 +190,33 @@ public final class Range {
         checkValid();
         checkBoundsAndLength(offset, length);
         MemoryAccessor.uncheckedSetMemory(accessor.directAddress() + accessor.metadataSize() + offset, value, length);
+    }
+
+    /**
+     * Copies {@code srcBuf.remaining()} bytes from {@code srcBuf}, to the block of memory associated
+     * with this range, starting at {@code dstOffset}.  
+     * @param srcBuf the {@code ByteBuffer} from which to copy bytes
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of this range's bounds 
+     * @throws IllegalStateException if this range is not in a valid state for use
+     */
+    public void copyFromByteBuffer(ByteBuffer srcBuf, long dstOffset) {
+        int size;
+        if ((size = srcBuf.remaining()) == 0) return;
+        if (srcBuf.isDirect()) {
+            checkValid();
+            checkBoundsAndLength(dstOffset, size);
+            long srcAddress = MemoryAccessor.nativeGetDirectByteBufferAddress(srcBuf);
+            if (srcAddress <= 0) throw new IllegalArgumentException("Invalid ByteBuffer");
+            MemoryAccessor.uncheckedCopyBlockToBlock(srcAddress + srcBuf.position(), accessor.directAddress() + accessor.metadataSize() + dstOffset, size);
+        }
+        else {
+            copyFromArray(srcBuf.array(), srcBuf.position(), dstOffset, srcBuf.remaining());
+        }
+    }
+
+    void rawCopyFromDirectByteBuffer(long srcAddress, long dstOffset, long length) {
+        MemoryAccessor.uncheckedCopyBlockToBlock(srcAddress, dstOffset, length);
     }
 
     void flush() {

@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.function.Function;
 import java.util.function.Consumer;
+import java.nio.ByteBuffer;
 
 /**
  * The base class for all memory accessor classes. 
@@ -226,6 +227,31 @@ public abstract class MemoryAccessor {
     }
 
     /**
+     * Copies {@code length} bytes from this accessor's memory, starting at {@code srcOffset}, to
+     * {@code dstBuf}.  
+     * @param srcOffset the starting offset in this accessor's memory
+     * @param dstBuf the destination {@code ByteBuffer} 
+     * @param length the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of buffer bounds or 
+     * outside of accessor bounds or, for compact allocations, outside of heap bounds
+     * @throws IllegalStateException if the accessor is not in a valid state for use
+     */
+    public void copyToByteBuffer(long srcOffset, ByteBuffer dstBuf, int length) {
+        checkValid();
+        checkBoundsAndLength(srcOffset, length);
+        int size;
+        if ((size = dstBuf.remaining()) < length) throw new IndexOutOfBoundsException("Insufficient space remaining in destination buffer");
+        if (dstBuf.isDirect()) {
+            long dstAddress = nativeGetDirectByteBufferAddress(dstBuf);
+            if (dstAddress == 0) throw new IllegalArgumentException("Invalid ByteBuffer");
+            uncheckedCopyBlockToBlock(directAddress() + metadataSize() + srcOffset, dstAddress + dstBuf.position(), length);
+        }
+        else {
+            uncheckedCopyToArray(directAddress() + metadataSize() + srcOffset, dstBuf.array(), dstBuf.position(), length);
+        }
+    }
+
+    /**
      * Stores the supplied {@code byte} value at {@code offset} within this accessor's memory.
      * The semantics of the method depend on the implementing subclass. Persistent accessor classes 
      * will set the value durably and transactional accessor classes will set the value transactionally.  
@@ -327,6 +353,39 @@ public abstract class MemoryAccessor {
      * @throws TransactionException for transactional operations, if a transaction was not active and a new transaction could not be created
      */
     public abstract void copyFromArray(byte[] srcArray, int srcIndex, long dstOffset, int length);
+
+    /**
+     * Copies {@code srcBuf.remaining()} bytes from {@code srcBuf}, to this accessor's memory 
+     * starting at {@code dstOffset}.  
+     * The semantics of the method depend on the implementing subclass. Persistent accessor classes 
+     * will copy memory durably and transactional accessor classes will copy memory transactionally.  
+     * @param srcBuf the {@code ByteBuffer} from which to copy bytes
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of accessor 
+     * bounds or, for compact accessors, outside of heap bounds
+     * @throws IllegalStateException if this accessor is not in a valid state for use
+     */
+    public void copyFromByteBuffer(ByteBuffer srcBuf, long dstOffset) {
+        int size;
+        if ((size = srcBuf.remaining()) == 0) return;
+        if (srcBuf.isDirect()) {
+            checkValid();
+            checkBoundsAndLength(dstOffset, size);
+            long srcAddress = nativeGetDirectByteBufferAddress(srcBuf);
+            if (srcAddress == 0) throw new IllegalArgumentException("Invalid ByteBuffer");
+            Function<Range, Object> op = (Range range) -> {
+                range.rawCopyFromDirectByteBuffer(srcAddress + srcBuf.position(), directAddress() + metadataSize() + dstOffset, size);
+                return null;
+            };
+            // TODO optimize out instanceof
+    	    if (heap instanceof Heap) rawWithRange(dstOffset, size, op);
+    	    else if (heap instanceof PersistentHeap) durableWithRange(dstOffset, size, op);
+    	    else if (heap instanceof TransactionalHeap) transactionalWithRange(dstOffset, size, op);
+        }
+        else {
+            copyFromArray(srcBuf.array(), srcBuf.position(), dstOffset, srcBuf.remaining());
+        }
+    }
 
     /**
      * Sets {@code length} bytes in this accessor's memory, starting at {@code offset}, to the supplied {@code byte}  
@@ -641,4 +700,5 @@ public abstract class MemoryAccessor {
     private native static int nativeHasAutoFlush();
     native static int nativeAddToTransactionNoCheck(long address, long size);
     native static int nativeAddRangeToTransaction(long poolHandle, long address, long size);
+    static native long nativeGetDirectByteBufferAddress(ByteBuffer buf);
 }
