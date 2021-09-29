@@ -1877,8 +1877,10 @@ public class MemoryBlock2Tests {
         byte[] arr = new byte[100];
         new Random().nextBytes(arr);
         mb.copyFromArray(arr, 0, 100, arr.length);
-        buf.position(100);
+        buf.position(100).mark();
         mb.copyToByteBuffer(100, buf, arr.length);
+        Assert.assertEquals(buf.position(), 100 + arr.length);
+        buf.reset(); 
         for (int i = 0; i < arr.length; i++) {
             Assert.assertEquals(buf.get(), arr[i]);
         }
@@ -1892,8 +1894,10 @@ public class MemoryBlock2Tests {
         byte[] arr = new byte[100];
         new Random().nextBytes(arr);
         mb.copyFromArray(arr, 0, 100, arr.length);
-        dbuf.position(100);
+        dbuf.position(100).mark();
         mb.copyToByteBuffer(100, dbuf, arr.length);
+        Assert.assertEquals(dbuf.position(), 100 + arr.length);
+        dbuf.reset(); 
         for (int i = 0; i < arr.length; i++) {
             Assert.assertEquals(dbuf.get(), arr[i]);
         }

@@ -249,6 +249,7 @@ public abstract class MemoryAccessor {
         else {
             uncheckedCopyToArray(directAddress() + metadataSize() + srcOffset, dstBuf.array(), dstBuf.position(), length);
         }
+        dstBuf.position(dstBuf.position() + length);
     }
 
     /**
