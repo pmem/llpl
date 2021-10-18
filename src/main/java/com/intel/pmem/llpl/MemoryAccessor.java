@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.function.Function;
 import java.util.function.Consumer;
 import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
 
 /**
  * The base class for all memory accessor classes. 
@@ -237,6 +238,7 @@ public abstract class MemoryAccessor {
      * @throws IllegalStateException if the accessor is not in a valid state for use
      */
     public void copyToByteBuffer(long srcOffset, ByteBuffer dstBuf, int length) {
+        if (dstBuf.isReadOnly()) throw new ReadOnlyBufferException();
         checkValid();
         checkBoundsAndLength(srcOffset, length);
         int size;
@@ -245,11 +247,17 @@ public abstract class MemoryAccessor {
             long dstAddress = nativeGetDirectByteBufferAddress(dstBuf);
             if (dstAddress == 0) throw new IllegalArgumentException("Invalid ByteBuffer");
             uncheckedCopyBlockToBlock(directAddress() + metadataSize() + srcOffset, dstAddress + dstBuf.position(), length);
+            dstBuf.position(dstBuf.position() + length);
+        }
+        else if (dstBuf.hasArray()) {
+            uncheckedCopyToArray(directAddress() + metadataSize() + srcOffset, dstBuf.array(), dstBuf.position(), length);
+            dstBuf.position(dstBuf.position() + length);
         }
         else {
-            uncheckedCopyToArray(directAddress() + metadataSize() + srcOffset, dstBuf.array(), dstBuf.position(), length);
+            byte[] tmp = new byte[length];
+            uncheckedCopyToArray(directAddress() + metadataSize() + srcOffset, tmp, 0, length);
+            dstBuf.put(tmp);
         }
-        dstBuf.position(dstBuf.position() + length);
     }
 
     /**
@@ -383,8 +391,13 @@ public abstract class MemoryAccessor {
     	    else if (heap instanceof PersistentHeap) durableWithRange(dstOffset, size, op);
     	    else if (heap instanceof TransactionalHeap) transactionalWithRange(dstOffset, size, op);
         }
-        else {
+        else if (srcBuf.hasArray()) {
             copyFromArray(srcBuf.array(), srcBuf.position(), dstOffset, srcBuf.remaining());
+        }
+        else {
+            byte[] tmp = new byte[size];
+            srcBuf.get(tmp);
+            copyFromArray(tmp, 0, dstOffset, size);
         }
     }
 
