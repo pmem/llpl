@@ -158,6 +158,7 @@ public class LongART implements DynamicShardable<byte[]> {
     public byte[] firstKey() {
         Node n = root.getChild();
         if (n == null) throw new NoSuchElementException();
+        if (n.isLeaf()) return n.getPrefix();
         ByteBuffer firstKey = ByteBuffer.allocate(maxKeyLen);
         SearchHelper h = (Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) -> {
             byte[] ba = parent.getPrefix();
@@ -177,6 +178,7 @@ public class LongART implements DynamicShardable<byte[]> {
     public byte[] lastKey() {
         Node n = root.getChild();
         if (n == null) throw new NoSuchElementException();
+        if (n.isLeaf()) return n.getPrefix();
         ByteBuffer lastKey = ByteBuffer.allocate(maxKeyLen);
         SearchHelper h = (Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) -> {
             byte[] ba = parent.getPrefix();
@@ -467,7 +469,6 @@ public class LongART implements DynamicShardable<byte[]> {
                 }
             }
         }
-        
     }
 
     @SuppressWarnings("unchecked")
@@ -477,7 +478,7 @@ public class LongART implements DynamicShardable<byte[]> {
         }
         Node next;
         int matchedLength = (key.length == 0) ? node.getPrefixLength() : node.checkPrefix(key, depth);
-        if (matchedLength != node.getPrefixLength()) {
+        if (matchedLength != node.getPrefixLength() && !node.isLeaf()) {
             return -1;
         }
         if (node.isLeaf())
@@ -569,6 +570,7 @@ public class LongART implements DynamicShardable<byte[]> {
         if (cleanerFunction == null) throw new IllegalArgumentException("cleaner function cannot be null");
         heap.execute(() -> {
             root.destroy(cleanerFunction);
+            root.setCount(0);
             count = 0;
         });
     }
@@ -607,7 +609,20 @@ public class LongART implements DynamicShardable<byte[]> {
     public long remove(byte[] key, Consumer<Long> cleanerFunction) {
         if (cleanerFunction == null) throw new NullPointerException("cleaner function cannot be null");
         if (key.length == 0) throw new IllegalArgumentException("Invalid key");
-        return search(root.getChild(), key, 0, this::deleteNodes , cleanerFunction);
+        Node n = root.getChild();
+        if (n != null && n.isLeaf() && Arrays.equals(key, n.getPrefix())) {
+            heap.execute(() -> {
+                root.destroy(cleanerFunction);
+                root.setCount(0);
+                count = 0;
+            });
+            return ((SimpleLeaf)n).getValue();
+        }
+        else {
+            long ret = search(n, key, 0, this::deleteNodes , cleanerFunction);
+            if (n != null && !n.isLeaf() && ((InternalNode)n).getChildrenCount() == 0) root.deleteChild();
+            return ret;
+        }
     }
 
     /**
@@ -660,7 +675,21 @@ public class LongART implements DynamicShardable<byte[]> {
      */
     public Iterator<Entry> getHeadEntryIterator(byte[] lastKey, boolean lastInclusive) {
         if (lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
-        return new EntryIterator(lastKey, lastInclusive);
+        return new EntryIterator(lastKey, lastInclusive, false);
+    }
+
+    /**
+     * Returns a descending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys are lower than (or equal to, 
+     * if {@code firstInclusive} is true) {@code firstKey}.
+     * @param firstKey high endpoint of the keys in the returned iterator
+     * @param firstInclusive true if the highest key is to be included in the returned iterator
+     * @return the iterator 
+     * @throws IllegalArgumentException if lastKey has zero length
+     */
+    public Iterator<Entry> getReverseHeadEntryIterator(byte[] firstKey, boolean firstInclusive) {
+        if (firstKey == null || firstKey.length == 0) throw new IllegalArgumentException();
+        return new EntryIterator(firstKey, firstInclusive, null, false, true);
     }
 
     /**
@@ -670,11 +699,25 @@ public class LongART implements DynamicShardable<byte[]> {
      * @param firstKey low endpoint of the keys in the returned iterator
      * @param firstInclusive true if the lowest key is to be included in the returned iterator
      * @return the iterator
-     * @throws IllegalArgumentException if lastKey has zero length
+     * @throws IllegalArgumentException if firstKey has zero length
      */
     public Iterator<Entry> getTailEntryIterator(byte[] firstKey, boolean firstInclusive) {
         if (firstKey == null || firstKey.length == 0) throw new IllegalArgumentException();
         return new EntryIterator(firstKey, firstInclusive, null, false, false);
+    }
+
+    /**
+     * Returns a descending-order iterator over entries in this radix tree;
+     * the iterator will include entries whose keys are higher than (or equal to, 
+     * if {@code lastInclusive} is true) {@code lastKey}.
+     * @param lastKey low endpoint of the keys in the returned iterator
+     * @param lastInclusive true if the lowest key is to be included in the returned iterator
+     * @return the iterator
+     * @throws IllegalArgumentException if lastKey has zero length
+     */
+    public Iterator<Entry> getReverseTailEntryIterator(byte[] lastKey, boolean lastInclusive) {
+        if (lastKey == null || lastKey.length == 0) throw new IllegalArgumentException();
+        return new EntryIterator(lastKey, lastInclusive, true);
     }
 
     /**
@@ -713,7 +756,7 @@ public class LongART implements DynamicShardable<byte[]> {
             this.hasBlank=hasBlank;
             this.reversed = reversed;
             if (radix != entries[0].radix) this.index = calcIndex(radix);
-            if (reversed && index == entries.length) index = entries.length - 1;
+            if (index == entries.length) index = entries.length - 1;
         }
 
         int calcIndex(byte radix) {
@@ -812,7 +855,6 @@ public class LongART implements DynamicShardable<byte[]> {
 
         void buildCache(Node parent, Node child, Byte radix, Consumer<Long> cleanerFunction) {
             StackItem item;
-            if (reversed && child == null) return;
             NodeEntry[] entries = ((InternalNode)parent).getEntries();
             if (radix == null && child != null) item = new StackItem(entries, parent.getPrefixLength(), reversed);
             else if (child == null) {
@@ -827,37 +869,39 @@ public class LongART implements DynamicShardable<byte[]> {
             if (radix != null && child != null && !child.isLeaf()) keyBuf.put(radix);
         }
 
-        public EntryIterator(byte[] lastKey, boolean lastInclusive) {
-            this();
+        public EntryIterator(byte[] lastKey, boolean lastInclusive, boolean reversed) {
+            this(reversed);
             this.lastKey = lastKey;
             this.lastInclusive = lastInclusive;
         }
 
         public EntryIterator(byte[] firstKey, boolean firstInclusive, byte[] lastKey, boolean lastInclusive, boolean reversed) {
             cache = new ArrayDeque<>();
-            this.reversed = reversed;
             Node first = root.getChild();
             // lastKey can be null, firstkey is never null as it is checked before calling this
             if (lastKey != null) {
                 int comp = keyCompare(firstKey, lastKey);
                 if (comp == 0) {
-                    long val = get(firstKey);
-                    next = (val == 0) ? null : new Entry(firstKey, val);
+                    if (firstInclusive && lastInclusive) {
+                        long val = get(firstKey);
+                        next = (val == 0) ? null : new Entry(firstKey, val);
+                    }
                     return;
                 }
-                if (!reversed && comp > 0) throw new IllegalArgumentException();
-                if (reversed && comp < 0) throw new IllegalArgumentException();
+                if (comp > 0) throw new IllegalArgumentException();
+                if (reversed) {
+                    this.lastKey = firstKey;
+                    firstKey = lastKey;
+                    this.lastInclusive = firstInclusive;
+                    firstInclusive = lastInclusive;
+                }
+                else {
+                    this.lastKey = lastKey;
+                    this.lastInclusive = lastInclusive;
+                }
             }
-            if (reversed) {
-                this.lastKey = firstKey;
-                firstKey = lastKey;
-                this.lastInclusive = firstInclusive;
-                firstInclusive = lastInclusive;
-            }
-            else {
-                this.lastKey = lastKey;
-                this.lastInclusive = lastInclusive;
-            }
+            this.reversed = reversed;
+            
             if (first != null) {
                 if (first.isLeaf()) {
                     SimpleLeaf leaf = (SimpleLeaf)first;
@@ -947,7 +991,10 @@ public class LongART implements DynamicShardable<byte[]> {
                 if ((inclusive && x == 0) || x < 0) break;
                 while (cursor.isDone() && cache.size() > 0) {
                     pop(); 
-                    if (cursor == null) break;
+                    if (cursor == null) { 
+                        if (keyBuf.position() == 0) next = null;
+                        break;
+                    }
                 }
             }
         }

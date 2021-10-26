@@ -16,6 +16,7 @@ import org.testng.annotations.Test;
 import org.testng.Assert;
 import java.util.NoSuchElementException;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Map;
@@ -28,6 +29,9 @@ public class LongARTTests {
     static byte[] firstKey;
     static byte[] lastKey;
     static byte[] prefixKey;
+    static byte[] fixedLengthFirstKey;
+    static byte[] fixedLengthLastKey;
+    static byte[] fixedLengthPrefixKey;
     static long firstValue;
     static long lastValue;
     static long prefixValue;
@@ -41,6 +45,11 @@ public class LongARTTests {
         firstKey = new byte[8]; Arrays.fill(firstKey, (byte)0);
         lastKey = new byte[20]; Arrays.fill(lastKey, (byte)0xff);
         prefixKey = Arrays.copyOfRange(lastKey, 0, 12);
+        fixedLengthPrefixKey = new byte[10]; rnd.nextBytes(fixedLengthPrefixKey); 
+        fixedLengthFirstKey = new byte[10]; Arrays.fill(fixedLengthFirstKey, (byte)0);
+        System.arraycopy(fixedLengthPrefixKey, 0, fixedLengthFirstKey, 0, 6);
+        fixedLengthLastKey = new byte[10]; Arrays.fill(fixedLengthLastKey, (byte)0xff);
+        System.arraycopy(prefixKey, 0, fixedLengthLastKey, 0, 6);
         firstValue = 0x1234L << 8 | (byte)1;
         lastValue = 0x1234L << 8 | (byte)2;
         prefixValue = 0x1234L << 8 | (byte)3;
@@ -92,15 +101,29 @@ public class LongARTTests {
         tree.put(firstKey, firstValue);
         tree.put(lastKey, lastValue);
         tree.put(prefixKey, prefixValue);
+        tree.put(fixedLengthFirstKey, firstValue);
+        tree.put(fixedLengthLastKey, lastValue);
+        tree.put(fixedLengthPrefixKey, prefixValue);
         control.put(new KeyBytes(firstKey), firstValue);
         control.put(new KeyBytes(lastKey), lastValue);
         control.put(new KeyBytes(prefixKey), prefixValue);
+        control.put(new KeyBytes(fixedLengthFirstKey), firstValue);
+        control.put(new KeyBytes(fixedLengthLastKey), lastValue);
+        control.put(new KeyBytes(fixedLengthPrefixKey), prefixValue);
         byte[] key;
         long val = 0;
         rnd.setSeed(SEED);
-        for (int i = 3; i < TREESIZE; i++) {
+        for (int i = 3; i < TREESIZE - 20; i++) {
             key = new byte[8 + rnd.nextInt(12)]; 
             rnd.nextBytes(key);
+            val = 0x1234L << 8 | (byte)i;
+            tree.put(key, val);
+            control.put(new KeyBytes(key), val);
+        }
+        for (int i = 3; i < 20; i++) {
+            key = new byte[10]; 
+            rnd.nextBytes(key);
+            System.arraycopy(fixedLengthPrefixKey, 0, key, 0, 6);
             val = 0x1234L << 8 | (byte)i;
             tree.put(key, val);
             control.put(new KeyBytes(key), val);
@@ -315,7 +338,43 @@ public class LongARTTests {
             Assert.assertTrue(true);
         }
     }
+    
+    @Test
+    public void testFirstkeySingleEntryShortKey() {
+        LongART art = new LongART(heap);
+        byte[] shortKey = Arrays.copyOf(prefixKey, 8);
+        art.put(shortKey, prefixValue);
+        Assert.assertEquals(art.firstKey(), shortKey);
+    }
 
+    @Test
+    public void testLastkeySingleEntryART() {
+        LongART art = new LongART(heap);
+        byte[] shortKey = Arrays.copyOf(lastKey, 8);
+        art.put(shortKey, lastValue);
+        Assert.assertEquals(art.lastKey(), shortKey);
+    }
+
+    @Test
+    public void testFirstkeyRecreatedSingleEntryART() {
+        LongART oldArt = new LongART(heap);
+        byte[] shortKey = Arrays.copyOf(prefixKey, 8);
+        oldArt.put(shortKey, prefixValue);
+        long artHandle = (oldArt.handle()); 
+        LongART art = LongART.fromHandle(heap, artHandle);
+        Assert.assertEquals(art.firstKey(), shortKey);
+    }
+
+    @Test
+    public void testLastkeyRecreatedSingleEntryART() {
+        LongART oldArt = new LongART(heap);
+        byte[] shortKey = Arrays.copyOf(prefixKey, 8);
+        oldArt.put(shortKey, prefixValue);
+        long artHandle = (oldArt.handle()); 
+        LongART art = LongART.fromHandle(heap, artHandle);
+        Assert.assertEquals(art.lastKey(), shortKey);
+    }
+ 
     @Test
     public void testFirstkeyFilledART() {
         LongART art = new LongART(heap);
@@ -852,6 +911,50 @@ public class LongARTTests {
     }
 
     @Test
+    public void testRangeReverseHeadEntryIteratorNullKey() {
+        LongART art = new LongART(heap);
+        try {
+            Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(null, true);
+            Assert.fail("IllegalArgumentException was not thrown");
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
+    @Test
+    public void testRangeReverseHeadEntryIteratorZeroLengthKey() {
+        LongART art = new LongART(heap);
+        try {
+            Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(new byte[]{}, true);
+            Assert.fail("IllegalArgumentException was not thrown");
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
+    @Test
+    public void testRangeReverseTailEntryIteratorNullKey() {
+        LongART art = new LongART(heap);
+        try {
+            Iterator<LongART.Entry> it = art.getReverseTailEntryIterator(null, true);
+            Assert.fail("IllegalArgumentException was not thrown");
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
+    @Test
+    public void testRangeReverseTailEntryIteratorZeroLengthKey() {
+        LongART art = new LongART(heap);
+        try {
+            Iterator<LongART.Entry> it = art.getReverseTailEntryIterator(new byte[]{}, true);
+            Assert.fail("IllegalArgumentException was not thrown");
+        } catch (IllegalArgumentException e) {
+            Assert.assertTrue(true); 
+        }
+    }
+
+    @Test
     public void testHasNextHeadEntryIteratorNewEmptyART() {
         LongART art = new LongART(heap);
         Iterator<LongART.Entry> it = art.getHeadEntryIterator(prefixKey, true);
@@ -1129,6 +1232,24 @@ public class LongARTTests {
     }
 
     @Test
+    public void testIterateRangeSingleEntryShortKeyIteratorEq() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        byte[] key = getKey(7);
+        art.put(key, firstValue);
+        control.put(new KeyBytes(key), firstValue);
+
+        Iterator<LongART.Entry> it = art.getEntryIterator(key, true, lastKey, true);
+        LongART.Entry entry = null;
+
+        for (Map.Entry<KeyBytes, Long> e : control.subMap(new KeyBytes(firstKey), true, new KeyBytes(lastKey), true).entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    @Test
     public void testIterateRangeSingleEntryIteratorLT() {
         LongART art = new LongART(heap);
         ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
@@ -1147,11 +1268,48 @@ public class LongARTTests {
     }
 
     @Test
+    public void testIterateRangeSingleEntryShortKeyIteratorLT() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        byte[] key = getKey(7);
+        art.put(key, firstValue);
+        control.put(new KeyBytes(key), firstValue);
+        byte[] fromKey = Arrays.copyOf(firstKey, 4);
+
+        Iterator<LongART.Entry> it = art.getEntryIterator(fromKey, true, lastKey, true);
+        LongART.Entry entry = null;
+
+        for (Map.Entry<KeyBytes, Long> e : control.subMap(new KeyBytes(fromKey), true, new KeyBytes(lastKey), true).entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    @Test
     public void testIterateRangeSingleEntryIteratorPrefix() {
         LongART art = new LongART(heap);
         ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
         art.put(firstKey, firstValue);
         control.put(new KeyBytes(firstKey), firstValue);
+
+        Iterator<LongART.Entry> it = art.getEntryIterator(prefixKey, true, lastKey, true);
+        LongART.Entry entry = null;
+
+        for (Map.Entry<KeyBytes, Long> e : control.subMap(new KeyBytes(prefixKey), true, new KeyBytes(lastKey), true).entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    @Test
+    public void testIterateRangeSingleEntryShortKeyIteratorPrefix() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        byte[] key = getKey(7);
+        art.put(key, firstValue);
+        control.put(new KeyBytes(key), firstValue);
 
         Iterator<LongART.Entry> it = art.getEntryIterator(prefixKey, true, lastKey, true);
         LongART.Entry entry = null;
@@ -1268,7 +1426,24 @@ public class LongARTTests {
     }
 
     @Test
-    public void testIterateRangeEntryIteratorFromKeyAbsentInRangePartialPrefixMatch() {
+    public void testIterateRangeReverseHeadEntryIteratorFromKeyAbsentInRange() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+        byte[] fromKey = getKey(20);
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(fromKey, true);
+
+        LongART.Entry entry = null;
+        for (Map.Entry<KeyBytes, Long> e : control.headMap(new KeyBytes(fromKey), true).descendingMap().entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+
+    @Test
+    public void testIterateRangeEntryIteratorFromKeyAbsentInRangePartialPrefixMatch1() {
         LongART art = new LongART(heap);
         ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
         fill(art, control);
@@ -1277,6 +1452,72 @@ public class LongARTTests {
 
         LongART.Entry entry = null;
         for (Map.Entry<KeyBytes, Long> e : control.subMap(new KeyBytes(fromKey), true, new KeyBytes(lastKey), true).entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    @Test
+    public void testIterateRangeReverseHeadEntryIteratorFromKeyAbsentInRangePartialPrefixMatch1() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+        byte[] fromKey = Arrays.copyOfRange(lastKey, 0, 8);
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(fromKey, true);
+
+        LongART.Entry entry = null;
+        for (Map.Entry<KeyBytes, Long> e : control.headMap(new KeyBytes(fromKey), true).descendingMap().entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+    // Tests for searchkey with common prefix that differs in the leaf prefix 
+    @Test
+    public void testIterateRangeEntryIteratorFromKeyAbsentInRangePartialPrefixMatch2() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+        byte[] fromKey = Arrays.copyOfRange(lastKey, 0, lastKey.length - 1);
+        Iterator<LongART.Entry> it = art.getEntryIterator(fromKey, true, lastKey, true);
+
+        LongART.Entry entry = null;
+        for (Map.Entry<KeyBytes, Long> e : control.subMap(new KeyBytes(fromKey), true, new KeyBytes(lastKey), true).entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    // Tests for searchkey with common prefix that differs in the leaf prefix 
+    @Test
+    public void testIterateRangeReverseHeadEntryIteratorFromKeyAbsentInRangePartialPrefixMatch2() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+        byte[] fromKey = Arrays.copyOfRange(lastKey, 0, lastKey.length - 1);
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(fromKey, true);
+
+        LongART.Entry entry = null;
+        for (Map.Entry<KeyBytes, Long> e : control.headMap(new KeyBytes(fromKey), true).descendingMap().entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    // Tests for searchkey with common prefix that differs in the leaf prefix 
+    @Test
+    public void testIterateRangeReverseHeadEntryIteratorFromKeyAbsentInRangePartialPrefixMatch3() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+        byte[] fromKey = Arrays.copyOfRange(lastKey, 0, lastKey.length - 9);
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(fromKey, true);
+
+        LongART.Entry entry = null;
+        for (Map.Entry<KeyBytes, Long> e : control.headMap(new KeyBytes(fromKey), true).descendingMap().entrySet()) {
             entry = it.next();
             Assert.assertEquals(entry.getKey(), e.getKey().get());
             Assert.assertEquals(entry.getValue(), e.getValue().longValue());
@@ -1427,7 +1668,158 @@ public class LongARTTests {
             Assert.assertEquals(entry.getValue(), e.getValue().longValue());
         }
     }
-   
+
+    @Test
+    public void testIterateReverseHeadEntryIterator() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(prefixKey, true);
+        LongART.Entry entry = null;
+
+        for (Map.Entry<KeyBytes, Long> e : control.headMap(new KeyBytes(prefixKey), true).descendingMap().entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    @Test
+    public void testIterateReverseTailEntryIterator() {
+        LongART art = new LongART(heap);
+        ConcurrentSkipListMap<KeyBytes, Long> control = new ConcurrentSkipListMap();
+        fill(art, control);
+
+        Iterator<LongART.Entry> it = art.getReverseTailEntryIterator(prefixKey, true);
+        LongART.Entry entry = null;
+
+        for (Map.Entry<KeyBytes, Long> e : control.tailMap(new KeyBytes(prefixKey), true).descendingMap().entrySet()) {
+            entry = it.next();
+            Assert.assertEquals(entry.getKey(), e.getKey().get());
+            Assert.assertEquals(entry.getValue(), e.getValue().longValue());
+        }
+    }
+
+    //EmptyRange tests
+    public void testEmptyRangeIterationPost() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getEntryIterator(lastKey, false, lastKey, false);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyRangeIterationPre() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getEntryIterator(Arrays.copyOf(firstKey, 1), true, Arrays.copyOf(firstKey, 2), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseRangeIterationPost() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getReverseEntryIterator(lastKey, false, lastKey, false);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseRangeIterationPre() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getReverseEntryIterator(Arrays.copyOf(firstKey, 1), true, Arrays.copyOf(firstKey, 2), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+   public void testEmptyHeadIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getHeadEntryIterator(Arrays.copyOf(firstKey, 1), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseHeadIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(Arrays.copyOf(firstKey, 1), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyTailIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        byte[] key = new byte[22]; Arrays.fill(key, (byte)0xff);
+        Iterator<LongART.Entry> it = art.getTailEntryIterator(key, true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseTailIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        byte[] key = new byte[22]; Arrays.fill(key, (byte)0xff);
+        Iterator<LongART.Entry> it = art.getReverseTailEntryIterator(key, true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+/*
+    //SingleEntryShortKey tests
+    public void testSingleEntryIterationPost() {
+        LongART art = new LongART(heap);
+        art.put(Arrays.copy
+        Iterator<LongART.Entry> it = art.getEntryIterator(lastKey, false, lastKey, false);
+        Assert.assertFalse(it.hasNext());
+    }
+    public void testEmptyRangeIterationPre() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getEntryIterator(Arrays.copyOf(firstKey, 1), true, Arrays.copyOf(firstKey, 2), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseRangeIterationPost() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getReverseEntryIterator(lastKey, false, lastKey, false);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseRangeIterationPre() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getReverseEntryIterator(Arrays.copyOf(firstKey, 1), true, Arrays.copyOf(firstKey, 2), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+   public void testEmptyHeadIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getHeadEntryIterator(Arrays.copyOf(firstKey, 1), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseHeadIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        Iterator<LongART.Entry> it = art.getReverseHeadEntryIterator(Arrays.copyOf(firstKey, 1), true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyTailIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        byte[] key = new byte[22]; Arrays.fill(key, (byte)0xff);
+        Iterator<LongART.Entry> it = art.getTailEntryIterator(key, true);
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testEmptyReverseTailIteration() {
+        LongART art = new LongART(heap);
+        fill(art);
+        byte[] key = new byte[22]; Arrays.fill(key, (byte)0xff);
+        Iterator<LongART.Entry> it = art.getReverseTailEntryIterator(key, true);
+        Assert.assertFalse(it.hasNext());
+    }
+*/
+
     // Delete tests
     public void testDeleteNullKey() {
         LongART art = new LongART(heap);
@@ -1492,6 +1884,43 @@ public class LongARTTests {
         } catch (IllegalStateException e) {
             Assert.assertTrue(true); 
         }
+    }
+    
+    public void testDeleteSingleEntry() {
+        LongART art = new LongART(heap);
+        art.put(firstKey, firstValue);
+        art.remove(firstKey, c -> {});
+        art.remove(firstKey, (Long l) -> { Assert.assertTrue(l == 0L); });
+        Iterator<LongART.Entry> it = art.getEntryIterator();
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testSizeAfterDelete() {
+        LongART art = new LongART(heap);
+        fill(art);
+        long size = art.size();
+        for (long i = 0; i < size; i++) {
+            art.remove(art.firstKey(), c -> {});
+            Assert.assertEquals(art.size(), --size);
+        }
+    }
+
+    public void testIterateAfterDelete() {
+        LongART art = new LongART(heap);
+        fill(art);
+        ArrayList<byte[]> list = new ArrayList((int)art.size());
+        Iterator<LongART.Entry> it = art.getEntryIterator();
+        while (it.hasNext()) list.add(it.next().getKey());
+        list.forEach((byte[] arr) -> { art.remove(arr, c -> {}); });
+        it = art.getEntryIterator();
+        Assert.assertFalse(it.hasNext());
+    }
+
+    public void testSizeAfterDeleteSingleEntry() {
+        LongART art = new LongART(heap);
+        art.put(firstKey, firstValue);
+        art.remove(firstKey, c -> {});
+        Assert.assertEquals(art.size(), 0L);
     }
 
     // Split tests

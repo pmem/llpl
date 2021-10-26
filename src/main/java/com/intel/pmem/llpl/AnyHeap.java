@@ -10,7 +10,7 @@ package com.intel.pmem.llpl;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap; 
 import java.util.Arrays;
 import java.util.MissingResourceException;
 import java.io.File;
@@ -97,7 +97,7 @@ public abstract class AnyHeap {
 
     AnyHeap(String path, long requestedSize) {
         this.path = path;
-        userSizes = new TreeMap<Long, Integer>();
+        userSizes = new ConcurrentSkipListMap<Long, Integer>();
         allocationClasses = new long[TOTAL_ALLOCATION_CLASSES];
         poolHandle = nativeCreateHeap(path, requestedSize, allocationClasses, this.getHeapLayoutID());
         if (poolHandle == 0) throw new HeapException("Failed to create heap.");
@@ -109,7 +109,7 @@ public abstract class AnyHeap {
 
     AnyHeap(String path) {
         this.path = path;
-        userSizes = new TreeMap<Long, Integer>();
+        userSizes = new ConcurrentSkipListMap<Long, Integer>();
         allocationClasses = new long[TOTAL_ALLOCATION_CLASSES];
         poolHandle = nativeOpenHeap(path, allocationClasses, this.getHeapLayoutID());
         if (poolHandle == 0) throw new HeapException("Failed to open heap.");
@@ -191,17 +191,19 @@ public abstract class AnyHeap {
      * @return true if size was successfully registered
      * @throws HeapException if the allocation size could not be registered
      */
-    public synchronized boolean registerAllocationSize(long size, boolean compact) {
+    public boolean registerAllocationSize(long size, boolean compact) {
         if (userSizes.size() == MAX_USER_CLASSES) throw new HeapException("Max number of allocation sizes reached.");
         if (size <= 0) throw new IllegalArgumentException();
         long effectiveSize;
         if (!userSizes.containsKey(effectiveSize = (size + (compact ? 0L : Long.BYTES)))) {
             int id = nativeRegisterAllocationClass(poolHandle, effectiveSize);
             if (id != -1) {
-                int i = USER_CLASS_INDEX + (userSizes.size() * 2);
                 userSizes.put(effectiveSize, id);
-                allocationClasses[i++] = effectiveSize;
-                allocationClasses[i] = id;
+                return true;
+            }
+            int index = (int)((effectiveSize / 8) - 1);
+            if (effectiveSize % 8 == 0 && effectiveSize < 128 && allocationClasses[index] > 0) {
+                userSizes.put(effectiveSize, (int)allocationClasses[index]); 
                 return true;
             }
             return false;
