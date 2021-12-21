@@ -27,6 +27,9 @@ JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeAddRangeToT
 
 JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeHasAutoFlush
   (JNIEnv *env, jobject obj);
+
+JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeGetDirectByteBufferAddress
+  (JNIEnv *env, jobject obj, jobject buf);
 #ifdef __cplusplus
 }
 #endif

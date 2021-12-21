@@ -9,6 +9,7 @@ package com.intel.pmem.llpl;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
 import sun.misc.Unsafe;
 
 class MemoryPoolImpl implements MemoryPool {
@@ -174,6 +175,67 @@ class MemoryPoolImpl implements MemoryPool {
     }
 
     @Override
+    public void copyFromByteBuffer(ByteBuffer srcBuf, long dstOffset) { 
+        int size;
+        if ((size = srcBuf.remaining()) == 0) return;
+        if (srcBuf.isDirect()) {
+            checkBounds(dstOffset, size);
+            long srcAddress = MemoryAccessor.nativeGetDirectByteBufferAddress(srcBuf);
+            if (srcAddress == 0) throw new IllegalArgumentException("Invalid ByteBuffer");
+            UNSAFE.copyMemory(srcAddress + srcBuf.position(), dataAddress(dstOffset), size);
+        }
+        else if (srcBuf.hasArray()) {
+            copyFromByteArray(srcBuf.array(), srcBuf.position(), dstOffset, srcBuf.remaining());
+        }
+        else {
+            byte[] tmp = new byte[size];
+            srcBuf.get(tmp);
+            copyFromByteArray(tmp, 0, dstOffset, size);
+        }
+    }
+
+    @Override
+    public void copyFromByteBufferNT(ByteBuffer srcBuf, long dstOffset) {
+        if (srcBuf.isDirect()) {
+            int size;
+            if ((size = srcBuf.remaining()) == 0) return;
+            checkBounds(dstOffset, size);
+            nativeCopyFromByteBufferNT(srcBuf, srcBuf.position(), dataAddress(dstOffset), size);
+        }
+        else if (srcBuf.hasArray()) {
+            copyFromByteArrayNT(srcBuf.array(), srcBuf.position(), dstOffset, srcBuf.remaining());
+        }
+        else {
+            byte[] tmp = new byte[srcBuf.remaining()];
+            srcBuf.get(tmp);
+            copyFromByteArray(tmp, 0, dstOffset, tmp.length);
+        }
+    }
+
+    @Override
+    public void copyToByteBuffer(long srcOffset, ByteBuffer dstBuf, int byteCount) {
+        if (dstBuf.isReadOnly()) throw new ReadOnlyBufferException();
+        int size;
+        if ((size = dstBuf.remaining()) < byteCount) throw new IndexOutOfBoundsException("Insufficient space remaining in destination buffer");
+        if (dstBuf.isDirect()) {
+            long dstAddress = MemoryAccessor.nativeGetDirectByteBufferAddress(dstBuf);
+            if (dstAddress == 0) throw new IllegalArgumentException("Invalid ByteBuffer");
+            checkBounds(srcOffset, byteCount);
+            UNSAFE.copyMemory(dataAddress(srcOffset), dstAddress + dstBuf.position(), size);
+            dstBuf.position(dstBuf.position() + byteCount);
+        }
+        else if (dstBuf.hasArray()) {
+            copyToByteArray(srcOffset, dstBuf.array(), dstBuf.position(), byteCount); 
+            dstBuf.position(dstBuf.position() + byteCount);
+        }
+        else {
+            byte[] tmp = new byte[byteCount];
+            copyToByteArray(srcOffset, tmp, 0, byteCount);
+            dstBuf.put(tmp);
+        }
+    }
+
+    @Override
     public void setMemory(byte value, long offset, long byteCount) {
         checkBounds(offset, byteCount);
         UNSAFE.setMemory(dataAddress(offset), byteCount, value);
@@ -239,5 +301,6 @@ class MemoryPoolImpl implements MemoryPool {
     private static native long nativePoolSize(String path);
     private static native void nativeCopyMemoryNT(long srcOffset, long dstOffset, long byteCount);
     private static native void nativeCopyFromByteArrayNT(byte[] srcArray, int srcIndex, long dst, int byteCount);
+    private static native void nativeCopyFromByteBufferNT(ByteBuffer srcBuf, int srcIndex, long dst, int byteCount);
     private static native void nativeSetMemoryNT(long offset, long length, byte value);
 }

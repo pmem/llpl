@@ -12,7 +12,10 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.testng.Assert;
 import org.testng.SkipException;
+import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
 import java.util.Arrays;
+import java.util.Random;
 
 @Test(singleThreaded = true)
 public class MemoryPoolTests {
@@ -587,5 +590,210 @@ public class MemoryPoolTests {
         String poolName = TestVars.HEAP_USER_PATH + TestVars.HEAP_NAME;
         Object pool2 = new Object();
         Assert.assertFalse(pool.equals(pool2));
+    }
+
+    //ByteBuffer Tests
+    @Test
+    public void testCopyFromBB() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBuffer(buf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromROBB() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBuffer(buf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromBBNT() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBufferNT(buf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromROBBNT() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBufferNT(buf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBB() {
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBuffer(dbuf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromRODirectBB() {
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBuffer(dbuf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBNT() {
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBufferNT(dbuf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromRODirectBBNT() {
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        pool.copyFromByteBufferNT(dbuf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(pool.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeBB() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        pool.copyFromByteBuffer(buf, 100);
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeBBNT() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        pool.copyFromByteBufferNT(buf, 100);
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeDirectBB() {
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        pool.copyFromByteBuffer(buf, 100);
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeDirectBBNT() {
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        pool.copyFromByteBufferNT(buf, 100);
+    }
+
+    @Test
+    public void testCopyToBB() {
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        pool.copyFromByteArray(arr, 0, 100, arr.length);
+        buf.position(100).mark();
+        pool.copyToByteBuffer(100, buf, arr.length);
+        Assert.assertEquals(buf.position(), 100 + arr.length);
+        buf.reset();
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(buf.get(), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyToDirectBB() {
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        pool.copyFromByteArray(arr, 0, 100, arr.length);
+        dbuf.position(100).mark();
+        pool.copyToByteBuffer(100, dbuf, arr.length);
+        Assert.assertEquals(dbuf.position(), 100 + arr.length);
+        dbuf.reset();
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(dbuf.get(), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyToROBB() {
+        ByteBuffer dbuf = ByteBuffer.allocate(1024).asReadOnlyBuffer();
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        pool.copyFromByteArray(arr, 0, 100, arr.length);
+        dbuf.position(100).mark();
+        try {
+            pool.copyToByteBuffer(100, dbuf, arr.length);
+            Assert.fail();
+        } catch (ReadOnlyBufferException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyToRODirectBB() {
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024).asReadOnlyBuffer();
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        pool.copyFromByteArray(arr, 0, 100, arr.length);
+        dbuf.position(100).mark();
+        try {
+            pool.copyToByteBuffer(100, dbuf, arr.length);
+            Assert.fail();
+        } catch (ReadOnlyBufferException e) {
+            Assert.assertTrue(true);
+        }
     }
 }

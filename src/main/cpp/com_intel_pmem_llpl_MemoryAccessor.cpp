@@ -67,3 +67,9 @@ JNIEXPORT jint JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeHasAutoFlus
 {
     return pmem_has_auto_flush();
 }
+
+JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryAccessor_nativeGetDirectByteBufferAddress
+  (JNIEnv *env, jobject obj, jobject buf) 
+{
+    return (jlong)env->GetDirectBufferAddress(buf);
+}

@@ -12,6 +12,9 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.testng.SkipException;
+import java.util.Random;
+import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
 
 @SuppressWarnings("deprecation")
 @Test(singleThreaded=true)
@@ -1712,4 +1715,283 @@ public class TransactionalMemoryBlock2Tests {
 		}
     }
 
+    @Test
+    public void testCopyFromBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(924).mark();
+        buf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(buf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromROBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(924).mark();
+        buf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(buf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(924).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(dbuf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromRODirectBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(924).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(dbuf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromBBCompact() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(924).mark();
+        buf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(buf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromROBBCompact() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(924).mark();
+        buf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(buf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBCompact() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(924).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(dbuf, 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromRODirectBBCompact() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(924).mark();
+        dbuf.put(arr, 0, arr.length).reset();
+        mb.copyFromByteBuffer(dbuf.asReadOnlyBuffer(), 100);
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeBB() {
+    	heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        mb.copyFromByteBuffer(buf, 100);
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeDirectBB() {
+    	heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        mb.copyFromByteBuffer(buf, 100);
+    }
+
+    @Test
+    public void testCopyFromBBInvalidMB() {
+    	heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        try {
+            mb.copyFromByteBuffer(buf, 1000);
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBInvalidMB() {
+    	heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        try {
+            mb.copyFromByteBuffer(buf, 1000);
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyFromBBInvalidCMB() {
+    	heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        try {
+            mb.copyFromByteBuffer(buf, -100);
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBInvalidCMB() {
+    	heap = TestVars.createTransactionalHeap();
+        TransactionalCompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).reset();
+        try {
+            mb.copyFromByteBuffer(buf, -100);
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyToBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        mb.copyFromArray(arr, 0, 100, arr.length);
+        buf.position(100).mark();
+        mb.copyToByteBuffer(100, buf, arr.length);
+        Assert.assertEquals(buf.position(), 100 + arr.length);
+        buf.reset();
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(buf.get(), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyToROBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024).asReadOnlyBuffer();
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        mb.copyFromArray(arr, 0, 100, arr.length);
+        buf.position(100).mark();
+        try {
+            mb.copyToByteBuffer(100, buf, arr.length);
+            Assert.fail();
+        } catch (ReadOnlyBufferException e) {
+             Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyToDirectBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        mb.copyFromArray(arr, 0, 100, arr.length);
+        dbuf.position(100).mark();
+        mb.copyToByteBuffer(100, dbuf, arr.length);
+        Assert.assertEquals(dbuf.position(), 100 + arr.length);
+        dbuf.reset();
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(dbuf.get(), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyToRODirectBB() {
+		heap = TestVars.createTransactionalHeap();
+        TransactionalMemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024).asReadOnlyBuffer();
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        mb.copyFromArray(arr, 0, 100, arr.length);
+        dbuf.position(100).mark();
+        try {
+        mb.copyToByteBuffer(100, dbuf, arr.length);
+        Assert.assertEquals(dbuf.position(), 100 + arr.length);
+        } catch (ReadOnlyBufferException e) {
+            Assert.assertTrue(true);
+        }
+    }
 }

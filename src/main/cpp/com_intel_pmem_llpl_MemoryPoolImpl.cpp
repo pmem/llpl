@@ -62,6 +62,13 @@ JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromByt
     env->ReleaseByteArrayElements(srcArray, src, 0);
 }
 
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromByteBufferNT
+  (JNIEnv *env, jobject obj, jobject srcBuf, jint srcIndex, jlong dst, jint byteCount)
+{
+    void* src = env->GetDirectBufferAddress(srcBuf);
+    void *addr = pmem_memcpy((void *)dst, src + srcIndex, byteCount, PMEM_F_MEM_NONTEMPORAL);
+}
+
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeSetMemoryNT
   (JNIEnv *env, jobject obj, jlong offset, jlong length, jbyte value)
 {

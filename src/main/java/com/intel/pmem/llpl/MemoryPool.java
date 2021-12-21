@@ -192,6 +192,26 @@ public interface MemoryPool {
     public void copyFromByteArray(byte[] srcArray, int srcIndex, long dstOffset, int byteCount);
 
     /**
+     * Copies {@code srcBuf.remaining()} bytes from {@code srcBuf}, starting at {@code srcBuf.position()} 
+     * to this pool's memory starting at {@code dstOffset}.  
+     * @param srcBuf the {@code ByteBuffer} from which to copy bytes
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of buffer bounds or
+     * outside of pool bounds
+     */
+    public void copyFromByteBuffer(ByteBuffer srcBuf, long dstOffset);
+
+    /**
+     * Copies {@code srcBuf.remaining()} bytes from {@code srcBuf} in a non-temporal way, starting at 
+     * {@code srcBuf.position()} to this pool's memory starting at {@code dstOffset}.  
+     * @param srcBuf the {@code ByteBuffer} from which to copy bytes
+     * @param dstOffset the starting offset to which bytes are to be copied
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of buffer bounds or
+     * outside of pool bounds
+     */
+    public void copyFromByteBufferNT(ByteBuffer srcBuf, long dstOffset); 
+
+    /**
      * Copies {@code byteCount} bytes from this pool's memory, starting at {@code srcOffset}, to the
      * {@code dstArray} byte array starting at array index {@code dstIndex}.
      * @param srcOffset the starting offset in this pool's memory
@@ -202,6 +222,17 @@ public interface MemoryPool {
      * outside of pool bounds
      */
     public void copyToByteArray(long srcOffset, byte[] dstArray, int dstIndex, int byteCount);
+
+    /**
+     * Copies {@code byteCount} bytes from this pool's memory, starting at {@code srcOffset}, to the
+     * {@code dstBuf}.  
+     * @param srcOffset the starting offset in this pool's memory
+     * @param dstBuf the destination {@code ByteBuffer} 
+     * @param byteCount the number of bytes to copy
+     * @throws IndexOutOfBoundsException if copying would cause access of data outside of buffer bounds or 
+     * outside of pool bounds
+     */
+    public void copyToByteBuffer(long srcOffset, ByteBuffer dstBuf, int byteCount);
 
     /**
      * Sets {@code byteCount} bytes in this pool's memory, starting at {@code offset}, to the specified {@code value}.

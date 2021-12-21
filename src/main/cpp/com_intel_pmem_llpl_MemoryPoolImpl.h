@@ -28,6 +28,9 @@ JNIEXPORT jlong JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativePoolSize
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromByteArrayNT
   (JNIEnv *env, jobject obj, jbyteArray srcArray, jint srcIndex, jlong dst, jint byteCount);
 
+JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeCopyFromByteBufferNT
+  (JNIEnv *env, jobject obj, jobject srcBuf, jint srcIndex, jlong dst, jint byteCount);
+
 JNIEXPORT void JNICALL Java_com_intel_pmem_llpl_MemoryPoolImpl_nativeSetMemoryNT
   (JNIEnv *env, jobject obj, jlong offset, jlong length, jbyte value);
 
