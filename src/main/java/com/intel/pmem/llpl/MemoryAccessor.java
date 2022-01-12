@@ -493,10 +493,6 @@ public abstract class MemoryAccessor {
         MemoryAccessor.uncheckedCopyBlockToBlock(srcAccessor.directAddress() + srcAccessor.metadataSize() + srcOffset, directAddress() + metadataSize() + dstOffset, length);
     }
 
-    void rawCopyFromMemoryBlock(MemoryAccessor srcBlock, long srcOffset, long dstOffset, long length) {
-        rawCopy(srcBlock, srcOffset, dstOffset, length);
-    }
-
     void rawCopyFromArray(byte[] srcArray, int srcOffset, long dstOffset, int length) {
         if (srcOffset < 0 || srcOffset + length > srcArray.length) throw new IndexOutOfBoundsException(MemoryAccessor.outOfBoundsMessage(srcOffset, length));
         checkValid();

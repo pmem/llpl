@@ -210,8 +210,13 @@ public final class Range {
             if (srcAddress <= 0) throw new IllegalArgumentException("Invalid ByteBuffer");
             MemoryAccessor.uncheckedCopyBlockToBlock(srcAddress + srcBuf.position(), accessor.directAddress() + accessor.metadataSize() + dstOffset, size);
         }
-        else {
+        else if (srcBuf.hasArray()) {
             copyFromArray(srcBuf.array(), srcBuf.position(), dstOffset, srcBuf.remaining());
+        }
+        else {
+            byte[] tmp = new byte[size];
+            srcBuf.get(tmp);
+            copyFromArray(tmp, 0, dstOffset, size);
         }
     }
 

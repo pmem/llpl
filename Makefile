@@ -13,9 +13,9 @@ JAVADOC = $(JAVA_HOME)/bin/javadoc
 
 JNI_INCLUDES = $(JAVA_HOME)/include $(JAVA_HOME)/include/linux
 
-CFLAGS = -O3 -DNDEBUG -fPIC -shared -D_FORTIFY_SOURCE=2 -z noexecstack -z,relro -z,now -Wformat -Wformat-security -Werror=format-security
+CFLAGS = -O3 -DNDEBUG -fPIC -shared -D_FORTIFY_SOURCE=2 -z noexecstack -fstack-protector -Wformat -Wformat-security -Werror=format-security 
 JAVAFLAGS = -Xlint:unchecked -proc:none -XDenableSunApiLintControl
-LINK_FLAGS = -fPIC -pie -O3 -DNDEBUG -shared -lpmem -lpmemobj -lpmempool -Wl,-rpath,/usr/local/lib:/usr/local/lib64
+LINK_FLAGS = -fPIC -pie -O3 -DNDEBUG -shared -lpmem -lpmemobj -lpmempool -Wl,-rpath,/usr/local/lib:/usr/local/lib64 -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
 
 CPP_SOURCE_DIR = src/main/cpp
 JAVA_SOURCE_DIR = src/main/java

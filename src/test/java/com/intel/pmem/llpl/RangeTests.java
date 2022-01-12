@@ -7,6 +7,9 @@
 
 package com.intel.pmem.llpl;
 
+import java.nio.ByteBuffer;
+import java.nio.ReadOnlyBufferException;
+import java.util.Random;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -78,4 +81,243 @@ public class RangeTests {
         Assert.assertEquals(mb1.getShort(5), (short)2345);
     }
 
+    @Test
+    public void testCopyFromBB() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(buf, 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromROBB() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(buf.asReadOnlyBuffer(), 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBB() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(dbuf, 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromRODirectBB() {
+		heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(dbuf.asReadOnlyBuffer(), 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromBBCompact() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(buf, 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromROBBCompact() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(buf.asReadOnlyBuffer(), 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBCompact() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(dbuf, 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromRODirectBBCompact() {
+		heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer dbuf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        dbuf.position(100).mark();
+        dbuf.put(arr, 0, arr.length).limit(200).reset();
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(dbuf.asReadOnlyBuffer(), 100);
+        });
+        for (int i = 0; i < arr.length; i++) {
+            Assert.assertEquals(mb.getByte(100+i), arr[i]);
+        }
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeBB() {
+    	heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(buf, 100);
+        });
+    }
+
+    @Test
+    public void testCopyFromEmptyRangeDirectBB() {
+    	heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100);
+        buf.put(arr, 0, arr.length).position(1024);
+        mb.withRange(100, 100, (Range range) -> {
+            range.copyFromByteBuffer(buf, 100);
+        });
+    }
+
+    @Test
+    public void testCopyFromBBInvalidMB() {
+    	heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        try {
+            mb.withRange(1000, 100, (Range range) -> {
+                range.copyFromByteBuffer(buf, 1000);
+            });
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBInvalidMB() {
+    	heap = TestVars.createHeap();
+        MemoryBlock mb = heap.allocateMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        try {
+            mb.withRange(1000, 100, (Range range) -> {
+                range.copyFromByteBuffer(buf, 1000);
+            });
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyFromBBInvalidCMB() {
+    	heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocate(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        try {
+            mb.withRange(100, 100, (Range range) -> {
+                range.copyFromByteBuffer(buf, -100);
+            });
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
+
+    @Test
+    public void testCopyFromDirectBBInvalidCMB() {
+    	heap = TestVars.createHeap();
+        CompactMemoryBlock mb = heap.allocateCompactMemoryBlock(1024);
+        ByteBuffer buf = ByteBuffer.allocateDirect(1024);
+        byte[] arr = new byte[100];
+        new Random().nextBytes(arr);
+        buf.position(100).mark();
+        buf.put(arr, 0, arr.length).limit(200).reset();
+        try {
+            mb.withRange(100, 100, (Range range) -> {
+                range.copyFromByteBuffer(buf, -100);
+            });
+            Assert.fail();
+        } catch(IndexOutOfBoundsException e) {
+            Assert.assertTrue(true);
+        }
+    }
 }

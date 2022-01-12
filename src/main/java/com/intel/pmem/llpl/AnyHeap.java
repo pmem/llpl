@@ -64,7 +64,7 @@ public abstract class AnyHeap {
     private static final int MAX_USER_CLASSES = (TOTAL_ALLOCATION_CLASSES - USER_CLASS_INDEX) / 2;
     static Unsafe UNSAFE;
     private static final Map<String, AnyHeap> heaps = new ConcurrentHashMap<>();
-    private static final long HEAP_VERSION = 1200;
+    private static final long HEAP_VERSION = 1210;
     private static final long MIN_HEAP_VERSION = 900;
 
     /**

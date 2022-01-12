@@ -8,7 +8,7 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(llpl)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -shared -D_FORTIFY_SOURCE=2 -z noexecstack -z,relro -z,now -Wformat -Wformat-security -Werror=format-security")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -shared -D_FORTIFY_SOURCE=2 -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wformat -Wformat-security -Werror=format-security -fstack-protector")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pie")
 
 #include Java packages
